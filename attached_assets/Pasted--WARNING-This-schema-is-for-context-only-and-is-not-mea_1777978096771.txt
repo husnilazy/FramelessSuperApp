@@ -1,0 +1,442 @@
+-- WARNING: This schema is for context only and is not meant to be run.
+-- Table order and constraints may not be valid for execution.
+
+CREATE TABLE public.accounts (
+  userId text NOT NULL,
+  type text NOT NULL,
+  provider text NOT NULL,
+  providerAccountId text NOT NULL,
+  refresh_token text,
+  access_token text,
+  expires_at integer,
+  token_type text,
+  scope text,
+  id_token text,
+  session_state text,
+  CONSTRAINT accounts_pkey PRIMARY KEY (provider, providerAccountId),
+  CONSTRAINT accounts_userId_fkey FOREIGN KEY (userId) REFERENCES public.users(id)
+);
+CREATE TABLE public.activity_logs (
+  id text NOT NULL,
+  userId text,
+  projectId text,
+  action text NOT NULL,
+  description text NOT NULL,
+  metadata jsonb,
+  createdAt timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  member_id uuid,
+  CONSTRAINT activity_logs_pkey PRIMARY KEY (id),
+  CONSTRAINT activity_logs_userId_fkey FOREIGN KEY (userId) REFERENCES public.users(id),
+  CONSTRAINT activity_logs_member_id_fkey FOREIGN KEY (member_id) REFERENCES public.team_members(id)
+);
+CREATE TABLE public.chat_messages (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  sender_id uuid,
+  receiver_type text NOT NULL,
+  message text NOT NULL,
+  response text,
+  created_at timestamp with time zone DEFAULT now(),
+  read_at timestamp with time zone,
+  task_id text,
+  is_admin boolean DEFAULT false,
+  project_id uuid,
+  sender_role text,
+  is_read boolean DEFAULT false,
+  type text DEFAULT 'message'::text,
+  file_url text,
+  review_status text DEFAULT 'pending'::text,
+  admin_notes text,
+  updated_at timestamp with time zone,
+  CONSTRAINT chat_messages_pkey PRIMARY KEY (id),
+  CONSTRAINT chat_messages_sender_id_fkey FOREIGN KEY (sender_id) REFERENCES public.team_members(id)
+);
+CREATE TABLE public.clients (
+  id text NOT NULL DEFAULT gen_random_uuid(),
+  name text NOT NULL,
+  email text NOT NULL,
+  phone text,
+  company text,
+  address text,
+  notes text,
+  magicToken text,
+  tokenExpires timestamp without time zone,
+  createdAt timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updatedAt timestamp without time zone NOT NULL,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  updatedat timestamp with time zone DEFAULT now(),
+  CONSTRAINT clients_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.contact_submissions (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  name text NOT NULL,
+  email text NOT NULL,
+  phone text,
+  subject text,
+  message text NOT NULL,
+  budget_range text,
+  project_type text,
+  is_read boolean DEFAULT false,
+  created_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
+  CONSTRAINT contact_submissions_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.course_lessons (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  module_id uuid,
+  title text NOT NULL,
+  type text DEFAULT 'video'::text CHECK (type = ANY (ARRAY['video'::text, 'document'::text])),
+  video_url text,
+  duration text,
+  is_preview boolean DEFAULT false,
+  order_index integer DEFAULT 0,
+  created_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
+  CONSTRAINT course_lessons_pkey PRIMARY KEY (id),
+  CONSTRAINT course_lessons_module_id_fkey FOREIGN KEY (module_id) REFERENCES public.course_modules(id)
+);
+CREATE TABLE public.course_modules (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  course_id uuid,
+  title text NOT NULL,
+  description text,
+  order_index integer DEFAULT 0,
+  created_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
+  CONSTRAINT course_modules_pkey PRIMARY KEY (id),
+  CONSTRAINT course_modules_course_id_fkey FOREIGN KEY (course_id) REFERENCES public.courses(id)
+);
+CREATE TABLE public.courses (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  title text NOT NULL,
+  slug text NOT NULL UNIQUE,
+  description text,
+  price text NOT NULL,
+  thumbnail_url text,
+  instructor_name text,
+  instructor_bio text,
+  status text DEFAULT 'draft'::text CHECK (status = ANY (ARRAY['draft'::text, 'published'::text])),
+  created_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
+  CONSTRAINT courses_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.daily_checkins (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  member_id uuid,
+  checkin_date date NOT NULL,
+  checkin_time timestamp with time zone DEFAULT now(),
+  notes text,
+  location text,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT daily_checkins_pkey PRIMARY KEY (id),
+  CONSTRAINT daily_checkins_member_id_fkey FOREIGN KEY (member_id) REFERENCES public.team_members(id)
+);
+CREATE TABLE public.expenses (
+  id text NOT NULL,
+  category USER-DEFINED NOT NULL,
+  description text NOT NULL,
+  amount numeric NOT NULL,
+  projectId text,
+  receiptUrl text,
+  date timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  createdAt timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT expenses_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.file_submissions (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  member_id uuid,
+  project_id uuid,
+  file_name text NOT NULL,
+  file_url text NOT NULL,
+  file_type text,
+  description text,
+  status text DEFAULT 'pending'::text,
+  submitted_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT file_submissions_pkey PRIMARY KEY (id),
+  CONSTRAINT file_submissions_member_id_fkey FOREIGN KEY (member_id) REFERENCES public.team_members(id),
+  CONSTRAINT file_submissions_project_id_fkey FOREIGN KEY (project_id) REFERENCES public.projects(id)
+);
+CREATE TABLE public.filmmaking_classes (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  title text NOT NULL,
+  slug text UNIQUE,
+  level text CHECK (level = ANY (ARRAY['Basic'::text, 'Intermediate'::text, 'Advanced'::text, 'Mentorship'::text])),
+  duration text,
+  price text,
+  description text,
+  features jsonb DEFAULT '[]'::jsonb,
+  syllabus_url text,
+  instructor_name text,
+  max_students integer,
+  is_active boolean DEFAULT true,
+  order_index integer DEFAULT 0,
+  created_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
+  updated_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
+  CONSTRAINT filmmaking_classes_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.hero_section (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  headline text NOT NULL,
+  subheadline text,
+  video_url text,
+  poster_url text,
+  primary_cta_label text DEFAULT 'Explore Our Work'::text,
+  primary_cta_href text DEFAULT '#portfolio'::text,
+  secondary_cta_label text DEFAULT 'Contact Us'::text,
+  secondary_cta_href text DEFAULT '#contact'::text,
+  is_active boolean DEFAULT true,
+  created_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
+  updated_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
+  CONSTRAINT hero_section_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.invoice_items (
+  id text NOT NULL,
+  invoiceId text NOT NULL,
+  description text NOT NULL,
+  quantity numeric NOT NULL,
+  unitPrice numeric NOT NULL,
+  total numeric NOT NULL,
+  sortOrder integer NOT NULL DEFAULT 0,
+  unit_price numeric,
+  sort_order integer DEFAULT 0,
+  CONSTRAINT invoice_items_pkey PRIMARY KEY (id),
+  CONSTRAINT invoice_items_invoiceId_fkey FOREIGN KEY (invoiceId) REFERENCES public.invoices(id)
+);
+CREATE TABLE public.invoices (
+  id text NOT NULL,
+  number text NOT NULL,
+  clientId text NOT NULL,
+  projectId text,
+  status USER-DEFINED NOT NULL DEFAULT 'DRAFT'::"InvoiceStatus",
+  type USER-DEFINED NOT NULL DEFAULT 'FULL'::"InvoiceType",
+  subtotal numeric NOT NULL,
+  tax numeric NOT NULL DEFAULT 0,
+  discount numeric NOT NULL DEFAULT 0,
+  total numeric NOT NULL,
+  paidAmount numeric NOT NULL DEFAULT 0,
+  dueDate timestamp without time zone,
+  paidAt timestamp without time zone,
+  notes text,
+  terms text,
+  createdAt timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updatedAt timestamp without time zone NOT NULL,
+  shipping numeric DEFAULT 0,
+  issueDate timestamp with time zone,
+  paymentTerms text,
+  poNumber text,
+  billTo text,
+  shipTo text,
+  CONSTRAINT invoices_pkey PRIMARY KEY (id),
+  CONSTRAINT invoices_clientId_fkey FOREIGN KEY (clientId) REFERENCES public.clients(id)
+);
+CREATE TABLE public.navigation_items (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  label text NOT NULL,
+  href text NOT NULL,
+  order_index integer DEFAULT 0,
+  is_active boolean DEFAULT true,
+  created_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
+  updated_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
+  CONSTRAINT navigation_items_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.payments (
+  id text NOT NULL,
+  invoiceId text NOT NULL,
+  amount numeric NOT NULL,
+  method USER-DEFINED NOT NULL,
+  reference text,
+  paidAt timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  notes text,
+  CONSTRAINT payments_pkey PRIMARY KEY (id),
+  CONSTRAINT payments_invoiceId_fkey FOREIGN KEY (invoiceId) REFERENCES public.invoices(id)
+);
+CREATE TABLE public.portfolio_categories (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  name text NOT NULL UNIQUE,
+  slug text UNIQUE,
+  description text,
+  created_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
+  CONSTRAINT portfolio_categories_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.portfolio_items (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  title text NOT NULL,
+  slug text UNIQUE,
+  category text NOT NULL,
+  description text,
+  image_url text NOT NULL,
+  video_url text,
+  client_name text,
+  project_year integer,
+  youtube_url text,
+  vimeo_url text,
+  featured boolean DEFAULT false,
+  order_index integer DEFAULT 0,
+  is_published boolean DEFAULT true,
+  created_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
+  updated_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
+  bts_video_url text,
+  bts_description text,
+  CONSTRAINT portfolio_items_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.project_files (
+  id text NOT NULL,
+  projectId text NOT NULL,
+  name text NOT NULL,
+  url text NOT NULL,
+  size integer,
+  type text,
+  isDeliverable boolean NOT NULL DEFAULT false,
+  isWatermarked boolean NOT NULL DEFAULT false,
+  uploadedAt timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT project_files_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.project_tasks (
+  id text NOT NULL,
+  projectId text NOT NULL,
+  assigneeId text,
+  title text NOT NULL,
+  description text,
+  status USER-DEFINED NOT NULL DEFAULT 'TODO'::"TaskStatus",
+  dueDate timestamp without time zone,
+  createdAt timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updatedAt timestamp without time zone NOT NULL,
+  time_spent integer DEFAULT 0,
+  member_id uuid,
+  notified boolean DEFAULT false,
+  role_label text,
+  priority text DEFAULT 'medium'::text,
+  CONSTRAINT project_tasks_pkey PRIMARY KEY (id),
+  CONSTRAINT project_tasks_assigneeId_fkey FOREIGN KEY (assigneeId) REFERENCES public.users(id),
+  CONSTRAINT project_tasks_member_id_fkey FOREIGN KEY (member_id) REFERENCES public.team_members(id)
+);
+CREATE TABLE public.projects (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  title text NOT NULL,
+  client text,
+  status text DEFAULT 'active'::text,
+  progress integer DEFAULT 0,
+  deadline date,
+  assigned_member_id uuid,
+  created_at timestamp with time zone DEFAULT now(),
+  description text,
+  project_type text,
+  priority text DEFAULT 'medium'::text,
+  budget numeric,
+  start_date date,
+  notes text,
+  project_url text,
+  drive_folder_url text,
+  assets_url text,
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT projects_pkey PRIMARY KEY (id),
+  CONSTRAINT projects_assigned_member_id_fkey FOREIGN KEY (assigned_member_id) REFERENCES public.team_members(id)
+);
+CREATE TABLE public.services (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  title text NOT NULL,
+  slug text UNIQUE,
+  description text,
+  icon_name text DEFAULT 'film'::text,
+  features jsonb DEFAULT '[]'::jsonb,
+  order_index integer DEFAULT 0,
+  is_active boolean DEFAULT true,
+  created_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
+  updated_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
+  CONSTRAINT services_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.sessions (
+  sessionToken text NOT NULL,
+  userId text NOT NULL,
+  expires timestamp without time zone NOT NULL,
+  CONSTRAINT sessions_userId_fkey FOREIGN KEY (userId) REFERENCES public.users(id)
+);
+CREATE TABLE public.site_settings (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  site_name text DEFAULT 'Frameless Creative'::text,
+  logo_text text DEFAULT 'FRAMELESS™'::text,
+  logo_image_url text,
+  favicon_url text,
+  description text,
+  email text,
+  phone text,
+  address text,
+  instagram_handle text,
+  linkedin_handle text,
+  twitter_handle text,
+  created_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
+  updated_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
+  logo_width integer DEFAULT 120,
+  CONSTRAINT site_settings_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.team_member_sessions (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  member_id uuid,
+  token text NOT NULL UNIQUE,
+  created_at timestamp with time zone DEFAULT now(),
+  expires_at timestamp with time zone NOT NULL,
+  CONSTRAINT team_member_sessions_pkey PRIMARY KEY (id),
+  CONSTRAINT team_member_sessions_member_id_fkey FOREIGN KEY (member_id) REFERENCES public.team_members(id)
+);
+CREATE TABLE public.team_members (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  name text NOT NULL,
+  role text NOT NULL,
+  avatar_url text,
+  instagram_handle text,
+  twitter_handle text,
+  linkedin_handle text,
+  order_index integer DEFAULT 0,
+  is_active boolean DEFAULT true,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  email text,
+  phone text,
+  status text DEFAULT 'active'::text,
+  joined_date date,
+  daily_checkins jsonb DEFAULT '[]'::jsonb,
+  progress_data jsonb DEFAULT '{}'::jsonb,
+  google_drive_folder_id text,
+  permissions jsonb DEFAULT '[]'::jsonb,
+  department text,
+  password_hash text,
+  can_login boolean DEFAULT false,
+  password text,
+  CONSTRAINT team_members_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.testimonials (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  name text NOT NULL,
+  role text,
+  company text,
+  content text NOT NULL,
+  rating integer DEFAULT 5 CHECK (rating >= 1 AND rating <= 5),
+  avatar_url text,
+  is_published boolean DEFAULT true,
+  order_index integer DEFAULT 0,
+  created_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
+  updated_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
+  CONSTRAINT testimonials_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.users (
+  id text NOT NULL DEFAULT gen_random_uuid(),
+  name text,
+  email text NOT NULL,
+  emailVerified timestamp without time zone,
+  image text,
+  password text,
+  role USER-DEFINED NOT NULL DEFAULT 'STAFF'::"UserRole",
+  isActive boolean NOT NULL DEFAULT true,
+  createdAt timestamp without time zone NOT NULL DEFAULT now(),
+  updatedAt timestamp without time zone NOT NULL DEFAULT now(),
+  CONSTRAINT users_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.work_sessions (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  member_id uuid,
+  project_id uuid,
+  task_id text,
+  started_at timestamp with time zone DEFAULT now(),
+  ended_at timestamp with time zone,
+  duration_minutes integer,
+  description text,
+  CONSTRAINT work_sessions_pkey PRIMARY KEY (id),
+  CONSTRAINT work_sessions_member_id_fkey FOREIGN KEY (member_id) REFERENCES public.team_members(id),
+  CONSTRAINT work_sessions_project_id_fkey FOREIGN KEY (project_id) REFERENCES public.projects(id)
+);
