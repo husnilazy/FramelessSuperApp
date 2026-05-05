@@ -230,6 +230,8 @@ export interface Invoice {
   paidAt?: string | null;
   notes?: string | null;
   terms?: string | null;
+  billTo?: string | null;
+  shipTo?: string | null;
   createdAt: string;
   clientName?: string | null;
 }

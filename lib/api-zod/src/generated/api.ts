@@ -523,6 +523,8 @@ export const ListInvoicesResponseItem = zod.object({
   paidAt: zod.string().nullish(),
   notes: zod.string().nullish(),
   terms: zod.string().nullish(),
+  billTo: zod.string().nullish(),
+  shipTo: zod.string().nullish(),
   createdAt: zod.string(),
   clientName: zod.string().nullish(),
 });
@@ -580,6 +582,8 @@ export const GetInvoiceResponse = zod
     paidAt: zod.string().nullish(),
     notes: zod.string().nullish(),
     terms: zod.string().nullish(),
+    billTo: zod.string().nullish(),
+    shipTo: zod.string().nullish(),
     createdAt: zod.string(),
     clientName: zod.string().nullish(),
   })
@@ -646,6 +650,8 @@ export const UpdateInvoiceResponse = zod.object({
   paidAt: zod.string().nullish(),
   notes: zod.string().nullish(),
   terms: zod.string().nullish(),
+  billTo: zod.string().nullish(),
+  shipTo: zod.string().nullish(),
   createdAt: zod.string(),
   clientName: zod.string().nullish(),
 });

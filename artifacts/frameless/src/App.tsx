@@ -14,6 +14,7 @@ import TeamPage from "@/pages/team";
 import ClientsPage from "@/pages/clients";
 import InvoicesPage from "@/pages/invoices";
 import InvoiceDetailPage from "@/pages/invoice-detail";
+import InvoiceEditorPage from "@/pages/invoice-editor";
 import ExpensesPage from "@/pages/expenses";
 import FinancePage from "@/pages/finance";
 import SettingsPage from "@/pages/settings";
@@ -38,7 +39,8 @@ function ProtectedRoutes() {
           <Route path="/projects" component={ProjectsPage} />
           <Route path="/team" component={TeamPage} />
           <Route path="/clients" component={ClientsPage} />
-          <Route path="/invoices/:id" component={InvoiceDetailPage} />
+          <Route path="/invoices/new" component={InvoiceEditorPage} />
+          <Route path="/invoices/:id" component={InvoiceEditorPage} />
           <Route path="/invoices" component={InvoicesPage} />
           <Route path="/expenses" component={ExpensesPage} />
           <Route path="/finance" component={FinancePage} />

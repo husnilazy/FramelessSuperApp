@@ -106,7 +106,7 @@ router.get("/invoices/:id", async (req, res): Promise<void> => {
 
 router.put("/invoices/:id", async (req, res): Promise<void> => {
   const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
-  const { status, type, subtotal, tax, discount, total, dueDate, notes, terms, billTo } = req.body;
+  const { status, type, subtotal, tax, discount, shipping, total, dueDate, paidAmount, notes, terms, billTo, shipTo, poNumber, paymentTerms, fromName, invoiceDate, items } = req.body;
   const [invoice] = await db
     .update(invoicesTable)
     .set({
@@ -116,10 +116,12 @@ router.put("/invoices/:id", async (req, res): Promise<void> => {
       ...(tax !== undefined && { tax: String(tax) }),
       ...(discount !== undefined && { discount: String(discount) }),
       ...(total !== undefined && { total: String(total) }),
+      ...(paidAmount !== undefined && { paidAmount: String(paidAmount) }),
       ...(dueDate !== undefined && { dueDate: dueDate ? new Date(dueDate) : null }),
       ...(notes !== undefined && { notes }),
       ...(terms !== undefined && { terms }),
       ...(billTo !== undefined && { billTo }),
+      ...(shipTo !== undefined && { shipTo }),
       updatedAt: new Date(),
     })
     .where(eq(invoicesTable.id, id))
@@ -128,7 +130,26 @@ router.put("/invoices/:id", async (req, res): Promise<void> => {
     res.status(404).json({ error: "Invoice not found" });
     return;
   }
-  res.json(mapInvoice(invoice));
+
+  // Replace all items if provided
+  if (items && Array.isArray(items)) {
+    await db.delete(invoiceItemsTable).where(eq(invoiceItemsTable.invoiceId, id));
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      await db.insert(invoiceItemsTable).values({
+        id: crypto.randomUUID(),
+        invoiceId: id,
+        description: item.description || "",
+        quantity: String(item.quantity || 1),
+        unitPrice: String(item.unitPrice || 0),
+        total: String(item.total || 0),
+        sortOrder: String(i),
+      });
+    }
+  }
+
+  const updatedItems = await db.select().from(invoiceItemsTable).where(eq(invoiceItemsTable.invoiceId, id));
+  res.json({ ...mapInvoice(invoice), items: updatedItems.map(mapItem) });
 });
 
 router.delete("/invoices/:id", async (req, res): Promise<void> => {

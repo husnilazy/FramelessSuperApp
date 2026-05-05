@@ -1280,6 +1280,12 @@ components:
         terms:
           type: string
           nullable: true
+        billTo:
+          type: string
+          nullable: true
+        shipTo:
+          type: string
+          nullable: true
         createdAt:
           type: string
         clientName:

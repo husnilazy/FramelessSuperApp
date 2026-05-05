@@ -1,14 +1,10 @@
 import { useState } from "react";
-import { useListInvoices, useCreateInvoice, type CreateInvoiceBody } from "@workspace/api-client-react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useListInvoices } from "@workspace/api-client-react";
+import { useLocation } from "wouter";
 import { formatCurrency, formatDate } from "@/lib/formatters";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useToast } from "@/hooks/use-toast";
 import { Plus, Receipt, ArrowRight, TrendingUp, Clock, AlertCircle, CheckCircle2 } from "lucide-react";
 
 const STATUS_CONFIG: Record<string, { color: string; icon: any; label: string }> = {
@@ -20,23 +16,11 @@ const STATUS_CONFIG: Record<string, { color: string; icon: any; label: string }>
 };
 
 export default function InvoicesPage() {
-  const [open, setOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
+  const [, navigate] = useLocation();
 
   const { data: invoices, isLoading } = useListInvoices({
     status: statusFilter !== "ALL" ? statusFilter : undefined,
-  });
-
-  const createMutation = useCreateInvoice({
-    mutation: {
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
-        setOpen(false);
-        toast({ title: "Invoice created" });
-      },
-    },
   });
 
   const totalPaid = invoices?.filter((i) => i.status === "PAID").reduce((s, i) => s + Number(i.total), 0) || 0;
@@ -50,22 +34,12 @@ export default function InvoicesPage() {
           <h1 className="text-4xl font-heading tracking-wider text-white">Invoices</h1>
           <p className="text-muted-foreground uppercase tracking-widest text-sm font-semibold mt-1">Billing & Collections</p>
         </div>
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button className="bg-primary hover:bg-primary/90 text-white font-heading tracking-wider">
-              <Plus className="w-4 h-4 mr-2" /> New Invoice
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="bg-card border-white/10 text-white max-w-md">
-            <DialogHeader>
-              <DialogTitle className="font-heading tracking-wider text-2xl">Create Invoice</DialogTitle>
-            </DialogHeader>
-            <NewInvoiceForm
-              onSubmit={(data) => createMutation.mutate({ data })}
-              isPending={createMutation.isPending}
-            />
-          </DialogContent>
-        </Dialog>
+        <Button
+          onClick={() => navigate("/invoices/new")}
+          className="bg-primary hover:bg-primary/90 text-white font-heading tracking-wider"
+        >
+          <Plus className="w-4 h-4 mr-2" /> New Invoice
+        </Button>
       </div>
 
       {/* Summary */}
@@ -117,7 +91,11 @@ export default function InvoicesPage() {
             const config = STATUS_CONFIG[invoice.status] || STATUS_CONFIG.DRAFT;
             const StatusIcon = config.icon;
             return (
-              <Card key={invoice.id} className="glass-panel border-white/5 group hover:border-primary/20 transition-all duration-300">
+              <Card
+                key={invoice.id}
+                className="glass-panel border-white/5 group hover:border-primary/20 transition-all duration-300 cursor-pointer"
+                onClick={() => navigate(`/invoices/${invoice.id}`)}
+              >
                 <CardContent className="p-5">
                   <div className="flex items-center justify-between gap-4">
                     <div className="flex items-center gap-4 flex-1 min-w-0">
@@ -133,6 +111,9 @@ export default function InvoicesPage() {
                           </Badge>
                         </div>
                         <p className="text-sm text-muted-foreground mt-0.5 truncate">
+                          {(invoice as any).clientName
+                            ? `${(invoice as any).clientName} · `
+                            : ""}
                           Due {formatDate(invoice.dueDate)}
                         </p>
                       </div>
@@ -143,11 +124,13 @@ export default function InvoicesPage() {
                         <p className="text-xs text-green-400">Paid {formatCurrency(Number(invoice.paidAmount))}</p>
                       )}
                     </div>
-                    <a href={`/invoices/${invoice.id}`}>
-                      <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-primary shrink-0">
-                        <ArrowRight className="w-4 h-4" />
-                      </Button>
-                    </a>
+                    <Button
+                      variant="ghost" size="icon"
+                      className="text-muted-foreground group-hover:text-primary shrink-0"
+                      onClick={(e) => { e.stopPropagation(); navigate(`/invoices/${invoice.id}`); }}
+                    >
+                      <ArrowRight className="w-4 h-4" />
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
@@ -156,103 +139,17 @@ export default function InvoicesPage() {
           {invoices?.length === 0 && (
             <div className="glass-panel rounded-xl p-12 text-center">
               <Receipt className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground text-sm uppercase tracking-wider">No invoices found</p>
+              <p className="text-muted-foreground text-sm uppercase tracking-wider mb-4">No invoices found</p>
+              <Button
+                onClick={() => navigate("/invoices/new")}
+                className="bg-primary hover:bg-primary/90 text-white font-heading tracking-wider"
+              >
+                <Plus className="w-4 h-4 mr-2" /> Create First Invoice
+              </Button>
             </div>
           )}
         </div>
       )}
     </div>
-  );
-}
-
-function NewInvoiceForm({ onSubmit, isPending }: { onSubmit: (data: CreateInvoiceBody) => void; isPending: boolean }) {
-  const [form, setForm] = useState<CreateInvoiceBody>({
-    number: `INV-${String(Date.now()).slice(-4)}`,
-    status: "DRAFT",
-    type: "FULL",
-    subtotal: "0",
-    tax: "0",
-    discount: "0",
-    total: "0",
-    dueDate: "",
-    notes: "",
-  });
-
-  const calcTotal = (subtotal: string, tax: string, discount: string) => {
-    const sub = Number(subtotal) || 0;
-    const t = Number(tax) || 0;
-    const d = Number(discount) || 0;
-    return String(sub + t - d);
-  };
-
-  return (
-    <form onSubmit={(e) => { e.preventDefault(); onSubmit(form); }} className="space-y-4">
-      <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-1">
-          <label className="text-xs uppercase tracking-wider text-muted-foreground">Invoice #</label>
-          <Input value={form.number} onChange={(e) => setForm({ ...form, number: e.target.value })}
-            required className="bg-white/5 border-white/10 text-white" />
-        </div>
-        <div className="space-y-1">
-          <label className="text-xs uppercase tracking-wider text-muted-foreground">Status</label>
-          <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
-            <SelectTrigger className="bg-white/5 border-white/10 text-white">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent className="bg-card border-white/10">
-              <SelectItem value="DRAFT">Draft</SelectItem>
-              <SelectItem value="SENT">Sent</SelectItem>
-              <SelectItem value="PAID">Paid</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-      <div className="space-y-1">
-        <label className="text-xs uppercase tracking-wider text-muted-foreground">Subtotal (IDR)</label>
-        <Input type="number" value={form.subtotal as string}
-          onChange={(e) => {
-            const sub = e.target.value;
-            setForm({ ...form, subtotal: sub, total: calcTotal(sub, form.tax as string, form.discount as string) });
-          }}
-          className="bg-white/5 border-white/10 text-white" placeholder="0" />
-      </div>
-      <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-1">
-          <label className="text-xs uppercase tracking-wider text-muted-foreground">Tax (IDR)</label>
-          <Input type="number" value={form.tax as string}
-            onChange={(e) => {
-              const t = e.target.value;
-              setForm({ ...form, tax: t, total: calcTotal(form.subtotal as string, t, form.discount as string) });
-            }}
-            className="bg-white/5 border-white/10 text-white" placeholder="0" />
-        </div>
-        <div className="space-y-1">
-          <label className="text-xs uppercase tracking-wider text-muted-foreground">Discount (IDR)</label>
-          <Input type="number" value={form.discount as string}
-            onChange={(e) => {
-              const d = e.target.value;
-              setForm({ ...form, discount: d, total: calcTotal(form.subtotal as string, form.tax as string, d) });
-            }}
-            className="bg-white/5 border-white/10 text-white" placeholder="0" />
-        </div>
-      </div>
-      <div className="glass-panel rounded-md p-3 flex justify-between items-center">
-        <span className="text-xs uppercase tracking-wider text-muted-foreground">Total</span>
-        <span className="text-xl font-heading text-primary">{formatCurrency(Number(form.total) || 0)}</span>
-      </div>
-      <div className="space-y-1">
-        <label className="text-xs uppercase tracking-wider text-muted-foreground">Due Date</label>
-        <Input type="date" value={form.dueDate as string || ""} onChange={(e) => setForm({ ...form, dueDate: e.target.value })}
-          className="bg-white/5 border-white/10 text-white" />
-      </div>
-      <div className="space-y-1">
-        <label className="text-xs uppercase tracking-wider text-muted-foreground">Notes</label>
-        <Input value={form.notes || ""} onChange={(e) => setForm({ ...form, notes: e.target.value })}
-          className="bg-white/5 border-white/10 text-white" placeholder="Payment terms, etc." />
-      </div>
-      <Button type="submit" disabled={isPending} className="w-full bg-primary hover:bg-primary/90 text-white font-heading tracking-wider">
-        {isPending ? "Creating..." : "Create Invoice"}
-      </Button>
-    </form>
   );
 }
