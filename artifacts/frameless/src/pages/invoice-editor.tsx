@@ -65,6 +65,18 @@ function daysOut(n: number) {
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
+const DRAFT_KEY = "invoice_draft_new";
+const DRAFT_LOGO_KEY = "invoice_draft_logo";
+
+function loadDraft(): Partial<InvoiceData> | null {
+  try {
+    const raw = localStorage.getItem(DRAFT_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
 export default function InvoiceEditorPage() {
   const [, params] = useRoute("/invoices/:id");
   const [, navigate] = useLocation();
@@ -75,7 +87,9 @@ export default function InvoiceEditorPage() {
   const logoInputRef = useRef<HTMLInputElement>(null);
   const [saving, setSaving] = useState(false);
   const [exporting, setExporting] = useState(false);
-  const [logoUrl, setLogoUrl] = useState<string>(DEFAULT_LOGO);
+
+  const savedLogo = !invoiceId ? (localStorage.getItem(DRAFT_LOGO_KEY) || DEFAULT_LOGO) : DEFAULT_LOGO;
+  const [logoUrl, setLogoUrl] = useState<string>(savedLogo);
 
   const { data: existingInvoice } = useGetInvoice(invoiceId ?? "", {
     query: { enabled: !!invoiceId } as any,
@@ -86,15 +100,17 @@ export default function InvoiceEditorPage() {
   const createMutation = useCreateInvoice({
     mutation: {
       onSuccess: (data) => {
+        localStorage.removeItem(DRAFT_KEY);
+        localStorage.removeItem(DRAFT_LOGO_KEY);
         queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
-        toast({ title: "Invoice saved" });
+        toast({ title: "Invoice tersimpan" });
         navigate(`/invoices/${data.id}`);
       },
-      onError: () => toast({ variant: "destructive", title: "Failed to save invoice" }),
+      onError: () => toast({ variant: "destructive", title: "Gagal menyimpan invoice" }),
     },
   });
 
-  const [inv, setInv] = useState<InvoiceData>({
+  const defaultInv: InvoiceData = {
     fromName: "FRAMELESS CREATIVE PROJECT PT",
     fromAddress: "Jakarta, Indonesia\ninfo@frameless.id · +62 xxx xxxx xxxx\nwww.frameless.id",
     billTo: "",
@@ -114,7 +130,10 @@ export default function InvoiceEditorPage() {
     status: "DRAFT",
     clientId: "",
     projectId: "",
-  });
+  };
+
+  const draft = !invoiceId ? loadDraft() : null;
+  const [inv, setInv] = useState<InvoiceData>(draft ? { ...defaultInv, ...draft } : defaultInv);
 
   useEffect(() => {
     if (existingInvoice) {
@@ -156,6 +175,26 @@ export default function InvoiceEditorPage() {
       }));
     }
   }, [existingInvoice]);
+
+  // ─── Auto-save draft to localStorage (new invoices only) ─────────────────────
+
+  useEffect(() => {
+    if (!invoiceId) {
+      try {
+        localStorage.setItem(DRAFT_KEY, JSON.stringify(inv));
+      } catch {}
+    }
+  }, [inv, invoiceId]);
+
+  useEffect(() => {
+    if (!invoiceId && logoUrl !== DEFAULT_LOGO) {
+      try {
+        localStorage.setItem(DRAFT_LOGO_KEY, logoUrl);
+      } catch {}
+    } else if (!invoiceId && logoUrl === DEFAULT_LOGO) {
+      localStorage.removeItem(DRAFT_LOGO_KEY);
+    }
+  }, [logoUrl, invoiceId]);
 
   // ─── Logo Upload ─────────────────────────────────────────────────────────────
 
@@ -814,28 +853,9 @@ const InvoicePreview = forwardRef<
         </tbody>
       </table>
 
-      {/* ── Totals + Terms (2-col) ── */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "28px", marginBottom: "24px", alignItems: "start" }}>
-
-        {/* LEFT — Notes + Syarat & Ketentuan */}
-        <div>
-          {inv.notes && (
-            <div style={{ marginBottom: "14px" }}>
-              <div style={{ fontSize: "9px", letterSpacing: "3px", textTransform: "uppercase", color: "#999", marginBottom: "5px", fontWeight: "600" }}>Catatan</div>
-              <div style={{ color: "#444", fontSize: "12px", lineHeight: "1.65" }}>{inv.notes}</div>
-            </div>
-          )}
-          {inv.terms && (
-            <div>
-              <div style={{ fontSize: "9px", letterSpacing: "3px", textTransform: "uppercase", color: "#999", marginBottom: "5px", fontWeight: "600" }}>Syarat & Ketentuan</div>
-              <div style={{ color: "#555", fontSize: "11px", lineHeight: "1.7" }}>{inv.terms}</div>
-            </div>
-          )}
-        </div>
-
-        {/* RIGHT — Totals + BCA Payment */}
-        <div>
-          {/* Totals */}
+      {/* ── Totals (right-aligned) ── */}
+      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "16px" }}>
+        <div style={{ width: "340px" }}>
           <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: "16px" }}>
             <tbody>
               <tr>
@@ -881,24 +901,11 @@ const InvoicePreview = forwardRef<
             </tbody>
           </table>
 
-          {/* BCA Payment — kanan bawah, di bawah total */}
+          {/* BCA Payment — di bawah total, kanan */}
           <div>
             <div style={{ fontSize: "9px", letterSpacing: "3px", textTransform: "uppercase", color: "#999", marginBottom: "8px", fontWeight: "600" }}>Informasi Pembayaran</div>
-            <div style={{
-              border: "1.5px solid #1a4f9b",
-              borderRadius: "8px",
-              padding: "12px 16px",
-              background: "#f0f5ff",
-              display: "flex",
-              alignItems: "center",
-              gap: "12px",
-            }}>
-              <img
-                src={BCA_IMAGE}
-                alt="BCA"
-                style={{ height: "32px", objectFit: "contain", flexShrink: 0 }}
-                crossOrigin="anonymous"
-              />
+            <div style={{ border: "1.5px solid #1a4f9b", borderRadius: "8px", padding: "12px 16px", background: "#f0f5ff", display: "flex", alignItems: "center", gap: "12px" }}>
+              <img src={BCA_IMAGE} alt="BCA" style={{ height: "32px", objectFit: "contain", flexShrink: 0 }} crossOrigin="anonymous" />
               <div>
                 <div style={{ fontSize: "9px", color: "#1a4f9b", textTransform: "uppercase", letterSpacing: "1px", fontWeight: "600", marginBottom: "1px" }}>Bank Central Asia</div>
                 <div style={{ fontSize: "16px", fontWeight: "800", color: "#1a4f9b", letterSpacing: "2px", fontFamily: "monospace" }}>239-0777895</div>
@@ -911,6 +918,24 @@ const InvoicePreview = forwardRef<
           </div>
         </div>
       </div>
+
+      {/* ── Catatan + Syarat & Ketentuan (bawah, full-width 2-col) ── */}
+      {(inv.notes || inv.terms) && (
+        <div style={{ display: "grid", gridTemplateColumns: inv.notes && inv.terms ? "1fr 1fr" : "1fr", gap: "28px", borderTop: "1px solid #ececec", paddingTop: "18px", marginBottom: "20px" }}>
+          {inv.notes && (
+            <div>
+              <div style={{ fontSize: "9px", letterSpacing: "3px", textTransform: "uppercase", color: "#999", marginBottom: "5px", fontWeight: "600" }}>Catatan</div>
+              <div style={{ color: "#444", fontSize: "12px", lineHeight: "1.65" }}>{inv.notes}</div>
+            </div>
+          )}
+          {inv.terms && (
+            <div>
+              <div style={{ fontSize: "9px", letterSpacing: "3px", textTransform: "uppercase", color: "#999", marginBottom: "5px", fontWeight: "600" }}>Syarat & Ketentuan</div>
+              <div style={{ color: "#555", fontSize: "11px", lineHeight: "1.7" }}>{inv.terms}</div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ── Spacer ── */}
       <div style={{ flex: 1 }} />
