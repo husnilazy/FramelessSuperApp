@@ -925,13 +925,13 @@ const InvoicePreview = forwardRef<
           {inv.notes && (
             <div>
               <div style={{ fontSize: "9px", letterSpacing: "3px", textTransform: "uppercase", color: "#999", marginBottom: "5px", fontWeight: "600" }}>Catatan</div>
-              <div style={{ color: "#444", fontSize: "12px", lineHeight: "1.65" }}>{inv.notes}</div>
+              <div style={{ color: "#444", fontSize: "12px", lineHeight: "1.65", whiteSpace: "pre-line" }}>{inv.notes}</div>
             </div>
           )}
           {inv.terms && (
             <div>
               <div style={{ fontSize: "9px", letterSpacing: "3px", textTransform: "uppercase", color: "#999", marginBottom: "5px", fontWeight: "600" }}>Syarat & Ketentuan</div>
-              <div style={{ color: "#555", fontSize: "11px", lineHeight: "1.7" }}>{inv.terms}</div>
+              <div style={{ color: "#555", fontSize: "11px", lineHeight: "1.7", whiteSpace: "pre-line" }}>{inv.terms}</div>
             </div>
           )}
         </div>
