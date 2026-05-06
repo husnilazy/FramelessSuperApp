@@ -713,11 +713,11 @@ const InvoicePreview = forwardRef<
         {/* Left: Logo + Company Info */}
         <div style={{ maxWidth: "320px" }}>
           {/* Logo */}
-          <div style={{ marginBottom: "12px", height: "56px", display: "flex", alignItems: "center" }}>
+          <div style={{ marginBottom: "14px", height: "72px", display: "flex", alignItems: "center" }}>
             <img
               src={logoUrl}
               alt="Logo"
-              style={{ maxHeight: "56px", maxWidth: "200px", objectFit: "contain", objectPosition: "left center" }}
+              style={{ maxHeight: "72px", maxWidth: "240px", objectFit: "contain", objectPosition: "left center" }}
               crossOrigin="anonymous"
             />
           </div>
@@ -814,9 +814,10 @@ const InvoicePreview = forwardRef<
         </tbody>
       </table>
 
-      {/* ── Totals + Notes ── */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "28px", marginBottom: "24px" }}>
-        {/* Notes + Terms */}
+      {/* ── Totals + Terms (2-col) ── */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "28px", marginBottom: "24px", alignItems: "start" }}>
+
+        {/* LEFT — Notes + Syarat & Ketentuan */}
         <div>
           {inv.notes && (
             <div style={{ marginBottom: "14px" }}>
@@ -827,14 +828,15 @@ const InvoicePreview = forwardRef<
           {inv.terms && (
             <div>
               <div style={{ fontSize: "9px", letterSpacing: "3px", textTransform: "uppercase", color: "#999", marginBottom: "5px", fontWeight: "600" }}>Syarat & Ketentuan</div>
-              <div style={{ color: "#555", fontSize: "11px", lineHeight: "1.65" }}>{inv.terms}</div>
+              <div style={{ color: "#555", fontSize: "11px", lineHeight: "1.7" }}>{inv.terms}</div>
             </div>
           )}
         </div>
 
-        {/* Totals */}
+        {/* RIGHT — Totals + BCA Payment */}
         <div>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          {/* Totals */}
+          <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: "16px" }}>
             <tbody>
               <tr>
                 <td style={{ padding: "5px 0", color: "#666", fontSize: "12px" }}>Subtotal</td>
@@ -878,37 +880,34 @@ const InvoicePreview = forwardRef<
               </tr>
             </tbody>
           </table>
-        </div>
-      </div>
 
-      {/* ── BCA Payment Info ── */}
-      <div style={{ marginBottom: "24px" }}>
-        <div style={{ fontSize: "9px", letterSpacing: "3px", textTransform: "uppercase", color: "#999", marginBottom: "10px", fontWeight: "600" }}>Informasi Pembayaran</div>
-        <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-          <div style={{
-            border: "1.5px solid #1a4f9b",
-            borderRadius: "8px",
-            padding: "12px 20px",
-            display: "flex",
-            alignItems: "center",
-            gap: "14px",
-            background: "#f0f5ff",
-            flex: "0 0 auto",
-          }}>
-            <img
-              src={BCA_IMAGE}
-              alt="BCA"
-              style={{ height: "36px", objectFit: "contain" }}
-              crossOrigin="anonymous"
-            />
-            <div>
-              <div style={{ fontSize: "10px", color: "#1a4f9b", textTransform: "uppercase", letterSpacing: "1px", fontWeight: "600", marginBottom: "2px" }}>Bank Central Asia</div>
-              <div style={{ fontSize: "18px", fontWeight: "800", color: "#1a4f9b", letterSpacing: "2px", fontFamily: "monospace" }}>239-0777895</div>
-              <div style={{ fontSize: "10px", fontWeight: "700", color: "#1a4f9b", letterSpacing: "1px", textTransform: "uppercase" }}>FRAMELESS CREATIVE PROJECT PT</div>
+          {/* BCA Payment — kanan bawah, di bawah total */}
+          <div>
+            <div style={{ fontSize: "9px", letterSpacing: "3px", textTransform: "uppercase", color: "#999", marginBottom: "8px", fontWeight: "600" }}>Informasi Pembayaran</div>
+            <div style={{
+              border: "1.5px solid #1a4f9b",
+              borderRadius: "8px",
+              padding: "12px 16px",
+              background: "#f0f5ff",
+              display: "flex",
+              alignItems: "center",
+              gap: "12px",
+            }}>
+              <img
+                src={BCA_IMAGE}
+                alt="BCA"
+                style={{ height: "32px", objectFit: "contain", flexShrink: 0 }}
+                crossOrigin="anonymous"
+              />
+              <div>
+                <div style={{ fontSize: "9px", color: "#1a4f9b", textTransform: "uppercase", letterSpacing: "1px", fontWeight: "600", marginBottom: "1px" }}>Bank Central Asia</div>
+                <div style={{ fontSize: "16px", fontWeight: "800", color: "#1a4f9b", letterSpacing: "2px", fontFamily: "monospace" }}>239-0777895</div>
+                <div style={{ fontSize: "9px", fontWeight: "700", color: "#1a4f9b", letterSpacing: "0.5px", textTransform: "uppercase" }}>FRAMELESS CREATIVE PROJECT PT</div>
+              </div>
             </div>
-          </div>
-          <div style={{ fontSize: "11px", color: "#666", lineHeight: "1.65", maxWidth: "200px" }}>
-            Transfer nominal sesuai invoice. Sertakan nomor invoice pada berita transfer untuk memudahkan konfirmasi pembayaran.
+            <div style={{ fontSize: "10px", color: "#888", marginTop: "6px", lineHeight: "1.55" }}>
+              Sertakan nomor invoice pada berita transfer.
+            </div>
           </div>
         </div>
       </div>
