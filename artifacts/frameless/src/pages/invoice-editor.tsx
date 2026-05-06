@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Plus, Trash2, Download, Save, FileText } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Download, Save, FileText, Upload, ImageIcon, RotateCcw } from "lucide-react";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -42,6 +42,9 @@ interface InvoiceData {
   projectId: string;
 }
 
+const DEFAULT_LOGO = "/logo-frameless.png";
+const BCA_IMAGE = "/bca-payment.png";
+
 const newItem = (): LineItem => ({
   id: Math.random().toString(36).slice(2),
   description: "",
@@ -69,8 +72,10 @@ export default function InvoiceEditorPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const previewRef = useRef<HTMLDivElement>(null);
+  const logoInputRef = useRef<HTMLInputElement>(null);
   const [saving, setSaving] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [logoUrl, setLogoUrl] = useState<string>(DEFAULT_LOGO);
 
   const { data: existingInvoice } = useGetInvoice(invoiceId ?? "", {
     query: { enabled: !!invoiceId } as any,
@@ -90,18 +95,18 @@ export default function InvoiceEditorPage() {
   });
 
   const [inv, setInv] = useState<InvoiceData>({
-    fromName: "FRAMELESS CREATIVE",
-    fromAddress: "Jakarta, Indonesia\nadmin@frameless.com",
+    fromName: "FRAMELESS CREATIVE PROJECT PT",
+    fromAddress: "Jakarta, Indonesia\ninfo@frameless.id · +62 xxx xxxx xxxx\nwww.frameless.id",
     billTo: "",
     shipTo: "",
     invoiceNumber: `INV-${Date.now().toString().slice(-4)}`,
     invoiceDate: today(),
-    dueDate: daysOut(30),
-    paymentTerms: "Net 30",
+    dueDate: daysOut(14),
+    paymentTerms: "Net 14",
     poNumber: "",
     items: [newItem()],
     notes: "",
-    terms: "Payment due within 30 days. Late payments subject to 2% monthly interest.",
+    terms: "Pembayaran dilakukan dalam 14 hari kalender sejak tanggal invoice. Keterlambatan pembayaran dikenakan denda 2% per bulan.",
     taxRate: 11,
     discount: 0,
     shipping: 0,
@@ -115,16 +120,16 @@ export default function InvoiceEditorPage() {
     if (existingInvoice) {
       setInv((prev) => ({
         ...prev,
-        fromName: "FRAMELESS CREATIVE",
-        fromAddress: "Jakarta, Indonesia\nadmin@frameless.com",
+        fromName: "FRAMELESS CREATIVE PROJECT PT",
+        fromAddress: "Jakarta, Indonesia\ninfo@frameless.id · +62 xxx xxxx xxxx\nwww.frameless.id",
         billTo: existingInvoice.billTo || "",
-        shipTo: (existingInvoice as any).shipTo || "",
+        shipTo: existingInvoice.shipTo || "",
         invoiceNumber: existingInvoice.number,
         invoiceDate: today(),
         dueDate: existingInvoice.dueDate
           ? new Date(existingInvoice.dueDate).toISOString().split("T")[0]
-          : daysOut(30),
-        paymentTerms: "Net 30",
+          : daysOut(14),
+        paymentTerms: "Net 14",
         poNumber: "",
         items:
           existingInvoice.items && existingInvoice.items.length > 0
@@ -138,9 +143,10 @@ export default function InvoiceEditorPage() {
             : [newItem()],
         notes: existingInvoice.notes || "",
         terms: existingInvoice.terms || prev.terms,
-        taxRate: existingInvoice.subtotal > 0
-          ? Math.round((existingInvoice.tax / existingInvoice.subtotal) * 100)
-          : 11,
+        taxRate:
+          existingInvoice.subtotal > 0
+            ? Math.round((existingInvoice.tax / existingInvoice.subtotal) * 100)
+            : 11,
         discount: existingInvoice.discount || 0,
         shipping: 0,
         paidAmount: existingInvoice.paidAmount || 0,
@@ -151,7 +157,23 @@ export default function InvoiceEditorPage() {
     }
   }, [existingInvoice]);
 
-  // ─── Calculations ───────────────────────────────────────────────────────────
+  // ─── Logo Upload ─────────────────────────────────────────────────────────────
+
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast({ variant: "destructive", title: "File harus berupa gambar (PNG/JPG)" });
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      if (ev.target?.result) setLogoUrl(ev.target.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // ─── Calculations ─────────────────────────────────────────────────────────────
 
   const subtotal = inv.items.reduce((s, i) => s + i.total, 0);
   const taxAmount = Math.round(subtotal * (inv.taxRate / 100));
@@ -175,11 +197,11 @@ export default function InvoiceEditorPage() {
   const addItem = () => setInv((p) => ({ ...p, items: [...p.items, newItem()] }));
   const removeItem = (id: string) => setInv((p) => ({ ...p, items: p.items.filter((i) => i.id !== id) }));
 
-  // ─── Save ─────────────────────────────────────────────────────────────────
+  // ─── Save ──────────────────────────────────────────────────────────────────
 
   const handleSave = async () => {
     if (!inv.clientId) {
-      toast({ variant: "destructive", title: "Select a client first" });
+      toast({ variant: "destructive", title: "Pilih client terlebih dahulu" });
       return;
     }
     setSaving(true);
@@ -219,7 +241,7 @@ export default function InvoiceEditorPage() {
         if (!res.ok) throw new Error("Failed to update");
         queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
         queryClient.invalidateQueries({ queryKey: [`/api/invoices/${invoiceId}`] });
-        toast({ title: "Invoice updated" });
+        toast({ title: "Invoice berhasil disimpan" });
       } else {
         createMutation.mutate({ data: payload as any });
       }
@@ -228,7 +250,7 @@ export default function InvoiceEditorPage() {
     }
   };
 
-  // ─── PDF Export ────────────────────────────────────────────────────────────
+  // ─── PDF Export ───────────────────────────────────────────────────────────────
 
   const handleExportPdf = async () => {
     if (!previewRef.current) return;
@@ -241,6 +263,7 @@ export default function InvoiceEditorPage() {
       const canvas = await html2canvas(el, {
         scale: 2,
         useCORS: true,
+        allowTaint: true,
         backgroundColor: "#ffffff",
         logging: false,
       });
@@ -249,9 +272,8 @@ export default function InvoiceEditorPage() {
       const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-
-      // If taller than A4, split into pages
       const pageHeight = pdf.internal.pageSize.getHeight();
+
       if (pdfHeight <= pageHeight) {
         pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
       } else {
@@ -264,15 +286,15 @@ export default function InvoiceEditorPage() {
       }
 
       pdf.save(`${inv.invoiceNumber}.pdf`);
-      toast({ title: "PDF downloaded" });
+      toast({ title: "PDF berhasil diunduh" });
     } catch (e) {
-      toast({ variant: "destructive", title: "Export failed" });
+      toast({ variant: "destructive", title: "Export gagal, coba lagi" });
     } finally {
       setExporting(false);
     }
   };
 
-  // ─── Render ──────────────────────────────────────────────────────────────
+  // ─── Render ───────────────────────────────────────────────────────────────────
 
   return (
     <div className="pb-12 space-y-6">
@@ -325,6 +347,51 @@ export default function InvoiceEditorPage() {
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         {/* ── Editor Form ── */}
         <div className="xl:col-span-2 space-y-4">
+
+          {/* Logo Upload */}
+          <div className="glass-panel rounded-xl p-5 border-white/10 space-y-3">
+            <p className="text-xs uppercase tracking-widest text-muted-foreground font-semibold">Logo Perusahaan</p>
+            <div className="flex items-center gap-4">
+              <div className="w-32 h-16 rounded-lg bg-white flex items-center justify-center border border-white/20 overflow-hidden shrink-0">
+                {logoUrl ? (
+                  <img src={logoUrl} alt="Logo" className="w-full h-full object-contain p-1" />
+                ) : (
+                  <ImageIcon className="w-8 h-8 text-gray-300" />
+                )}
+              </div>
+              <div className="flex flex-col gap-2">
+                <input
+                  ref={logoInputRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/jpg,image/webp,image/svg+xml"
+                  className="hidden"
+                  onChange={handleLogoUpload}
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => logoInputRef.current?.click()}
+                  className="border-white/20 text-white hover:bg-white/10 text-xs"
+                >
+                  <Upload className="w-3.5 h-3.5 mr-2" />
+                  Upload Logo Kustom
+                </Button>
+                {logoUrl !== DEFAULT_LOGO && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setLogoUrl(DEFAULT_LOGO)}
+                    className="text-muted-foreground hover:text-white text-xs"
+                  >
+                    <RotateCcw className="w-3 h-3 mr-1.5" />
+                    Reset ke Logo Frameless
+                  </Button>
+                )}
+                <p className="text-xs text-muted-foreground">PNG, JPG, SVG · maks 5MB</p>
+              </div>
+            </div>
+          </div>
+
           {/* Client / Project */}
           <div className="glass-panel rounded-xl p-5 border-white/10 space-y-3">
             <p className="text-xs uppercase tracking-widest text-muted-foreground font-semibold">Invoice Meta</p>
@@ -333,7 +400,7 @@ export default function InvoiceEditorPage() {
                 <label className="text-xs uppercase tracking-wider text-muted-foreground">Client *</label>
                 <Select value={inv.clientId} onValueChange={(v) => setInv((p) => ({ ...p, clientId: v }))}>
                   <SelectTrigger className="bg-white/5 border-white/10 text-white">
-                    <SelectValue placeholder="Select client..." />
+                    <SelectValue placeholder="Pilih client..." />
                   </SelectTrigger>
                   <SelectContent className="bg-card border-white/10">
                     {clients?.map((c) => (
@@ -362,34 +429,34 @@ export default function InvoiceEditorPage() {
           {/* From / Bill To / Ship To */}
           <div className="glass-panel rounded-xl p-5 border-white/10 space-y-4">
             <div className="space-y-1">
-              <label className="text-xs uppercase tracking-wider text-muted-foreground">From</label>
+              <label className="text-xs uppercase tracking-wider text-muted-foreground">From (Info Pengirim)</label>
               <Textarea
                 value={inv.fromAddress}
                 onChange={(e) => setInv((p) => ({ ...p, fromAddress: e.target.value }))}
-                rows={2}
+                rows={3}
                 className="bg-white/5 border-white/10 text-white resize-none"
-                placeholder="Your business address"
+                placeholder="Alamat perusahaan, email, telepon"
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="text-xs uppercase tracking-wider text-muted-foreground">Bill To</label>
+                <label className="text-xs uppercase tracking-wider text-muted-foreground">Bill To (Tagihan Kepada)</label>
                 <Textarea
                   value={inv.billTo}
                   onChange={(e) => setInv((p) => ({ ...p, billTo: e.target.value }))}
                   rows={3}
                   className="bg-white/5 border-white/10 text-white resize-none"
-                  placeholder="Client name & address"
+                  placeholder="Nama & alamat client"
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-xs uppercase tracking-wider text-muted-foreground">Ship To (optional)</label>
+                <label className="text-xs uppercase tracking-wider text-muted-foreground">Ship To (opsional)</label>
                 <Textarea
                   value={inv.shipTo}
                   onChange={(e) => setInv((p) => ({ ...p, shipTo: e.target.value }))}
                   rows={3}
                   className="bg-white/5 border-white/10 text-white resize-none"
-                  placeholder="Shipping address"
+                  placeholder="Alamat pengiriman"
                 />
               </div>
             </div>
@@ -404,31 +471,31 @@ export default function InvoiceEditorPage() {
                   className="bg-white/5 border-white/10 text-white" />
               </div>
               <div className="space-y-1">
-                <label className="text-xs uppercase tracking-wider text-muted-foreground">Invoice Date</label>
+                <label className="text-xs uppercase tracking-wider text-muted-foreground">Tanggal</label>
                 <Input type="date" value={inv.invoiceDate} onChange={(e) => setInv((p) => ({ ...p, invoiceDate: e.target.value }))}
                   className="bg-white/5 border-white/10 text-white" />
               </div>
               <div className="space-y-1">
-                <label className="text-xs uppercase tracking-wider text-muted-foreground">Due Date</label>
+                <label className="text-xs uppercase tracking-wider text-muted-foreground">Jatuh Tempo</label>
                 <Input type="date" value={inv.dueDate} onChange={(e) => setInv((p) => ({ ...p, dueDate: e.target.value }))}
                   className="bg-white/5 border-white/10 text-white" />
               </div>
               <div className="space-y-1">
-                <label className="text-xs uppercase tracking-wider text-muted-foreground">Payment Terms</label>
+                <label className="text-xs uppercase tracking-wider text-muted-foreground">Terms</label>
                 <Input value={inv.paymentTerms} onChange={(e) => setInv((p) => ({ ...p, paymentTerms: e.target.value }))}
-                  className="bg-white/5 border-white/10 text-white" placeholder="Net 30" />
+                  className="bg-white/5 border-white/10 text-white" placeholder="Net 14" />
               </div>
             </div>
           </div>
 
           {/* Line Items */}
           <div className="glass-panel rounded-xl p-5 border-white/10 space-y-3">
-            <p className="text-xs uppercase tracking-widest text-muted-foreground font-semibold mb-3">Line Items</p>
+            <p className="text-xs uppercase tracking-widest text-muted-foreground font-semibold mb-3">Item Pekerjaan</p>
             <div className="grid grid-cols-12 gap-2 pb-2 border-b border-white/10">
-              <span className="col-span-5 text-xs uppercase tracking-wider text-muted-foreground">Item / Description</span>
+              <span className="col-span-5 text-xs uppercase tracking-wider text-muted-foreground">Deskripsi</span>
               <span className="col-span-2 text-xs uppercase tracking-wider text-muted-foreground text-center">Qty</span>
-              <span className="col-span-2 text-xs uppercase tracking-wider text-muted-foreground text-right">Rate (IDR)</span>
-              <span className="col-span-2 text-xs uppercase tracking-wider text-muted-foreground text-right">Amount</span>
+              <span className="col-span-2 text-xs uppercase tracking-wider text-muted-foreground text-right">Harga (IDR)</span>
+              <span className="col-span-2 text-xs uppercase tracking-wider text-muted-foreground text-right">Total</span>
               <span className="col-span-1" />
             </div>
             {inv.items.map((item) => (
@@ -438,7 +505,7 @@ export default function InvoiceEditorPage() {
                     value={item.description}
                     onChange={(e) => updateItem(item.id, "description", e.target.value)}
                     className="bg-white/5 border-white/10 text-white text-sm h-9"
-                    placeholder="Description of item/service..."
+                    placeholder="Deskripsi layanan / produk..."
                   />
                 </div>
                 <div className="col-span-2">
@@ -476,30 +543,30 @@ export default function InvoiceEditorPage() {
             ))}
             <Button variant="ghost" size="sm" onClick={addItem}
               className="text-primary hover:text-primary hover:bg-primary/10 font-semibold text-xs mt-1">
-              <Plus className="w-3.5 h-3.5 mr-1" /> Add Line Item
+              <Plus className="w-3.5 h-3.5 mr-1" /> Tambah Item
             </Button>
           </div>
 
           {/* Notes + Terms */}
           <div className="glass-panel rounded-xl p-5 border-white/10 grid grid-cols-2 gap-4">
             <div className="space-y-1">
-              <label className="text-xs uppercase tracking-wider text-muted-foreground">Notes</label>
+              <label className="text-xs uppercase tracking-wider text-muted-foreground">Catatan</label>
               <Textarea
                 value={inv.notes}
                 onChange={(e) => setInv((p) => ({ ...p, notes: e.target.value }))}
                 rows={4}
                 className="bg-white/5 border-white/10 text-white resize-none text-sm"
-                placeholder="Notes — any relevant information not already covered"
+                placeholder="Catatan tambahan untuk client"
               />
             </div>
             <div className="space-y-1">
-              <label className="text-xs uppercase tracking-wider text-muted-foreground">Terms</label>
+              <label className="text-xs uppercase tracking-wider text-muted-foreground">Syarat & Ketentuan</label>
               <Textarea
                 value={inv.terms}
                 onChange={(e) => setInv((p) => ({ ...p, terms: e.target.value }))}
                 rows={4}
                 className="bg-white/5 border-white/10 text-white resize-none text-sm"
-                placeholder="Terms and conditions — late fees, payment methods, delivery schedule"
+                placeholder="Syarat pembayaran, denda keterlambatan, dll."
               />
             </div>
           </div>
@@ -508,7 +575,7 @@ export default function InvoiceEditorPage() {
         {/* ── Totals Panel ── */}
         <div className="space-y-4">
           <div className="glass-panel rounded-xl p-5 border-white/10 space-y-4 sticky top-4">
-            <p className="text-xs uppercase tracking-widest text-muted-foreground font-semibold">Summary</p>
+            <p className="text-xs uppercase tracking-widest text-muted-foreground font-semibold">Ringkasan</p>
 
             <div className="space-y-3">
               <div className="flex justify-between text-sm">
@@ -517,7 +584,7 @@ export default function InvoiceEditorPage() {
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs uppercase tracking-wider text-muted-foreground">Tax Rate (%)</label>
+                <label className="text-xs uppercase tracking-wider text-muted-foreground">PPN (%)</label>
                 <div className="flex items-center gap-2">
                   <Input
                     type="number"
@@ -531,7 +598,7 @@ export default function InvoiceEditorPage() {
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs uppercase tracking-wider text-muted-foreground">Discount (IDR)</label>
+                <label className="text-xs uppercase tracking-wider text-muted-foreground">Diskon (IDR)</label>
                 <Input
                   type="number"
                   value={inv.discount}
@@ -542,7 +609,7 @@ export default function InvoiceEditorPage() {
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs uppercase tracking-wider text-muted-foreground">Shipping (IDR)</label>
+                <label className="text-xs uppercase tracking-wider text-muted-foreground">Ongkos Kirim (IDR)</label>
                 <Input
                   type="number"
                   value={inv.shipping}
@@ -558,7 +625,7 @@ export default function InvoiceEditorPage() {
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs uppercase tracking-wider text-muted-foreground">Amount Paid (IDR)</label>
+                <label className="text-xs uppercase tracking-wider text-muted-foreground">Jumlah Dibayar (IDR)</label>
                 <Input
                   type="number"
                   value={inv.paidAmount}
@@ -569,7 +636,7 @@ export default function InvoiceEditorPage() {
               </div>
 
               <div className="pt-3 border-t border-primary/30 flex justify-between items-center bg-primary/5 -mx-5 px-5 py-3 rounded-b-xl">
-                <span className="font-heading text-white tracking-wider uppercase">Balance Due</span>
+                <span className="font-heading text-white tracking-wider uppercase">Sisa Tagihan</span>
                 <span className={`text-2xl font-heading ${balanceDue > 0 ? "text-primary" : "text-green-400"}`}>
                   {formatCurrency(balanceDue)}
                 </span>
@@ -585,12 +652,12 @@ export default function InvoiceEditorPage() {
         </div>
       </div>
 
-      {/* ── Print/PDF Preview (hidden, used for pdf generation) ── */}
+      {/* ── Invoice Preview ── */}
       <div className="mt-8">
         <div className="flex items-center gap-2 mb-4">
           <FileText className="w-4 h-4 text-primary" />
-          <p className="text-xs uppercase tracking-widest text-muted-foreground font-semibold">Invoice Preview</p>
-          <span className="text-xs text-muted-foreground">(this is what the PDF will look like)</span>
+          <p className="text-xs uppercase tracking-widest text-muted-foreground font-semibold">Preview Invoice</p>
+          <span className="text-xs text-muted-foreground">(tampilan PDF yang akan diunduh)</span>
         </div>
         <div className="overflow-x-auto">
           <InvoicePreview
@@ -600,6 +667,7 @@ export default function InvoiceEditorPage() {
             taxAmount={taxAmount}
             total={total}
             balanceDue={balanceDue}
+            logoUrl={logoUrl}
             clientName={clients?.find((c) => c.id === inv.clientId)?.name}
           />
         </div>
@@ -608,7 +676,7 @@ export default function InvoiceEditorPage() {
   );
 }
 
-// ─── Invoice Preview (the printable document) ─────────────────────────────────
+// ─── Invoice Preview Document ─────────────────────────────────────────────────
 
 const InvoicePreview = forwardRef<
   HTMLDivElement,
@@ -618,9 +686,10 @@ const InvoicePreview = forwardRef<
     taxAmount: number;
     total: number;
     balanceDue: number;
+    logoUrl: string;
     clientName?: string;
   }
->(({ inv, subtotal, taxAmount, total, balanceDue, clientName }, ref) => {
+>(({ inv, subtotal, taxAmount, total, balanceDue, logoUrl, clientName }, ref) => {
   return (
     <div
       ref={ref}
@@ -629,54 +698,66 @@ const InvoicePreview = forwardRef<
         color: "#111",
         width: "794px",
         minHeight: "1123px",
-        padding: "48px 56px",
-        fontFamily: "Inter, Arial, sans-serif",
+        padding: "48px 56px 40px",
+        fontFamily: "'Inter', 'Helvetica Neue', Arial, sans-serif",
         fontSize: "13px",
-        lineHeight: "1.5",
-        boxShadow: "0 4px 40px rgba(0,0,0,0.3)",
+        lineHeight: "1.55",
+        boxShadow: "0 4px 40px rgba(0,0,0,0.25)",
         borderRadius: "4px",
+        display: "flex",
+        flexDirection: "column",
       }}
     >
-      {/* Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "40px" }}>
-        <div>
-          <div style={{ fontSize: "22px", fontWeight: "800", letterSpacing: "4px", color: "#111", marginBottom: "4px" }}>
-            FRAMELESS™
+      {/* ── Header ── */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "24px" }}>
+        {/* Left: Logo + Company Info */}
+        <div style={{ maxWidth: "320px" }}>
+          {/* Logo */}
+          <div style={{ marginBottom: "12px", height: "56px", display: "flex", alignItems: "center" }}>
+            <img
+              src={logoUrl}
+              alt="Logo"
+              style={{ maxHeight: "56px", maxWidth: "200px", objectFit: "contain", objectPosition: "left center" }}
+              crossOrigin="anonymous"
+            />
           </div>
-          <div style={{ fontSize: "10px", letterSpacing: "3px", color: "#666", textTransform: "uppercase" }}>
-            STUDIODO · ZENSVISUAL
+          {/* Company Info */}
+          <div style={{ fontSize: "12px", fontWeight: "700", color: "#111", marginBottom: "2px", letterSpacing: "0.3px" }}>
+            Frameless Creative Project PT
           </div>
-          <div style={{ marginTop: "12px", color: "#444", fontSize: "12px", whiteSpace: "pre-line" }}>
+          <div style={{ fontSize: "11px", color: "#555", lineHeight: "1.6", whiteSpace: "pre-line" }}>
             {inv.fromAddress}
           </div>
         </div>
+
+        {/* Right: Invoice Title + Meta */}
         <div style={{ textAlign: "right" }}>
-          <div style={{ fontSize: "36px", fontWeight: "900", letterSpacing: "4px", color: "#111", marginBottom: "8px" }}>
+          <div style={{ fontSize: "38px", fontWeight: "900", letterSpacing: "5px", color: "#111", marginBottom: "12px", lineHeight: "1" }}>
             INVOICE
           </div>
           <table style={{ marginLeft: "auto", borderCollapse: "collapse" }}>
             <tbody>
               <tr>
-                <td style={{ color: "#666", paddingRight: "16px", paddingBottom: "4px", fontSize: "11px", textTransform: "uppercase", letterSpacing: "1px" }}>Invoice #</td>
-                <td style={{ fontWeight: "700", paddingBottom: "4px" }}>{inv.invoiceNumber}</td>
+                <td style={{ color: "#888", paddingRight: "16px", paddingBottom: "5px", fontSize: "10px", textTransform: "uppercase", letterSpacing: "1px" }}>Invoice #</td>
+                <td style={{ fontWeight: "700", paddingBottom: "5px", fontSize: "13px" }}>{inv.invoiceNumber}</td>
               </tr>
               <tr>
-                <td style={{ color: "#666", paddingRight: "16px", paddingBottom: "4px", fontSize: "11px", textTransform: "uppercase", letterSpacing: "1px" }}>Date</td>
-                <td style={{ paddingBottom: "4px" }}>{inv.invoiceDate}</td>
+                <td style={{ color: "#888", paddingRight: "16px", paddingBottom: "5px", fontSize: "10px", textTransform: "uppercase", letterSpacing: "1px" }}>Tanggal</td>
+                <td style={{ paddingBottom: "5px" }}>{inv.invoiceDate}</td>
               </tr>
               <tr>
-                <td style={{ color: "#666", paddingRight: "16px", paddingBottom: "4px", fontSize: "11px", textTransform: "uppercase", letterSpacing: "1px" }}>Due Date</td>
-                <td style={{ paddingBottom: "4px", fontWeight: "600" }}>{inv.dueDate}</td>
+                <td style={{ color: "#888", paddingRight: "16px", paddingBottom: "5px", fontSize: "10px", textTransform: "uppercase", letterSpacing: "1px" }}>Jatuh Tempo</td>
+                <td style={{ paddingBottom: "5px", fontWeight: "700", color: "#c0392b" }}>{inv.dueDate}</td>
               </tr>
               {inv.paymentTerms && (
                 <tr>
-                  <td style={{ color: "#666", paddingRight: "16px", paddingBottom: "4px", fontSize: "11px", textTransform: "uppercase", letterSpacing: "1px" }}>Terms</td>
-                  <td style={{ paddingBottom: "4px" }}>{inv.paymentTerms}</td>
+                  <td style={{ color: "#888", paddingRight: "16px", paddingBottom: "5px", fontSize: "10px", textTransform: "uppercase", letterSpacing: "1px" }}>Terms</td>
+                  <td style={{ paddingBottom: "5px" }}>{inv.paymentTerms}</td>
                 </tr>
               )}
               {inv.poNumber && (
                 <tr>
-                  <td style={{ color: "#666", paddingRight: "16px", fontSize: "11px", textTransform: "uppercase", letterSpacing: "1px" }}>PO #</td>
+                  <td style={{ color: "#888", paddingRight: "16px", fontSize: "10px", textTransform: "uppercase", letterSpacing: "1px" }}>PO #</td>
                   <td>{inv.poNumber}</td>
                 </tr>
               )}
@@ -685,45 +766,47 @@ const InvoicePreview = forwardRef<
         </div>
       </div>
 
-      {/* Divider */}
-      <div style={{ height: "3px", background: "linear-gradient(90deg, #ff6b35, #ff9a35)", marginBottom: "28px", borderRadius: "2px" }} />
+      {/* ── Orange Accent Divider ── */}
+      <div style={{ height: "3px", background: "linear-gradient(90deg, #ff6b35 0%, #ff9a35 60%, #ffd23520 100%)", marginBottom: "24px", borderRadius: "2px" }} />
 
-      {/* Bill To / Ship To */}
-      <div style={{ display: "grid", gridTemplateColumns: inv.shipTo ? "1fr 1fr" : "1fr", gap: "32px", marginBottom: "36px" }}>
-        <div>
-          <div style={{ fontSize: "10px", letterSpacing: "3px", textTransform: "uppercase", color: "#999", marginBottom: "8px" }}>Bill To</div>
-          <div style={{ fontWeight: "600", fontSize: "14px", marginBottom: "4px" }}>
+      {/* ── Bill To / Ship To ── */}
+      <div style={{ display: "grid", gridTemplateColumns: inv.shipTo ? "1fr 1fr" : "1fr 2fr", gap: "24px", marginBottom: "28px" }}>
+        <div style={{ background: "#f9f9f9", borderRadius: "6px", padding: "14px 16px", borderLeft: "3px solid #ff6b35" }}>
+          <div style={{ fontSize: "9px", letterSpacing: "3px", textTransform: "uppercase", color: "#999", marginBottom: "6px", fontWeight: "600" }}>Tagihan Kepada</div>
+          <div style={{ fontWeight: "700", fontSize: "14px", marginBottom: "3px" }}>
             {clientName || inv.billTo?.split("\n")[0] || "—"}
           </div>
           {inv.billTo && (
-            <div style={{ color: "#444", whiteSpace: "pre-line", fontSize: "12px" }}>
+            <div style={{ color: "#555", whiteSpace: "pre-line", fontSize: "12px", lineHeight: "1.55" }}>
               {inv.billTo.split("\n").slice(clientName ? 0 : 1).join("\n")}
             </div>
           )}
         </div>
-        {inv.shipTo && (
-          <div>
-            <div style={{ fontSize: "10px", letterSpacing: "3px", textTransform: "uppercase", color: "#999", marginBottom: "8px" }}>Ship To</div>
+        {inv.shipTo ? (
+          <div style={{ background: "#f9f9f9", borderRadius: "6px", padding: "14px 16px" }}>
+            <div style={{ fontSize: "9px", letterSpacing: "3px", textTransform: "uppercase", color: "#999", marginBottom: "6px", fontWeight: "600" }}>Dikirim Ke</div>
             <div style={{ color: "#444", whiteSpace: "pre-line", fontSize: "12px" }}>{inv.shipTo}</div>
           </div>
+        ) : (
+          <div />
         )}
       </div>
 
-      {/* Line Items Table */}
-      <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: "24px" }}>
+      {/* ── Line Items Table ── */}
+      <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: "20px" }}>
         <thead>
-          <tr style={{ background: "#111" }}>
-            <th style={{ textAlign: "left", padding: "10px 14px", color: "#fff", fontSize: "11px", letterSpacing: "2px", textTransform: "uppercase", fontWeight: "600" }}>Item</th>
-            <th style={{ textAlign: "center", padding: "10px 14px", color: "#fff", fontSize: "11px", letterSpacing: "2px", textTransform: "uppercase", fontWeight: "600", width: "80px" }}>Qty</th>
-            <th style={{ textAlign: "right", padding: "10px 14px", color: "#fff", fontSize: "11px", letterSpacing: "2px", textTransform: "uppercase", fontWeight: "600", width: "140px" }}>Rate</th>
-            <th style={{ textAlign: "right", padding: "10px 14px", color: "#fff", fontSize: "11px", letterSpacing: "2px", textTransform: "uppercase", fontWeight: "600", width: "140px" }}>Amount</th>
+          <tr style={{ background: "#1a1a1a" }}>
+            <th style={{ textAlign: "left", padding: "10px 14px", color: "#fff", fontSize: "10px", letterSpacing: "2px", textTransform: "uppercase", fontWeight: "600" }}>Deskripsi Item / Layanan</th>
+            <th style={{ textAlign: "center", padding: "10px 14px", color: "#fff", fontSize: "10px", letterSpacing: "2px", textTransform: "uppercase", fontWeight: "600", width: "70px" }}>Qty</th>
+            <th style={{ textAlign: "right", padding: "10px 14px", color: "#fff", fontSize: "10px", letterSpacing: "2px", textTransform: "uppercase", fontWeight: "600", width: "150px" }}>Harga Satuan</th>
+            <th style={{ textAlign: "right", padding: "10px 14px", color: "#fff", fontSize: "10px", letterSpacing: "2px", textTransform: "uppercase", fontWeight: "600", width: "150px" }}>Jumlah</th>
           </tr>
         </thead>
         <tbody>
           {inv.items.map((item, idx) => (
-            <tr key={item.id} style={{ background: idx % 2 === 0 ? "#fafafa" : "#fff", borderBottom: "1px solid #eee" }}>
-              <td style={{ padding: "10px 14px", color: "#222" }}>{item.description || "—"}</td>
-              <td style={{ padding: "10px 14px", textAlign: "center", color: "#555" }}>{item.quantity}</td>
+            <tr key={item.id} style={{ background: idx % 2 === 0 ? "#fafafa" : "#ffffff", borderBottom: "1px solid #ececec" }}>
+              <td style={{ padding: "10px 14px", color: "#222", fontSize: "13px" }}>{item.description || "—"}</td>
+              <td style={{ padding: "10px 14px", textAlign: "center", color: "#666" }}>{item.quantity}</td>
               <td style={{ padding: "10px 14px", textAlign: "right", color: "#555" }}>{formatCurrency(item.unitPrice)}</td>
               <td style={{ padding: "10px 14px", textAlign: "right", fontWeight: "600", color: "#111" }}>{formatCurrency(item.total)}</td>
             </tr>
@@ -731,20 +814,20 @@ const InvoicePreview = forwardRef<
         </tbody>
       </table>
 
-      {/* Totals + Notes */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "32px", marginBottom: "24px" }}>
-        {/* Notes */}
+      {/* ── Totals + Notes ── */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "28px", marginBottom: "24px" }}>
+        {/* Notes + Terms */}
         <div>
           {inv.notes && (
-            <div style={{ marginBottom: "16px" }}>
-              <div style={{ fontSize: "10px", letterSpacing: "3px", textTransform: "uppercase", color: "#999", marginBottom: "6px" }}>Notes</div>
-              <div style={{ color: "#444", fontSize: "12px", lineHeight: "1.6" }}>{inv.notes}</div>
+            <div style={{ marginBottom: "14px" }}>
+              <div style={{ fontSize: "9px", letterSpacing: "3px", textTransform: "uppercase", color: "#999", marginBottom: "5px", fontWeight: "600" }}>Catatan</div>
+              <div style={{ color: "#444", fontSize: "12px", lineHeight: "1.65" }}>{inv.notes}</div>
             </div>
           )}
           {inv.terms && (
             <div>
-              <div style={{ fontSize: "10px", letterSpacing: "3px", textTransform: "uppercase", color: "#999", marginBottom: "6px" }}>Terms</div>
-              <div style={{ color: "#444", fontSize: "12px", lineHeight: "1.6" }}>{inv.terms}</div>
+              <div style={{ fontSize: "9px", letterSpacing: "3px", textTransform: "uppercase", color: "#999", marginBottom: "5px", fontWeight: "600" }}>Syarat & Ketentuan</div>
+              <div style={{ color: "#555", fontSize: "11px", lineHeight: "1.65" }}>{inv.terms}</div>
             </div>
           )}
         </div>
@@ -754,50 +837,109 @@ const InvoicePreview = forwardRef<
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <tbody>
               <tr>
-                <td style={{ padding: "6px 0", color: "#666", fontSize: "12px" }}>Subtotal</td>
-                <td style={{ padding: "6px 0", textAlign: "right", fontWeight: "500" }}>{formatCurrency(subtotal)}</td>
+                <td style={{ padding: "5px 0", color: "#666", fontSize: "12px" }}>Subtotal</td>
+                <td style={{ padding: "5px 0", textAlign: "right", fontWeight: "500" }}>{formatCurrency(subtotal)}</td>
               </tr>
               {taxAmount > 0 && (
                 <tr>
-                  <td style={{ padding: "6px 0", color: "#666", fontSize: "12px" }}>PPN ({inv.taxRate}%)</td>
-                  <td style={{ padding: "6px 0", textAlign: "right", fontWeight: "500" }}>{formatCurrency(taxAmount)}</td>
+                  <td style={{ padding: "5px 0", color: "#666", fontSize: "12px" }}>PPN ({inv.taxRate}%)</td>
+                  <td style={{ padding: "5px 0", textAlign: "right", fontWeight: "500" }}>{formatCurrency(taxAmount)}</td>
                 </tr>
               )}
               {inv.discount > 0 && (
                 <tr>
-                  <td style={{ padding: "6px 0", color: "#666", fontSize: "12px" }}>Discount</td>
-                  <td style={{ padding: "6px 0", textAlign: "right", fontWeight: "500", color: "#22c55e" }}>−{formatCurrency(inv.discount)}</td>
+                  <td style={{ padding: "5px 0", color: "#666", fontSize: "12px" }}>Diskon</td>
+                  <td style={{ padding: "5px 0", textAlign: "right", fontWeight: "500", color: "#22c55e" }}>−{formatCurrency(inv.discount)}</td>
                 </tr>
               )}
               {inv.shipping > 0 && (
                 <tr>
-                  <td style={{ padding: "6px 0", color: "#666", fontSize: "12px" }}>Shipping</td>
-                  <td style={{ padding: "6px 0", textAlign: "right", fontWeight: "500" }}>{formatCurrency(inv.shipping)}</td>
+                  <td style={{ padding: "5px 0", color: "#666", fontSize: "12px" }}>Ongkos Kirim</td>
+                  <td style={{ padding: "5px 0", textAlign: "right", fontWeight: "500" }}>{formatCurrency(inv.shipping)}</td>
                 </tr>
               )}
-              <tr style={{ borderTop: "2px solid #111" }}>
-                <td style={{ padding: "10px 0 6px", fontWeight: "700", fontSize: "14px", letterSpacing: "1px", textTransform: "uppercase" }}>Total</td>
-                <td style={{ padding: "10px 0 6px", textAlign: "right", fontWeight: "800", fontSize: "18px", color: "#ff6b35" }}>{formatCurrency(total)}</td>
+              <tr style={{ borderTop: "2px solid #1a1a1a" }}>
+                <td style={{ padding: "10px 0 5px", fontWeight: "700", fontSize: "13px", letterSpacing: "1px", textTransform: "uppercase" }}>Total</td>
+                <td style={{ padding: "10px 0 5px", textAlign: "right", fontWeight: "800", fontSize: "17px", color: "#ff6b35" }}>{formatCurrency(total)}</td>
               </tr>
               {inv.paidAmount > 0 && (
                 <tr>
-                  <td style={{ padding: "4px 0", color: "#666", fontSize: "12px" }}>Amount Paid</td>
-                  <td style={{ padding: "4px 0", textAlign: "right", color: "#22c55e", fontWeight: "600" }}>{formatCurrency(inv.paidAmount)}</td>
+                  <td style={{ padding: "4px 0", color: "#666", fontSize: "12px" }}>Sudah Dibayar</td>
+                  <td style={{ padding: "4px 0", textAlign: "right", color: "#22c55e", fontWeight: "600" }}>−{formatCurrency(inv.paidAmount)}</td>
                 </tr>
               )}
-              <tr style={{ background: "#111", borderRadius: "4px" }}>
-                <td style={{ padding: "10px 12px", fontWeight: "700", fontSize: "14px", letterSpacing: "2px", textTransform: "uppercase", color: "#fff" }}>Balance Due</td>
-                <td style={{ padding: "10px 12px", textAlign: "right", fontWeight: "800", fontSize: "20px", color: "#ff6b35" }}>{formatCurrency(balanceDue)}</td>
+              <tr>
+                <td colSpan={2} style={{ padding: "0" }}>
+                  <div style={{ background: "#1a1a1a", borderRadius: "5px", padding: "10px 14px", display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "6px" }}>
+                    <span style={{ fontWeight: "700", fontSize: "13px", letterSpacing: "2px", textTransform: "uppercase", color: "#fff" }}>Sisa Tagihan</span>
+                    <span style={{ fontWeight: "900", fontSize: "20px", color: "#ff6b35" }}>{formatCurrency(balanceDue)}</span>
+                  </div>
+                </td>
               </tr>
             </tbody>
           </table>
         </div>
       </div>
 
-      {/* Footer */}
-      <div style={{ borderTop: "1px solid #eee", paddingTop: "16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <div style={{ fontSize: "11px", color: "#999" }}>Thank you for your business!</div>
-        <div style={{ fontSize: "11px", color: "#999", letterSpacing: "2px" }}>FRAMELESS™ CREATIVE</div>
+      {/* ── BCA Payment Info ── */}
+      <div style={{ marginBottom: "24px" }}>
+        <div style={{ fontSize: "9px", letterSpacing: "3px", textTransform: "uppercase", color: "#999", marginBottom: "10px", fontWeight: "600" }}>Informasi Pembayaran</div>
+        <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+          <div style={{
+            border: "1.5px solid #1a4f9b",
+            borderRadius: "8px",
+            padding: "12px 20px",
+            display: "flex",
+            alignItems: "center",
+            gap: "14px",
+            background: "#f0f5ff",
+            flex: "0 0 auto",
+          }}>
+            <img
+              src={BCA_IMAGE}
+              alt="BCA"
+              style={{ height: "36px", objectFit: "contain" }}
+              crossOrigin="anonymous"
+            />
+            <div>
+              <div style={{ fontSize: "10px", color: "#1a4f9b", textTransform: "uppercase", letterSpacing: "1px", fontWeight: "600", marginBottom: "2px" }}>Bank Central Asia</div>
+              <div style={{ fontSize: "18px", fontWeight: "800", color: "#1a4f9b", letterSpacing: "2px", fontFamily: "monospace" }}>239-0777895</div>
+              <div style={{ fontSize: "10px", fontWeight: "700", color: "#1a4f9b", letterSpacing: "1px", textTransform: "uppercase" }}>FRAMELESS CREATIVE PROJECT PT</div>
+            </div>
+          </div>
+          <div style={{ fontSize: "11px", color: "#666", lineHeight: "1.65", maxWidth: "200px" }}>
+            Transfer nominal sesuai invoice. Sertakan nomor invoice pada berita transfer untuk memudahkan konfirmasi pembayaran.
+          </div>
+        </div>
+      </div>
+
+      {/* ── Spacer ── */}
+      <div style={{ flex: 1 }} />
+
+      {/* ── Official Footer ── */}
+      <div style={{ borderTop: "2px solid #1a1a1a", paddingTop: "16px", marginTop: "16px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+          <div>
+            <div style={{ fontWeight: "800", fontSize: "12px", letterSpacing: "2px", color: "#111", textTransform: "uppercase", marginBottom: "3px" }}>
+              Frameless Creative Project PT
+            </div>
+            <div style={{ fontSize: "10px", color: "#888", lineHeight: "1.6" }}>
+              Dokumen ini merupakan invoice resmi yang diterbitkan oleh Frameless Creative Project PT.<br />
+              Invoice ini sah tanpa tanda tangan dan cap basah. Berlaku sesuai syarat & ketentuan yang tertera.
+            </div>
+          </div>
+          <div style={{ textAlign: "right", flexShrink: 0 }}>
+            <div style={{ fontSize: "10px", color: "#999", marginBottom: "3px" }}>Dicetak pada</div>
+            <div style={{ fontSize: "11px", fontWeight: "600", color: "#555" }}>
+              {new Date().toLocaleDateString("id-ID", { day: "2-digit", month: "long", year: "numeric" })}
+            </div>
+            <div style={{ marginTop: "8px", display: "flex", alignItems: "center", gap: "6px", justifyContent: "flex-end" }}>
+              <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#ff6b35" }} />
+              <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#ff9a35" }} />
+              <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#ffd235" }} />
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
