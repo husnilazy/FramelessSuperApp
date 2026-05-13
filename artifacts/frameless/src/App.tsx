@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, AuthGuard } from "@/lib/auth";
+import { ThemeProvider } from "@/lib/theme";
 import NotFound from "@/pages/not-found";
 import { AppLayout } from "@/components/layout";
 
@@ -24,14 +25,11 @@ import SettingsPage from "@/pages/settings";
 import CmsEditorPage from "@/pages/cms-editor";
 import PaymentSettingsPage from "@/pages/payment-settings";
 import CoursesAdminPage from "@/pages/courses-admin";
+import DigitalAssetsAdminPage from "@/pages/digital-assets-admin";
+import DigitalAssetsPage from "@/pages/digital-assets";
 
 const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: 1,
-      staleTime: 30_000,
-    },
-  },
+  defaultOptions: { queries: { retry: 1, staleTime: 30_000 } },
 });
 
 function ProtectedRoutes() {
@@ -54,6 +52,7 @@ function ProtectedRoutes() {
           <Route path="/cms" component={CmsEditorPage} />
           <Route path="/payment-settings" component={PaymentSettingsPage} />
           <Route path="/courses-admin" component={CoursesAdminPage} />
+          <Route path="/digital-assets-admin" component={DigitalAssetsAdminPage} />
           <Route component={NotFound} />
         </Switch>
       </AppLayout>
@@ -65,8 +64,9 @@ function Router() {
   return (
     <Switch>
       <Route path="/login" component={LoginPage} />
-      <Route path="/landing" component={LandingPage} />
       <Route path="/" component={LandingPage} />
+      <Route path="/landing" component={LandingPage} />
+      <Route path="/store" component={DigitalAssetsPage} />
       <Route path="/course/:slug" component={CoursePage} />
       <Route path="/crew/login" component={CrewLoginPage} />
       <Route path="/crew/dashboard" component={CrewDashboard} />
@@ -86,6 +86,7 @@ function Router() {
       <Route path="/cms" component={ProtectedRoutes} />
       <Route path="/payment-settings" component={ProtectedRoutes} />
       <Route path="/courses-admin" component={ProtectedRoutes} />
+      <Route path="/digital-assets-admin" component={ProtectedRoutes} />
       <Route component={NotFound} />
     </Switch>
   );
@@ -93,16 +94,18 @@ function Router() {
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-          <AuthProvider>
-            <Router />
-          </AuthProvider>
-        </WouterRouter>
-        <Toaster />
-      </TooltipProvider>
-    </QueryClientProvider>
+    <ThemeProvider>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+            <AuthProvider>
+              <Router />
+            </AuthProvider>
+          </WouterRouter>
+          <Toaster />
+        </TooltipProvider>
+      </QueryClientProvider>
+    </ThemeProvider>
   );
 }
 

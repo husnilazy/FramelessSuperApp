@@ -11,3 +11,6 @@ export * from "./courses";
 export * from "./chat_messages";
 export * from "./calendar_events";
 export * from "./payment_settings";
+export * from "./site_videos";
+export * from "./site_logos";
+export * from "./digital_assets";

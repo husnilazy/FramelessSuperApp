@@ -13,6 +13,10 @@ import crewRouter from "./crew";
 import calendarRouter from "./calendar";
 import paymentSettingsRouter from "./payment-settings";
 import aiRouter from "./ai";
+import uploadsRouter from "./uploads";
+import siteVideosRouter from "./site-videos";
+import siteLogosRouter from "./site-logos";
+import digitalAssetsRouter from "./digital-assets";
 
 const router: IRouter = Router();
 
@@ -30,5 +34,9 @@ router.use(crewRouter);
 router.use(calendarRouter);
 router.use(paymentSettingsRouter);
 router.use(aiRouter);
+router.use(uploadsRouter);
+router.use(siteVideosRouter);
+router.use(siteLogosRouter);
+router.use(digitalAssetsRouter);
 
 export default router;
