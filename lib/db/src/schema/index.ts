@@ -6,3 +6,8 @@ export * from "./project_tasks";
 export * from "./invoices";
 export * from "./expenses";
 export * from "./activity_logs";
+export * from "./cms_settings";
+export * from "./courses";
+export * from "./chat_messages";
+export * from "./calendar_events";
+export * from "./payment_settings";

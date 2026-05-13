@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Users, Mail, Briefcase, Trash2 } from "lucide-react";
+import { Plus, Users, Mail, Briefcase, Trash2, Shield, ShieldOff, MessageCircle, Send, Key, X } from "lucide-react";
 
 const DEPT_COLORS: Record<string, string> = {
   Production: "bg-primary/20 text-primary border-primary/30",
@@ -18,8 +18,22 @@ const DEPT_COLORS: Record<string, string> = {
   Management: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30",
 };
 
+function authHeader() {
+  const token = localStorage.getItem("token");
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+interface ChatMsg { id: string; senderRole: string; senderName: string; message: string; createdAt: string; }
+
 export default function TeamPage() {
   const [open, setOpen] = useState(false);
+  const [crewLoginModal, setCrewLoginModal] = useState<{ id: string; name: string; email?: string | null; canLogin?: boolean | null } | null>(null);
+  const [chatModal, setChatModal] = useState<{ id: string; name: string } | null>(null);
+  const [pwForm, setPwForm] = useState({ password: "", confirm: "" });
+  const [chatMessages, setChatMessages] = useState<ChatMsg[]>([]);
+  const [chatInput, setChatInput] = useState("");
+  const [sendingChat, setSendingChat] = useState(false);
+  const [activeTab, setActiveTab] = useState<"members" | "chat">("members");
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -46,6 +60,62 @@ export default function TeamPage() {
 
   const departments = [...new Set(members?.map((m) => m.department).filter(Boolean))];
 
+  async function enableCrewLogin() {
+    if (!crewLoginModal) return;
+    if (pwForm.password !== pwForm.confirm) { toast({ variant: "destructive", title: "Password tidak cocok" }); return; }
+    if (pwForm.password.length < 6) { toast({ variant: "destructive", title: "Password minimal 6 karakter" }); return; }
+    const res = await fetch(`/api/team/${crewLoginModal.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", ...authHeader() } as any,
+      body: JSON.stringify({ canLogin: true, password: pwForm.password }),
+    });
+    if (res.ok) {
+      toast({ title: `Akses portal aktif untuk ${crewLoginModal.name}` });
+      queryClient.invalidateQueries({ queryKey: ["/api/team"] });
+      setCrewLoginModal(null);
+      setPwForm({ password: "", confirm: "" });
+    } else {
+      toast({ variant: "destructive", title: "Gagal mengaktifkan akses" });
+    }
+  }
+
+  async function disableCrewLogin(id: string, name: string) {
+    const res = await fetch(`/api/team/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", ...authHeader() } as any,
+      body: JSON.stringify({ canLogin: false }),
+    });
+    if (res.ok) {
+      toast({ title: `Akses portal dinonaktifkan untuk ${name}` });
+      queryClient.invalidateQueries({ queryKey: ["/api/team"] });
+    }
+  }
+
+  async function openChat(member: { id: string; name: string }) {
+    setChatModal(member);
+    const res = await fetch(`/api/admin/chat/${member.id}`, { headers: authHeader() as any });
+    if (res.ok) setChatMessages(await res.json());
+  }
+
+  async function sendAdminChat() {
+    if (!chatModal || !chatInput.trim()) return;
+    setSendingChat(true);
+    try {
+      const res = await fetch(`/api/admin/chat/${chatModal.id}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...authHeader() } as any,
+        body: JSON.stringify({ message: chatInput, senderName: "Admin" }),
+      });
+      if (res.ok) {
+        setChatInput("");
+        const refreshed = await fetch(`/api/admin/chat/${chatModal.id}`, { headers: authHeader() as any });
+        if (refreshed.ok) setChatMessages(await refreshed.json());
+      }
+    } finally { setSendingChat(false); }
+  }
+
+  const membersWithLogin = members?.filter(m => m.canLogin) || [];
+
   return (
     <div className="space-y-8 pb-8">
       <div className="flex items-center justify-between gap-4">
@@ -53,22 +123,33 @@ export default function TeamPage() {
           <h1 className="text-4xl font-heading tracking-wider text-white">Crew</h1>
           <p className="text-muted-foreground uppercase tracking-widest text-sm font-semibold mt-1">Team Management</p>
         </div>
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button className="bg-primary hover:bg-primary/90 text-white font-heading tracking-wider">
-              <Plus className="w-4 h-4 mr-2" /> Add Member
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="bg-card border-white/10 text-white max-w-md">
-            <DialogHeader>
-              <DialogTitle className="font-heading tracking-wider text-2xl">Add Crew Member</DialogTitle>
-            </DialogHeader>
-            <NewMemberForm
-              onSubmit={(data) => createMutation.mutate({ data })}
-              isPending={createMutation.isPending}
-            />
-          </DialogContent>
-        </Dialog>
+        <div className="flex gap-3">
+          <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+              <Button className="bg-primary hover:bg-primary/90 text-white font-heading tracking-wider">
+                <Plus className="w-4 h-4 mr-2" /> Add Member
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="bg-card border-white/10 text-white max-w-md">
+              <DialogHeader>
+                <DialogTitle className="font-heading tracking-wider text-2xl">Add Crew Member</DialogTitle>
+              </DialogHeader>
+              <NewMemberForm
+                onSubmit={(data) => createMutation.mutate({ data })}
+                isPending={createMutation.isPending}
+              />
+            </DialogContent>
+          </Dialog>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex gap-1 glass-panel rounded-xl p-1 border-white/10 w-fit">
+        {([["members", "👥 Anggota"], ["chat", `💬 Admin Chat (${membersWithLogin.length})`]] as const).map(([t, l]) => (
+          <button key={t} onClick={() => setActiveTab(t as any)} className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${activeTab === t ? "bg-primary/20 text-primary" : "text-muted-foreground hover:text-white"}`}>
+            {l}
+          </button>
+        ))}
       </div>
 
       {/* Summary Cards */}
@@ -79,7 +160,13 @@ export default function TeamPage() {
             <p className="text-xs uppercase tracking-widest text-muted-foreground mt-1">Total Crew</p>
           </CardContent>
         </Card>
-        {departments.slice(0, 3).map((dept) => (
+        <Card className="glass-panel border-white/5">
+          <CardContent className="p-4 text-center">
+            <p className="text-3xl font-heading text-green-400">{membersWithLogin.length}</p>
+            <p className="text-xs uppercase tracking-widest text-muted-foreground mt-1">Portal Aktif</p>
+          </CardContent>
+        </Card>
+        {departments.slice(0, 2).map((dept) => (
           <Card key={dept} className="glass-panel border-white/5">
             <CardContent className="p-4 text-center">
               <p className="text-3xl font-heading text-white">
@@ -91,60 +178,221 @@ export default function TeamPage() {
         ))}
       </div>
 
-      {isLoading ? (
-        <div className="flex items-center justify-center py-20">
-          <div className="w-8 h-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {members?.map((member) => (
-            <Card key={member.id} className="glass-panel border-white/5 group hover:border-primary/20 transition-all duration-300">
-              <CardContent className="p-6">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="w-12 h-12 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center shrink-0">
-                    <span className="text-primary font-heading text-xl">
-                      {member.name.charAt(0)}
-                    </span>
+      {/* Members Tab */}
+      {activeTab === "members" && (
+        isLoading ? (
+          <div className="flex items-center justify-center py-20">
+            <div className="w-8 h-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {members?.map((member) => (
+              <Card key={member.id} className="glass-panel border-white/5 group hover:border-primary/20 transition-all duration-300">
+                <CardContent className="p-6">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="relative">
+                      <div className="w-12 h-12 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center shrink-0">
+                        <span className="text-primary font-heading text-xl">{member.name.charAt(0)}</span>
+                      </div>
+                      {member.canLogin && (
+                        <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 rounded-full flex items-center justify-center border-2 border-card">
+                          <Shield className="w-2.5 h-2.5 text-white" />
+                        </div>
+                      )}
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                      onClick={() => deleteMutation.mutate({ id: member.id })}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                    onClick={() => deleteMutation.mutate({ id: member.id })}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-                <h3 className="text-lg font-semibold text-white mb-1">{member.name}</h3>
-                <div className="flex items-center gap-2 mb-3">
-                  <Briefcase className="w-3 h-3 text-muted-foreground" />
-                  <p className="text-sm text-muted-foreground">{member.role}</p>
-                </div>
-                {member.email && (
-                  <div className="flex items-center gap-2 mb-3">
-                    <Mail className="w-3 h-3 text-muted-foreground" />
-                    <p className="text-xs text-muted-foreground truncate">{member.email}</p>
+                  <h3 className="text-lg font-semibold text-white mb-1">{member.name}</h3>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Briefcase className="w-3 h-3 text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground">{member.role}</p>
                   </div>
-                )}
-                <div className="flex items-center gap-2 flex-wrap">
-                  {member.department && (
-                    <Badge className={`text-xs border uppercase tracking-wider ${DEPT_COLORS[member.department] || "bg-muted/20 text-muted-foreground border-muted/30"}`}>
-                      {member.department}
-                    </Badge>
+                  {member.email && (
+                    <div className="flex items-center gap-2 mb-3">
+                      <Mail className="w-3 h-3 text-muted-foreground" />
+                      <p className="text-xs text-muted-foreground truncate">{member.email}</p>
+                    </div>
                   )}
-                  <Badge className={`text-xs border uppercase tracking-wider ${member.status === "active" ? "bg-green-500/20 text-green-400 border-green-500/30" : "bg-muted/20 text-muted-foreground border-muted/30"}`}>
-                    {member.status || "active"}
-                  </Badge>
+                  <div className="flex items-center gap-2 flex-wrap mb-4">
+                    {member.department && (
+                      <Badge className={`text-xs border uppercase tracking-wider ${DEPT_COLORS[member.department] || "bg-muted/20 text-muted-foreground border-muted/30"}`}>
+                        {member.department}
+                      </Badge>
+                    )}
+                    <Badge className={`text-xs border uppercase tracking-wider ${member.status === "active" ? "bg-green-500/20 text-green-400 border-green-500/30" : "bg-muted/20 text-muted-foreground border-muted/30"}`}>
+                      {member.status || "active"}
+                    </Badge>
+                    {member.canLogin && (
+                      <Badge className="text-xs border uppercase tracking-wider bg-green-500/10 text-green-400 border-green-500/20">
+                        <Shield className="w-2.5 h-2.5 mr-1" />Portal
+                      </Badge>
+                    )}
+                  </div>
+
+                  {/* Crew Portal Actions */}
+                  <div className="flex gap-2 border-t border-white/8 pt-3">
+                    {member.canLogin ? (
+                      <>
+                        <button
+                          onClick={() => openChat({ id: member.id, name: member.name })}
+                          className="flex-1 flex items-center justify-center gap-1.5 text-xs py-2 rounded-lg bg-white/5 border border-white/10 text-white hover:bg-white/10 transition-colors"
+                        >
+                          <MessageCircle className="w-3 h-3" /> Chat
+                        </button>
+                        <button
+                          onClick={() => disableCrewLogin(member.id, member.name)}
+                          className="flex items-center justify-center gap-1 text-xs px-3 py-2 rounded-lg bg-red-500/8 border border-red-500/20 text-red-400 hover:bg-red-500/15 transition-colors"
+                          title="Nonaktifkan portal"
+                        >
+                          <ShieldOff className="w-3 h-3" />
+                        </button>
+                      </>
+                    ) : (
+                      member.email ? (
+                        <button
+                          onClick={() => { setCrewLoginModal({ id: member.id, name: member.name, email: member.email }); setPwForm({ password: "", confirm: "" }); }}
+                          className="flex-1 flex items-center justify-center gap-1.5 text-xs py-2 rounded-lg bg-primary/8 border border-primary/20 text-primary hover:bg-primary/15 transition-colors"
+                        >
+                          <Key className="w-3 h-3" /> Aktifkan Portal
+                        </button>
+                      ) : (
+                        <p className="text-xs text-muted-foreground/50 italic">Tambah email untuk aktifkan portal</p>
+                      )
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+            {members?.length === 0 && (
+              <div className="col-span-3 glass-panel rounded-xl p-12 text-center">
+                <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                <p className="text-muted-foreground text-sm uppercase tracking-wider">No team members yet</p>
+              </div>
+            )}
+          </div>
+        )
+      )}
+
+      {/* Admin Chat Tab */}
+      {activeTab === "chat" && (
+        <div className="glass-panel rounded-xl border-white/10 overflow-hidden">
+          {membersWithLogin.length === 0 ? (
+            <div className="p-12 text-center text-muted-foreground">
+              <MessageCircle className="w-10 h-10 mx-auto mb-3 opacity-30" />
+              <p>Belum ada crew dengan akses portal. Aktifkan portal untuk mulai chat.</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-white/5">
+              {membersWithLogin.map(m => (
+                <div key={m.id} className="flex items-center justify-between p-5 hover:bg-white/2 transition-colors">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+                      <span className="text-primary font-heading">{m.name.charAt(0)}</span>
+                    </div>
+                    <div>
+                      <div className="font-semibold text-white text-sm">{m.name}</div>
+                      <div className="text-xs text-muted-foreground">{m.role} · {m.department}</div>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => openChat({ id: m.id, name: m.name })}
+                    className="flex items-center gap-2 text-sm px-4 py-2 rounded-lg bg-primary/10 border border-primary/20 text-primary hover:bg-primary/20 transition-colors"
+                  >
+                    <MessageCircle className="w-4 h-4" /> Buka Chat
+                  </button>
                 </div>
-              </CardContent>
-            </Card>
-          ))}
-          {members?.length === 0 && (
-            <div className="col-span-3 glass-panel rounded-xl p-12 text-center">
-              <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground text-sm uppercase tracking-wider">No team members yet</p>
+              ))}
             </div>
           )}
+        </div>
+      )}
+
+      {/* Enable Crew Login Modal */}
+      {crewLoginModal && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-card border border-white/10 rounded-2xl p-6 w-full max-w-sm space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-bold text-white">Aktifkan Crew Portal</h3>
+              <button onClick={() => setCrewLoginModal(null)} className="text-muted-foreground hover:text-white"><X className="w-4 h-4" /></button>
+            </div>
+            <div className="p-3 bg-white/3 rounded-xl border border-white/8">
+              <div className="text-sm font-semibold text-white">{crewLoginModal.name}</div>
+              <div className="text-xs text-muted-foreground">{crewLoginModal.email}</div>
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs uppercase tracking-wider text-muted-foreground">Password</label>
+              <Input type="password" value={pwForm.password} onChange={e => setPwForm(p => ({...p, password: e.target.value}))} className="bg-white/5 border-white/10 text-white" placeholder="Min. 6 karakter" />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs uppercase tracking-wider text-muted-foreground">Konfirmasi Password</label>
+              <Input type="password" value={pwForm.confirm} onChange={e => setPwForm(p => ({...p, confirm: e.target.value}))} className="bg-white/5 border-white/10 text-white" placeholder="Ulangi password" />
+            </div>
+            <div className="flex gap-3 pt-1">
+              <Button onClick={() => setCrewLoginModal(null)} variant="ghost" className="flex-1 text-muted-foreground">Batal</Button>
+              <Button onClick={enableCrewLogin} className="flex-1 bg-primary hover:bg-primary/90">
+                <Shield className="w-4 h-4 mr-2" />Aktifkan
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Admin Chat Modal */}
+      {chatModal && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-card border border-white/10 rounded-2xl w-full max-w-lg flex flex-col" style={{ height: "560px" }}>
+            <div className="flex items-center justify-between p-4 border-b border-white/10">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
+                  <span className="text-primary text-sm font-heading">{chatModal.name.charAt(0)}</span>
+                </div>
+                <div>
+                  <div className="font-semibold text-white text-sm">{chatModal.name}</div>
+                  <div className="text-xs text-muted-foreground">Crew Portal Chat</div>
+                </div>
+              </div>
+              <button onClick={() => { setChatModal(null); setChatMessages([]); }} className="text-muted-foreground hover:text-white"><X className="w-4 h-4" /></button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3">
+              {chatMessages.length === 0 && (
+                <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm">
+                  Belum ada pesan. Mulai percakapan!
+                </div>
+              )}
+              {chatMessages.map(msg => {
+                const isAdmin = msg.senderRole === "admin";
+                return (
+                  <div key={msg.id} className={`flex ${isAdmin ? "justify-end" : "justify-start"}`}>
+                    <div className={`max-w-[70%] px-3 py-2 rounded-2xl text-sm leading-relaxed ${isAdmin ? "bg-primary text-white rounded-br-sm" : "bg-white/8 border border-white/10 text-white rounded-bl-sm"}`}>
+                      <div className="text-[10px] opacity-60 mb-1">{msg.senderName}</div>
+                      {msg.message}
+                      <div className="text-[10px] opacity-50 mt-1 text-right">{new Date(msg.createdAt).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}</div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="p-4 border-t border-white/10 flex gap-2">
+              <input
+                value={chatInput} onChange={e => setChatInput(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && !e.shiftKey && sendAdminChat()}
+                className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white outline-none placeholder:text-muted-foreground"
+                placeholder="Ketik pesan ke crew..."
+              />
+              <button onClick={sendAdminChat} disabled={sendingChat || !chatInput.trim()} className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center hover:bg-primary/90 transition-colors">
+                <Send className="w-4 h-4 text-white" />
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

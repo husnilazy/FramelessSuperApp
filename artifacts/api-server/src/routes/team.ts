@@ -1,6 +1,11 @@
 import { Router, type IRouter } from "express";
 import { db, teamMembersTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
+import crypto from "crypto";
+
+function hashCrewPw(pw: string) {
+  return crypto.createHash("sha256").update(pw + "frameless_crew_salt").digest("hex");
+}
 
 const router: IRouter = Router();
 
@@ -47,7 +52,7 @@ router.get("/team/:id", async (req, res): Promise<void> => {
 
 router.put("/team/:id", async (req, res): Promise<void> => {
   const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
-  const { name, role, email, phone, department, status, avatarUrl, isActive, joinedDate } = req.body;
+  const { name, role, email, phone, department, status, avatarUrl, isActive, joinedDate, canLogin, password } = req.body;
   const [member] = await db
     .update(teamMembersTable)
     .set({
@@ -60,6 +65,8 @@ router.put("/team/:id", async (req, res): Promise<void> => {
       ...(avatarUrl !== undefined && { avatarUrl }),
       ...(isActive !== undefined && { isActive }),
       ...(joinedDate !== undefined && { joinedDate }),
+      ...(canLogin !== undefined && { canLogin }),
+      ...(password && { password: hashCrewPw(password) }),
       updatedAt: new Date(),
     })
     .where(eq(teamMembersTable.id, id))
@@ -90,6 +97,7 @@ function mapMember(m: any) {
     isActive: m.isActive,
     joinedDate: m.joinedDate,
     orderIndex: m.orderIndex,
+    canLogin: m.canLogin,
     createdAt: m.createdAt,
   };
 }
