@@ -4,7 +4,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import { Save, Upload, Play, Trash2, Plus, X, Image, Video, Globe, Settings2, Tag } from "lucide-react";
+import { Save, Upload, Play, Trash2, Plus, X, Image, Video, Globe, Settings2, Tag, Palette } from "lucide-react";
 
 function authHeader() {
   const t = localStorage.getItem("token");
@@ -58,6 +58,15 @@ const CMS_SECTIONS = [
       { key: "subtitle", label: "Subtitle / Deskripsi", type: "textarea" as const },
       { key: "cta1", label: "CTA Utama", type: "text" as const },
       { key: "cta2", label: "CTA Kedua", type: "text" as const },
+      { key: "bannerVideoUrl", label: "URL Banner Video Autoplay (YouTube/MP4, tampil setelah hero)", type: "text" as const },
+    ],
+  },
+  {
+    id: "theme", label: "Tema & Animasi", icon: Palette,
+    fields: [
+      { key: "meshColor1", label: "Warna Mesh 1 (kiri atas, default orange)", type: "color" as const },
+      { key: "meshColor2", label: "Warna Mesh 2 (kanan, default ungu)", type: "color" as const },
+      { key: "meshColor3", label: "Warna Mesh 3 (bawah, default biru)", type: "color" as const },
     ],
   },
   {
@@ -367,7 +376,14 @@ function ContentTab() {
               {sec.fields.map(f => (
                 <div key={f.key} className="space-y-1.5">
                   <label className="text-[11px] uppercase tracking-widest text-muted-foreground font-semibold">{f.label}</label>
-                  {f.type === "upload" ? (
+                  {f.type === "color" ? (
+                    <div className="flex items-center gap-3">
+                      <input type="color" value={vals[sec.id]?.[f.key] || "#ff6b35"} onChange={e => set(sec.id, f.key, e.target.value)}
+                        className="w-12 h-10 rounded-lg border border-border cursor-pointer bg-muted/30" />
+                      <Input value={vals[sec.id]?.[f.key] || ""} onChange={e => set(sec.id, f.key, e.target.value)} className="bg-muted/30 border-border flex-1" placeholder="#ff6b35" />
+                      <div style={{ width: 40, height: 40, borderRadius: 10, background: vals[sec.id]?.[f.key] || "transparent", border: "1px solid rgba(255,255,255,0.15)", flexShrink: 0 }} />
+                    </div>
+                  ) : f.type === "upload" ? (
                     <>
                       <UploadBtn value={vals[sec.id]?.[f.key] || ""} onChange={url => set(sec.id, f.key, url)} label="Upload File" />
                       {vals[sec.id]?.[f.key] && sec.id === "branding" && f.key === "logoUrl" && (

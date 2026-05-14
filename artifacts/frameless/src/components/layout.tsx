@@ -121,7 +121,13 @@ export function AppLayout({ children }: { children: ReactNode }) {
   });
 
   return (
-    <div className="min-h-[100dvh] w-full flex bg-background text-foreground">
+    <div className="min-h-[100dvh] w-full flex bg-background text-foreground relative">
+      {/* Gradient Mesh Background */}
+      <div className="mesh-wrap" aria-hidden="true">
+        <div className="mesh-blob mesh-blob-1" style={{ background: "hsl(20,100%,58%)" }} />
+        <div className="mesh-blob mesh-blob-2" style={{ background: "#7c3aed" }} />
+        <div className="mesh-blob mesh-blob-3" style={{ background: "#1e40af" }} />
+      </div>
       {/* Desktop Sidebar */}
       <aside className="hidden md:flex w-58 flex-col border-r border-border bg-sidebar/60 backdrop-blur-2xl relative z-20" style={{ width: "228px" }}>
         <SidebarNav pathname={location} />

@@ -17,6 +17,7 @@ import uploadsRouter from "./uploads";
 import siteVideosRouter from "./site-videos";
 import siteLogosRouter from "./site-logos";
 import digitalAssetsRouter from "./digital-assets";
+import paymentsRouter from "./payments";
 
 const router: IRouter = Router();
 
@@ -38,5 +39,6 @@ router.use(uploadsRouter);
 router.use(siteVideosRouter);
 router.use(siteLogosRouter);
 router.use(digitalAssetsRouter);
+router.use(paymentsRouter);
 
 export default router;

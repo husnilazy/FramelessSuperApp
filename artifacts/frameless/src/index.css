@@ -207,6 +207,40 @@
   animation-play-state: paused;
 }
 
+/* ── Gradient Mesh Animation ──────────────────────────────── */
+.mesh-wrap { position: fixed; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; }
+.mesh-blob { position: absolute; border-radius: 50%; filter: blur(100px); will-change: transform; }
+.mesh-blob-1 {
+  width: clamp(320px, 55vw, 720px); height: clamp(320px, 55vw, 720px);
+  top: -18%; left: -8%; opacity: 0.18;
+  animation: meshMove1 14s ease-in-out infinite;
+}
+.mesh-blob-2 {
+  width: clamp(260px, 46vw, 620px); height: clamp(260px, 46vw, 620px);
+  top: 38%; right: -12%; opacity: 0.14;
+  animation: meshMove2 19s ease-in-out infinite;
+}
+.mesh-blob-3 {
+  width: clamp(200px, 40vw, 520px); height: clamp(200px, 40vw, 520px);
+  bottom: 4%; left: 24%; opacity: 0.11;
+  animation: meshMove3 24s ease-in-out infinite;
+}
+@keyframes meshMove1 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33%       { transform: translate(130px, 90px) scale(1.13); }
+  66%       { transform: translate(-70px, 155px) scale(0.9); }
+}
+@keyframes meshMove2 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  40%       { transform: translate(-115px, 85px) scale(0.9); }
+  70%       { transform: translate(70px, -55px) scale(1.1); }
+}
+@keyframes meshMove3 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  30%       { transform: translate(90px, -75px) scale(1.09); }
+  65%       { transform: translate(-55px, 65px) scale(0.93); }
+}
+
 /* Video modal backdrop */
 .video-modal-backdrop {
   @apply fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm;

@@ -27,6 +27,7 @@ import PaymentSettingsPage from "@/pages/payment-settings";
 import CoursesAdminPage from "@/pages/courses-admin";
 import DigitalAssetsAdminPage from "@/pages/digital-assets-admin";
 import DigitalAssetsPage from "@/pages/digital-assets";
+import PortalPage from "@/pages/portal";
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 30_000 } },
@@ -68,6 +69,7 @@ function Router() {
       <Route path="/landing" component={LandingPage} />
       <Route path="/store" component={DigitalAssetsPage} />
       <Route path="/course/:slug" component={CoursePage} />
+      <Route path="/portal/:id" component={PortalPage} />
       <Route path="/crew/login" component={CrewLoginPage} />
       <Route path="/crew/dashboard" component={CrewDashboard} />
       <Route path="/crew" component={CrewDashboard} />
