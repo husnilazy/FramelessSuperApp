@@ -18,7 +18,7 @@ router.get("/team", async (_req, res): Promise<void> => {
 });
 
 router.post("/team", async (req, res): Promise<void> => {
-  const { name, role, email, phone, department, status, avatarUrl, joinedDate } = req.body;
+  const { name, role, email, phone, department, status, avatarUrl, joinedDate, canLogin, password } = req.body;
   if (!name || !role) {
     res.status(400).json({ error: "Name and role are required" });
     return;
@@ -35,6 +35,8 @@ router.post("/team", async (req, res): Promise<void> => {
       avatarUrl,
       joinedDate,
       isActive: true,
+      canLogin: canLogin || false,
+      password: password ? hashCrewPw(password) : null,
     })
     .returning();
   res.status(201).json(mapMember(member));

@@ -22,12 +22,15 @@ import InvoiceEditorPage from "@/pages/invoice-editor";
 import ExpensesPage from "@/pages/expenses";
 import FinancePage from "@/pages/finance";
 import SettingsPage from "@/pages/settings";
+import AppearanceSettingsPage from "@/pages/appearance";
 import CmsEditorPage from "@/pages/cms-editor";
 import PaymentSettingsPage from "@/pages/payment-settings";
 import CoursesAdminPage from "@/pages/courses-admin";
 import DigitalAssetsAdminPage from "@/pages/digital-assets-admin";
 import DigitalAssetsPage from "@/pages/digital-assets";
 import PortalPage from "@/pages/portal";
+import ServicesPage from "@/pages/services";
+
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 30_000 } },
@@ -49,12 +52,15 @@ function ProtectedRoutes() {
           <Route path="/invoices" component={InvoicesPage} />
           <Route path="/expenses" component={ExpensesPage} />
           <Route path="/finance" component={FinancePage} />
+          <Route path="/appearance" component={AppearanceSettingsPage} />
           <Route path="/settings" component={SettingsPage} />
           <Route path="/cms" component={CmsEditorPage} />
           <Route path="/payment-settings" component={PaymentSettingsPage} />
           <Route path="/courses-admin" component={CoursesAdminPage} />
           <Route path="/digital-assets-admin" component={DigitalAssetsAdminPage} />
           <Route component={NotFound} />
+
+          <Route path="/services" component={ServicesPage} />
         </Switch>
       </AppLayout>
     </AuthGuard>
@@ -84,6 +90,7 @@ function Router() {
       <Route path="/invoices/:id" component={ProtectedRoutes} />
       <Route path="/expenses" component={ProtectedRoutes} />
       <Route path="/finance" component={ProtectedRoutes} />
+      <Route path="/appearance" component={ProtectedRoutes} />
       <Route path="/settings" component={ProtectedRoutes} />
       <Route path="/cms" component={ProtectedRoutes} />
       <Route path="/payment-settings" component={ProtectedRoutes} />

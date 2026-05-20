@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useListTeamMembers, useCreateTeamMember, useDeleteTeamMember, type CreateTeamMemberBody } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
@@ -38,6 +38,17 @@ export default function TeamPage() {
   const queryClient = useQueryClient();
 
   const { data: members, isLoading } = useListTeamMembers();
+
+  useEffect(() => {
+    let interval: any;
+    if (chatModal) {
+      interval = setInterval(async () => {
+        const res = await fetch(`/api/admin/chat/${chatModal.id}`, { headers: authHeader() as any });
+        if (res.ok) setChatMessages(await res.json());
+      }, 5000);
+    }
+    return () => clearInterval(interval);
+  }, [chatModal]);
 
   const createMutation = useCreateTeamMember({
     mutation: {
@@ -114,7 +125,7 @@ export default function TeamPage() {
     } finally { setSendingChat(false); }
   }
 
-  const membersWithLogin = members?.filter(m => m.canLogin) || [];
+  const membersWithLogin = members?.filter(m => (m as any).canLogin) || [];
 
   return (
     <div className="space-y-8 pb-8">
@@ -194,7 +205,7 @@ export default function TeamPage() {
                       <div className="w-12 h-12 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center shrink-0">
                         <span className="text-primary font-heading text-xl">{member.name.charAt(0)}</span>
                       </div>
-                      {member.canLogin && (
+                      {(member as any).canLogin && (
                         <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 rounded-full flex items-center justify-center border-2 border-card">
                           <Shield className="w-2.5 h-2.5 text-white" />
                         </div>
@@ -229,7 +240,7 @@ export default function TeamPage() {
                     <Badge className={`text-xs border uppercase tracking-wider ${member.status === "active" ? "bg-green-500/20 text-green-400 border-green-500/30" : "bg-muted/20 text-muted-foreground border-muted/30"}`}>
                       {member.status || "active"}
                     </Badge>
-                    {member.canLogin && (
+                    {(member as any).canLogin && (
                       <Badge className="text-xs border uppercase tracking-wider bg-green-500/10 text-green-400 border-green-500/20">
                         <Shield className="w-2.5 h-2.5 mr-1" />Portal
                       </Badge>
@@ -238,7 +249,7 @@ export default function TeamPage() {
 
                   {/* Crew Portal Actions */}
                   <div className="flex gap-2 border-t border-white/8 pt-3">
-                    {member.canLogin ? (
+                    {(member as any).canLogin ? (
                       <>
                         <button
                           onClick={() => openChat({ id: member.id, name: member.name })}
@@ -399,22 +410,39 @@ export default function TeamPage() {
   );
 }
 
-function NewMemberForm({ onSubmit, isPending }: { onSubmit: (data: CreateTeamMemberBody) => void; isPending: boolean }) {
-  const [form, setForm] = useState<CreateTeamMemberBody>({
-    name: "", role: "", email: "", department: "Production", status: "active",
+function NewMemberForm({ onSubmit, isPending }: { onSubmit: (data: any) => void; isPending: boolean }) {
+  const [form, setForm] = useState<any>({
+    name: "", role: "", email: "", department: "Production", status: "active", canLogin: false, password: ""
   });
 
   return (
     <form onSubmit={(e) => { e.preventDefault(); onSubmit(form); }} className="space-y-4">
       <div className="space-y-1">
-        <label className="text-xs uppercase tracking-wider text-muted-foreground">Full Name</label>
+        <label className="text-xs uppercase tracking-wider text-muted-foreground">Full Name *</label>
         <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })}
           required className="bg-white/5 border-white/10 text-white" placeholder="Name" />
       </div>
-      <div className="space-y-1">
-        <label className="text-xs uppercase tracking-wider text-muted-foreground">Role</label>
-        <Input value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}
-          required className="bg-white/5 border-white/10 text-white" placeholder="e.g. Videographer" />
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1">
+          <label className="text-xs uppercase tracking-wider text-muted-foreground">Role *</label>
+          <Input value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}
+            required className="bg-white/5 border-white/10 text-white" placeholder="e.g. Videographer" />
+        </div>
+        <div className="space-y-1">
+          <label className="text-xs uppercase tracking-wider text-muted-foreground">Department</label>
+          <Select value={form.department || "Production"} onValueChange={(v) => setForm({ ...form, department: v })}>
+            <SelectTrigger className="bg-white/5 border-white/10 text-white">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-card border-white/10">
+              <SelectItem value="Production">Production</SelectItem>
+              <SelectItem value="Post-Production">Post-Production</SelectItem>
+              <SelectItem value="STUDIODO">STUDIODO</SelectItem>
+              <SelectItem value="ZENSVISUAL">ZENSVISUAL</SelectItem>
+              <SelectItem value="Management">Management</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
       <div className="space-y-1">
         <label className="text-xs uppercase tracking-wider text-muted-foreground">Email</label>
@@ -422,21 +450,31 @@ function NewMemberForm({ onSubmit, isPending }: { onSubmit: (data: CreateTeamMem
           className="bg-white/5 border-white/10 text-white" placeholder="email@frameless.com" />
       </div>
       <div className="space-y-1">
-        <label className="text-xs uppercase tracking-wider text-muted-foreground">Department</label>
-        <Select value={form.department || "Production"} onValueChange={(v) => setForm({ ...form, department: v })}>
-          <SelectTrigger className="bg-white/5 border-white/10 text-white">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent className="bg-card border-white/10">
-            <SelectItem value="Production">Production</SelectItem>
-            <SelectItem value="Post-Production">Post-Production</SelectItem>
-            <SelectItem value="STUDIODO">STUDIODO</SelectItem>
-            <SelectItem value="ZENSVISUAL">ZENSVISUAL</SelectItem>
-            <SelectItem value="Management">Management</SelectItem>
-          </SelectContent>
-        </Select>
+        <label className="text-xs uppercase tracking-wider text-muted-foreground">Phone</label>
+        <Input type="text" value={form.phone || ""} onChange={(e) => setForm({ ...form, phone: e.target.value })}
+          className="bg-white/5 border-white/10 text-white" placeholder="+62 8..." />
       </div>
-      <Button type="submit" disabled={isPending} className="w-full bg-primary hover:bg-primary/90 text-white font-heading tracking-wider">
+      
+      <div className="p-3 bg-white/5 border border-white/10 rounded-xl space-y-3 mt-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="text-sm font-semibold text-white">Beri Akses Portal</div>
+            <div className="text-xs text-muted-foreground">Crew dapat login ke dashboard crew</div>
+          </div>
+          <button type="button" onClick={() => setForm({...form, canLogin: !form.canLogin})} className={`w-10 h-5 rounded-full relative transition-colors ${form.canLogin ? "bg-green-500" : "bg-white/10"}`}>
+            <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all ${form.canLogin ? "left-[22px]" : "left-0.5"}`} />
+          </button>
+        </div>
+        {form.canLogin && (
+          <div className="space-y-1 pt-2 border-t border-white/10">
+            <label className="text-xs uppercase tracking-wider text-muted-foreground">Password Login *</label>
+            <Input type="text" value={form.password || ""} onChange={(e) => setForm({ ...form, password: e.target.value })}
+              required={form.canLogin} className="bg-white/5 border-white/10 text-white" placeholder="Set password awal" minLength={6} />
+          </div>
+        )}
+      </div>
+
+      <Button type="submit" disabled={isPending || (form.canLogin && (!form.email || form.password.length < 6))} className="w-full bg-primary hover:bg-primary/90 text-white font-heading tracking-wider mt-2">
         {isPending ? "Adding..." : "Add Member"}
       </Button>
     </form>

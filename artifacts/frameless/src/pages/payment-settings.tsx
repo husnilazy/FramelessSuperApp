@@ -96,7 +96,7 @@ export default function PaymentSettingsPage() {
       }).catch(() => {}).finally(() => setLoading(false));
   }, []);
 
-  const current = settings.find(s => s.selected === selected) || settings.find(s => s.provider === selected);
+  const current = settings.find(s => s.provider === selected);
   const sel = settings.find(s => s.provider === selected);
   const selConfig = sel ? (() => { try { return JSON.parse(sel.config); } catch { return {}; } })() : {};
 

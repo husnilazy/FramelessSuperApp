@@ -1,52 +1,155 @@
-import { createContext, useContext, useEffect, ReactNode } from "react";
-import { useGetMe, User } from "@workspace/api-client-react";
+// artifacts/frameless/src/lib/auth.tsx
+import {
+  createContext, useContext, useEffect, useState,
+  useCallback, type ReactNode,
+} from "react";
 import { useLocation } from "wouter";
+import { useQueryClient } from "@tanstack/react-query";
 
-interface AuthContextType {
-  user: User | null;
-  isLoading: boolean;
-  isAuthenticated: boolean;
+// ── Types ─────────────────────────────────────────────────────────────────────
+export interface User {
+  id:        string;
+  name:      string;
+  email:     string;
+  role:      string;
+  isActive:  boolean;
+  createdAt?: string;
 }
 
+interface AuthContextType {
+  user:            User | null;
+  isLoading:       boolean;
+  isAuthenticated: boolean;
+  login:           (token: string, user: User) => void;
+  logout:          () => void;
+  refetch:         () => Promise<void>;
+}
+
+// ── Context ───────────────────────────────────────────────────────────────────
 const AuthContext = createContext<AuthContextType>({
-  user: null,
-  isLoading: true,
+  user:            null,
+  isLoading:       true,
   isAuthenticated: false,
+  login:           () => {},
+  logout:          () => {},
+  refetch:         async () => {},
 });
 
-export function AuthProvider({ children }: { children: ReactNode }) {
-  const [, setLocation] = useLocation();
-  const token = localStorage.getItem("token");
-  
-  const { data: user, isLoading, isError } = useGetMe({
-    query: {
-      enabled: !!token,
-      retry: false,
-    }
-  });
+// ── Token helpers ─────────────────────────────────────────────────────────────
+export function getToken(): string | null {
+  return localStorage.getItem("token");
+}
+export function setToken(token: string) {
+  localStorage.setItem("token", token);
+}
+export function clearToken() {
+  localStorage.removeItem("token");
+  localStorage.removeItem("user");
+}
 
+// ── fetchMe — calls /api/auth/me with Authorization header ────────────────────
+async function fetchMe(token: string): Promise<User | null> {
+  try {
+    const res = await fetch("/api/auth/me", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
+// ── AuthProvider ──────────────────────────────────────────────────────────────
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [user,      setUser]      = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [, setLocation]           = useLocation();
+  const queryClient               = useQueryClient();
+
+  // On mount: verify token in localStorage
   useEffect(() => {
-    if (isError) {
-      localStorage.removeItem("token");
+    const token = getToken();
+    if (!token) {
+      setIsLoading(false);
+      return;
+    }
+
+    // Try to restore user from localStorage first (instant load)
+    const cached = localStorage.getItem("user");
+    if (cached) {
+      try { setUser(JSON.parse(cached)); } catch { /* ignore */ }
+    }
+
+    // Verify token with backend
+    fetchMe(token).then((me) => {
+      if (me) {
+        setUser(me);
+        localStorage.setItem("user", JSON.stringify(me));
+      } else {
+        // Token invalid/expired
+        clearToken();
+        setUser(null);
+      }
+      setIsLoading(false);
+    });
+  }, []);
+
+  const login = useCallback((token: string, userData: User) => {
+    setToken(token);
+    localStorage.setItem("user", JSON.stringify(userData));
+    setUser(userData);
+    queryClient.clear();
+  }, [queryClient]);
+
+  const logout = useCallback(() => {
+    const token = getToken();
+    if (token) {
+      fetch("/api/auth/logout", {
+        method:  "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      }).catch(() => {});
+    }
+    clearToken();
+    setUser(null);
+    queryClient.clear();
+    setLocation("/login");
+  }, [queryClient, setLocation]);
+
+  const refetch = useCallback(async () => {
+    const token = getToken();
+    if (!token) return;
+    const me = await fetchMe(token);
+    if (me) {
+      setUser(me);
+      localStorage.setItem("user", JSON.stringify(me));
+    } else {
+      clearToken();
+      setUser(null);
       setLocation("/login");
     }
-  }, [isError, setLocation]);
+  }, [setLocation]);
 
   return (
     <AuthContext.Provider value={{
-      user: user ?? null,
+      user,
       isLoading,
-      isAuthenticated: !!user && !isError,
+      isAuthenticated: !!user,
+      login,
+      logout,
+      refetch,
     }}>
       {children}
     </AuthContext.Provider>
   );
 }
 
+// ── Hooks ─────────────────────────────────────────────────────────────────────
 export function useAuth() {
   return useContext(AuthContext);
 }
 
+// ── AuthGuard ─────────────────────────────────────────────────────────────────
 export function AuthGuard({ children }: { children: ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
   const [, setLocation] = useLocation();
@@ -58,9 +161,21 @@ export function AuthGuard({ children }: { children: ReactNode }) {
   }, [isLoading, isAuthenticated, setLocation]);
 
   if (isLoading) {
-    return <div className="h-screen w-full flex items-center justify-center">
-      <div className="w-8 h-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
-    </div>;
+    return (
+      <div style={{
+        height: "100vh", width: "100%",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        background: "#0a0a0c",
+      }}>
+        <div style={{
+          width: 36, height: 36, borderRadius: "50%",
+          border: "3px solid rgba(255,255,255,.1)",
+          borderTopColor: "#FF6A20",
+          animation: "spin .7s linear infinite",
+        }} />
+        <style>{`@keyframes spin{to{transform:rotate(360deg);}}`}</style>
+      </div>
+    );
   }
 
   if (!isAuthenticated) return null;

@@ -172,7 +172,7 @@ export default function ExpensesPage() {
 function NewExpenseForm({ onSubmit, isPending }: { onSubmit: (data: CreateExpenseBody) => void; isPending: boolean }) {
   const today = new Date().toISOString().split("T")[0];
   const [form, setForm] = useState<CreateExpenseBody>({
-    category: "OTHER", description: "", amount: "0", date: today,
+    category: "OTHER", description: "", amount: 0 as any, date: today,
   });
 
   return (
@@ -198,7 +198,7 @@ function NewExpenseForm({ onSubmit, isPending }: { onSubmit: (data: CreateExpens
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1">
           <label className="text-xs uppercase tracking-wider text-muted-foreground">Amount (IDR)</label>
-          <Input type="number" value={form.amount as string} onChange={(e) => setForm({ ...form, amount: e.target.value })}
+          <Input type="number" value={form.amount} onChange={(e) => setForm({ ...form, amount: Number(e.target.value) as any })}
             required className="bg-white/5 border-white/10 text-white" placeholder="0" />
         </div>
         <div className="space-y-1">

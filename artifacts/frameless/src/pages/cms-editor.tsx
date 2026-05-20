@@ -12,7 +12,7 @@ function authHeader() {
 }
 
 /* ─── UPLOAD BUTTON ─── */
-function UploadBtn({ value, onChange, label }: { value: string; onChange: (url: string) => void; label?: string }) {
+function UploadBtn({ value, onChange, label, accept }: { value: string; onChange: (url: string) => void; label?: string; accept?: string }) {
   const ref = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
@@ -30,12 +30,12 @@ function UploadBtn({ value, onChange, label }: { value: string; onChange: (url: 
       <div className="flex-1">
         <Input value={value} onChange={e => onChange(e.target.value)} className="bg-muted/30 border-border text-sm" placeholder="URL atau upload file..." />
       </div>
-      <button onClick={() => ref.current?.click()}
+      <button type="button" onClick={() => ref.current?.click()}
         className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-muted/40 border border-border text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-all whitespace-nowrap">
         {uploading ? <div className="w-3.5 h-3.5 rounded-full border-2 border-primary border-t-transparent animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
         {label || "Upload"}
       </button>
-      <input ref={ref} type="file" accept="image/*" className="hidden" onChange={handleFile} />
+      <input ref={ref} type="file" accept={accept || "image/*"} className="hidden" onChange={handleFile} />
     </div>
   );
 }
@@ -94,6 +94,7 @@ const VIDEO_CATEGORIES = [
   { v: "showreel", l: "Showreel (play button di landing)" },
   { v: "portfolio", l: "Portfolio (grid di landing)" },
   { v: "background", l: "Background (hero bg)" },
+  { v: "behind-the-frame", l: "Behind the Frame (Section)" },
 ];
 
 function VideosTab() {
@@ -127,12 +128,12 @@ function VideosTab() {
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["/api/site-videos"] }); toast({ title: "Video deleted" }); },
   });
 
-  function getYtThumb(url: string) { const m = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/); return m ? `https://img.youtube.com/vi/${m[1]}/mqdefault.jpg` : null; }
+  function getYtThumb(url: string) { if (!url) return null; const m = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/); return m ? `https://img.youtube.com/vi/${m[1]}/mqdefault.jpg` : null; }
 
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">Kelola video untuk showreel, portfolio, dan background landing page.</p>
+        <p className="text-sm text-muted-foreground">Kelola video untuk showreel, portfolio, background, dan Behind the Frame.</p>
         <Button onClick={() => resetForm()} className="bg-primary hover:bg-primary/90 text-white rounded-xl text-sm">
           <Plus className="w-4 h-4 mr-1.5" /> Tambah Video
         </Button>
@@ -148,29 +149,33 @@ function VideosTab() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <label className="text-[11px] uppercase tracking-widest text-muted-foreground font-semibold">Title</label>
-                <Input value={form.title} onChange={e => setForm(f => ({...f, title: e.target.value}))} className="bg-muted/30 border-border" placeholder="Nama video" />
+                <Input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} className="bg-muted/30 border-border" placeholder="Nama video" />
               </div>
               <div className="space-y-1.5">
                 <label className="text-[11px] uppercase tracking-widest text-muted-foreground font-semibold">Kategori</label>
-                <select value={form.category} onChange={e => setForm(f => ({...f, category: e.target.value}))} className="w-full bg-muted/30 border border-border rounded-lg px-3 py-2 text-sm text-foreground">
+                <select value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))} className="w-full bg-muted/30 border border-border rounded-lg px-3 py-2 text-sm text-foreground">
                   {VIDEO_CATEGORIES.map(c => <option key={c.v} value={c.v} className="bg-card">{c.l}</option>)}
                 </select>
               </div>
               <div className="col-span-2 space-y-1.5">
-                <label className="text-[11px] uppercase tracking-widest text-muted-foreground font-semibold">YouTube / Vimeo URL</label>
-                <Input value={form.embedUrl} onChange={e => setForm(f => ({...f, embedUrl: e.target.value}))} className="bg-muted/30 border-border" placeholder="https://youtu.be/..." />
+                <label className="text-[11px] uppercase tracking-widest text-muted-foreground font-semibold">YouTube / Vimeo / Video File URL</label>
+                <UploadBtn value={form.embedUrl} onChange={url => setForm(f => ({ ...f, embedUrl: url }))} label="Upload Video" accept="video/*" />
+              </div>
+              <div className="col-span-2 space-y-1.5">
+                <label className="text-[11px] uppercase tracking-widest text-muted-foreground font-semibold">Thumbnail Video (opsional, otomatis jika YouTube)</label>
+                <UploadBtn value={form.thumbnailUrl} onChange={url => setForm(f => ({ ...f, thumbnailUrl: url }))} label="Upload Image" accept="image/*" />
               </div>
               <div className="col-span-2 space-y-1.5">
                 <label className="text-[11px] uppercase tracking-widest text-muted-foreground font-semibold">Tags (pisah koma, untuk filter portfolio)</label>
-                <Input value={form.tags} onChange={e => setForm(f => ({...f, tags: e.target.value}))} className="bg-muted/30 border-border" placeholder="Commercial, Music Video, Short Film" />
+                <Input value={form.tags} onChange={e => setForm(f => ({ ...f, tags: e.target.value }))} className="bg-muted/30 border-border" placeholder="Commercial, Music Video, Short Film" />
               </div>
               <div className="col-span-2 space-y-1.5">
                 <label className="text-[11px] uppercase tracking-widest text-muted-foreground font-semibold">Deskripsi (opsional)</label>
-                <Input value={form.description} onChange={e => setForm(f => ({...f, description: e.target.value}))} className="bg-muted/30 border-border" placeholder="Deskripsi singkat..." />
+                <Input value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} className="bg-muted/30 border-border" placeholder="Deskripsi singkat..." />
               </div>
             </div>
             <label className="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" checked={form.isActive} onChange={e => setForm(f => ({...f, isActive: e.target.checked}))} className="w-4 h-4 accent-primary rounded" />
+              <input type="checkbox" checked={form.isActive} onChange={e => setForm(f => ({ ...f, isActive: e.target.checked }))} className="w-4 h-4 accent-primary rounded" />
               <span className="text-sm font-medium text-foreground">Tampilkan di landing page</span>
             </label>
             <div className="flex gap-3">
@@ -262,11 +267,11 @@ function LogosTab() {
             <h4 className="font-bold text-foreground">Tambah Logo Klien</h4>
             <div className="space-y-1.5">
               <label className="text-[11px] uppercase tracking-widest text-muted-foreground font-semibold">Nama Brand/Klien</label>
-              <Input value={form.name} onChange={e => setForm(f => ({...f, name: e.target.value}))} className="bg-muted/30 border-border" placeholder="Nama perusahaan" />
+              <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} className="bg-muted/30 border-border" placeholder="Nama perusahaan" />
             </div>
             <div className="space-y-1.5">
               <label className="text-[11px] uppercase tracking-widest text-muted-foreground font-semibold">Logo (upload file atau URL)</label>
-              <UploadBtn value={form.imageUrl} onChange={url => setForm(f => ({...f, imageUrl: url}))} label="Upload Logo" />
+              <UploadBtn value={form.imageUrl} onChange={url => setForm(f => ({ ...f, imageUrl: url }))} label="Upload Logo" />
             </div>
             {form.imageUrl && (
               <div className="p-3 rounded-xl bg-black border border-border flex items-center justify-center h-16">
@@ -326,7 +331,7 @@ function ContentTab() {
   useEffect(() => {
     fetch("/api/cms").then(r => r.json()).then((data: Record<string, Record<string, string>>) => {
       setVals(data || {});
-    }).catch(() => {}).finally(() => setLoading(false));
+    }).catch(() => { }).finally(() => setLoading(false));
   }, []);
 
   function set(section: string, key: string, value: string) {

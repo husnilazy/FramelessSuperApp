@@ -12,16 +12,31 @@ async function chatCompletion(messages: { role: string; content: string }[], sys
     ? [{ role: "system", content: systemPrompt }, ...messages]
     : messages;
 
+  if (!OPENAI_KEY || OPENAI_KEY.trim() === "") {
+    // Smart Mock AI response if no API key is provided
+    const lastMsg = messages[messages.length - 1]?.content.toLowerCase() || "";
+    let reply = "Maaf, saya tidak mengerti. Bisa jelaskan lebih spesifik?";
+    if (lastMsg.includes("halo") || lastMsg.includes("hai")) reply = "Halo! Saya adalah Frameless AI. Ada yang bisa saya bantu terkait videografi atau manajemen proyek hari ini?";
+    else if (lastMsg.includes("konsep") || lastMsg.includes("ide")) reply = "Untuk konsep video yang menarik, coba fokus pada storytelling yang kuat dan hook di 3 detik pertama. Ingin saya buatkan draf script singkat?";
+    else if (lastMsg.includes("teknis") || lastMsg.includes("kamera") || lastMsg.includes("lensa")) reply = "Untuk hasil sinematik, gunakan aturan 180 derajat shutter speed, usahakan shoot di frame rate 24fps, dan gunakan lighting dengan kontras (seperti Rembrandt lighting).";
+    else if (lastMsg.includes("proyek") || lastMsg.includes("jadwal")) reply = "Pastikan semua anggota tim sudah di-assign pada task masing-masing di dashboard. Komunikasi yang lancar adalah kunci proyek yang sukses!";
+    else reply = "Ini adalah respons AI Mode Mock karena API Key belum diatur di .env. Tapi secara konseptual, fitur AI sudah terintegrasi penuh!";
+
+    // Simulate API delay
+    await new Promise(r => setTimeout(r, 1200));
+    return reply;
+  }
+
   const res = await fetch(`${OPENAI_BASE}/chat/completions`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${OPENAI_KEY}`,
     },
-    body: JSON.stringify({ model: "gpt-5-mini", messages: msgs, max_tokens: 1000 }),
+    body: JSON.stringify({ model: "gpt-4o-mini", messages: msgs, max_tokens: 1000 }),
   });
   const data = await res.json() as any;
-  return data.choices?.[0]?.message?.content ?? "Maaf, terjadi kesalahan.";
+  return data.choices?.[0]?.message?.content ?? "Maaf, terjadi kesalahan dari provider AI.";
 }
 
 const CREW_SYSTEM = `Kamu adalah asisten AI untuk crew/tim produksi video Frameless Creative. 

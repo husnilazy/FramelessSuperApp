@@ -1,208 +1,280 @@
-import { ReactNode } from "react";
+// artifacts/frameless/src/components/layout.tsx
+import { useState, type ReactNode } from "react";
 import { Link, useLocation } from "wouter";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutDashboard, Film, Users, UsersRound, Receipt, PieChart,
-  CreditCard, Settings, LogOut, Menu, Globe, BookOpen, Banknote,
-  Users2, Sun, Moon, Package, ExternalLink,
+  CreditCard, Settings, LogOut, Globe, BookOpen, Banknote,
+  Users2, Sun, Moon, Package, ExternalLink, Menu, X,
+  MessageSquare, ChevronRight, Paintbrush,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { useTheme } from "@/lib/theme";
-import { useLogout } from "@workspace/api-client-react";
-import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { AIChat } from "./ai-chat";
 
-const navItems = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, group: "main" },
-  { href: "/projects", label: "Projects", icon: Film, group: "main" },
-  { href: "/team", label: "Crew", icon: Users, group: "main" },
-  { href: "/clients", label: "Clients", icon: UsersRound, group: "main" },
-  { href: "/invoices", label: "Invoices", icon: Receipt, group: "main" },
-  { href: "/expenses", label: "Expenses", icon: CreditCard, group: "main" },
-  { href: "/finance", label: "Finance", icon: PieChart, group: "main" },
-  { href: "/cms", label: "CMS Editor", icon: Globe, group: "content" },
-  { href: "/courses-admin", label: "Courses", icon: BookOpen, group: "content" },
-  { href: "/digital-assets-admin", label: "Digital Assets", icon: Package, group: "content" },
-  { href: "/payment-settings", label: "Payments", icon: Banknote, group: "content" },
-  { href: "/settings", label: "Settings", icon: Settings, group: "system" },
+// ── Nav items ─────────────────────────────────────────────────────────────────
+const NAV = [
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, group: "Operations" },
+  { href: "/projects", label: "Projects", icon: Film, group: "Operations" },
+  { href: "/team", label: "Crew", icon: Users, group: "Operations" },
+  { href: "/clients", label: "Clients", icon: UsersRound, group: "Operations" },
+  { href: "/invoices", label: "Invoices", icon: Receipt, group: "Operations" },
+  { href: "/expenses", label: "Expenses", icon: CreditCard, group: "Operations" },
+  { href: "/finance", label: "Finance", icon: PieChart, group: "Operations" },
+  { href: "/cms", label: "CMS Editor", icon: Globe, group: "Content" },
+  { href: "/courses-admin", label: "Courses", icon: BookOpen, group: "Content" },
+  { href: "/digital-assets-admin", label: "Digital Assets", icon: Package, group: "Content" },
+  { href: "/payment-settings", label: "Payments", icon: Banknote, group: "Content" },
+  { href: "/appearance", label: "Appearance", icon: Paintbrush, group: "System" },
+  { href: "/settings", label: "Settings", icon: Settings, group: "System" },
 ];
 
-function Logo() {
-  return (
-    <div className="px-5 py-5 mb-2">
-      <div className="flex items-center gap-2.5">
-        <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center shrink-0">
-          <span className="text-white text-xs font-black">F</span>
-        </div>
-        <span className="text-base font-black tracking-tight text-foreground">Frameless</span>
-      </div>
-      <p className="text-[10px] text-muted-foreground mt-1 ml-9 font-medium tracking-wide">Creative Studio</p>
-    </div>
-  );
+// ── Theme-aware colors ────────────────────────────────────────────────────────
+function useColors(theme: string, appearance: any) {
+  const dark = theme === "dark";
+  const OR = appearance?.primaryColor || "#FF6A20";
+  return {
+    OR,
+    bg: dark ? "#0e1018" : "#f8f9fb",
+    sidebar: appearance?.glassmorphism ? (dark ? "rgba(14,16,24,0.92)" : "rgba(255,255,255,0.92)") : (dark ? "#0e1018" : "#ffffff"),
+    border: dark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.08)",
+    text: dark ? "#e8eaf0" : "#1a1d2e",
+    muted: dark ? "rgba(255,255,255,0.38)" : "rgba(0,0,0,0.4)",
+    hover: dark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.05)",
+    activeBg: dark ? `${OR}1e` : `${OR}16`,
+    mainBg: dark ? "rgba(255,255,255,0.01)" : "rgba(0,0,0,0.01)",
+    label: dark ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.25)",
+  };
 }
 
-function NavItem({ item, isActive, onClick }: { item: typeof navItems[0]; isActive: boolean; onClick?: () => void }) {
+// ── NavItem ───────────────────────────────────────────────────────────────────
+function NavItem({ item, active, onClick, c }: { item: typeof NAV[0]; active: boolean; onClick?: () => void; c: ReturnType<typeof useColors> }) {
+  const Icon = item.icon;
   return (
     <Link href={item.href} onClick={onClick}>
-      <div className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 cursor-pointer group ${
-        isActive
-          ? "bg-primary/12 text-primary border border-primary/20"
-          : "text-muted-foreground hover:bg-muted/60 hover:text-foreground border border-transparent"
-      }`}>
-        <item.icon className={`w-4 h-4 shrink-0 ${isActive ? "text-primary" : "group-hover:text-foreground"}`} />
-        <span className="text-[13px] font-medium">{item.label}</span>
+      <div style={{
+        display: "flex", alignItems: "center", gap: 10,
+        padding: "9px 12px", borderRadius: 12,
+        background: active ? c.activeBg : "transparent",
+        border: `1px solid ${active ? c.OR + "33" : "transparent"}`,
+        color: active ? c.OR : c.muted,
+        cursor: "pointer", transition: "all .18s",
+        marginBottom: 2,
+      }}
+        onMouseEnter={e => { if (!active) { (e.currentTarget as HTMLElement).style.background = c.hover; (e.currentTarget as HTMLElement).style.color = c.text; } }}
+        onMouseLeave={e => { if (!active) { (e.currentTarget as HTMLElement).style.background = "transparent"; (e.currentTarget as HTMLElement).style.color = c.muted; } }}
+      >
+        <Icon size={15} style={{ flexShrink: 0, color: active ? c.OR : "inherit" }} />
+        <span style={{ fontSize: 13, fontWeight: active ? 700 : 500, letterSpacing: "-.01em" }}>{item.label}</span>
+        {active && <ChevronRight size={12} style={{ marginLeft: "auto", color: c.OR }} />}
       </div>
     </Link>
   );
 }
 
-function SidebarNav({ pathname, onClick }: { pathname: string; onClick?: () => void }) {
-  const mainItems = navItems.filter(n => n.group === "main");
-  const contentItems = navItems.filter(n => n.group === "content");
-  const systemItems = navItems.filter(n => n.group === "system");
-
+// ── SidebarContent ────────────────────────────────────────────────────────────
+function SidebarContent({ pathname, onNav, c, user, logout }: {
+  pathname: string; onNav?: () => void;
+  c: ReturnType<typeof useColors>;
+  user: any; logout: () => void;
+}) {
+  const { theme, toggleTheme, appearance } = useTheme();
+  const groups = Array.from(new Set(NAV.map(n => n.group)));
   const isActive = (href: string) =>
-    pathname === href || (pathname.startsWith(href) && href !== "/dashboard");
+    pathname === href || (href !== "/dashboard" && pathname.startsWith(href));
 
   return (
-    <nav className="flex-1 overflow-y-auto py-2 px-3 space-y-6">
-      <Logo />
-
-      <div className="space-y-0.5">
-        <p className="px-3 text-[10px] uppercase tracking-widest text-muted-foreground/50 font-semibold mb-2">Operations</p>
-        {mainItems.map(item => <NavItem key={item.href} item={item} isActive={isActive(item.href)} onClick={onClick} />)}
-      </div>
-
-      <div className="space-y-0.5">
-        <p className="px-3 text-[10px] uppercase tracking-widest text-muted-foreground/50 font-semibold mb-2">Content</p>
-        {contentItems.map(item => <NavItem key={item.href} item={item} isActive={isActive(item.href)} onClick={onClick} />)}
-        <a href="/" target="_blank" className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-all border border-transparent">
-          <ExternalLink className="w-4 h-4 shrink-0" />
-          <span className="text-[13px] font-medium">Landing Page</span>
-        </a>
-        <a href="/crew/login" target="_blank" className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-all border border-transparent">
-          <Users2 className="w-4 h-4 shrink-0" />
-          <span className="text-[13px] font-medium">Crew Portal</span>
-        </a>
-      </div>
-
-      <div className="space-y-0.5">
-        <p className="px-3 text-[10px] uppercase tracking-widest text-muted-foreground/50 font-semibold mb-2">System</p>
-        {systemItems.map(item => <NavItem key={item.href} item={item} isActive={isActive(item.href)} onClick={onClick} />)}
-      </div>
-    </nav>
-  );
-}
-
-function ThemeToggle() {
-  const { theme, toggleTheme } = useTheme();
-  return (
-    <button
-      onClick={toggleTheme}
-      className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-all border border-transparent hover:border-border"
-      title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-    >
-      {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-    </button>
-  );
-}
-
-export function AppLayout({ children }: { children: ReactNode }) {
-  const [location, setLocation] = useLocation();
-  const { user } = useAuth();
-
-  const logoutMutation = useLogout({
-    mutation: {
-      onSuccess: () => {
-        localStorage.removeItem("token");
-        setLocation("/login");
-      }
-    }
-  });
-
-  return (
-    <div className="min-h-[100dvh] w-full flex bg-background text-foreground relative">
-      {/* Gradient Mesh Background */}
-      <div className="mesh-wrap" aria-hidden="true">
-        <div className="mesh-blob mesh-blob-1" style={{ background: "hsl(20,100%,58%)" }} />
-        <div className="mesh-blob mesh-blob-2" style={{ background: "#7c3aed" }} />
-        <div className="mesh-blob mesh-blob-3" style={{ background: "#1e40af" }} />
-      </div>
-      {/* Desktop Sidebar */}
-      <aside className="hidden md:flex w-58 flex-col border-r border-border bg-sidebar/60 backdrop-blur-2xl relative z-20" style={{ width: "228px" }}>
-        <SidebarNav pathname={location} />
-
-        <div className="p-4 border-t border-border">
-          <div className="flex items-center gap-3 mb-3 px-1">
-            <div className="w-8 h-8 rounded-full bg-primary/15 border border-primary/30 flex items-center justify-center shrink-0">
-              <span className="text-primary text-sm font-bold">{user?.name?.charAt(0) || "A"}</span>
+    <div style={{ display: "flex", flexDirection: "column", height: "100%", fontFamily: "'Plus Jakarta Sans',sans-serif" }}>
+      {/* Logo */}
+      <div style={{ padding: "20px 16px 14px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          {appearance?.logoUrl ? (
+            <img src={appearance.logoUrl} alt="Logo" style={{ width: 30, height: 30, borderRadius: 9, objectFit: "cover", flexShrink: 0 }} />
+          ) : (
+            <div style={{ width: 30, height: 30, borderRadius: 9, background: c.OR, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <span style={{ color: "#fff", fontWeight: 900, fontSize: 14 }}>F</span>
             </div>
-            <div className="flex-1 overflow-hidden">
-              <p className="text-[13px] font-semibold text-foreground truncate">{user?.name || "Admin"}</p>
-              <p className="text-[11px] text-muted-foreground truncate">{user?.role || "Administrator"}</p>
-            </div>
-            <ThemeToggle />
+          )}
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 900, color: c.text, letterSpacing: "-.02em", lineHeight: 1 }}>{appearance?.companyName || "Frameless"}</div>
+            <div style={{ fontSize: 10, color: c.muted, letterSpacing: ".05em", marginTop: 1 }}>Creative Studio</div>
           </div>
+        </div>
+      </div>
 
-          <button
-            onClick={() => logoutMutation.mutate()}
-            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/8 transition-all text-[13px] font-medium group border border-transparent hover:border-destructive/20"
-          >
-            <LogOut className="w-3.5 h-3.5 group-hover:text-destructive" />
-            Sign Out
+      <div style={{ height: 1, background: c.border, margin: "0 12px 8px" }} />
+
+      {/* Nav groups */}
+      <nav style={{ flex: 1, overflowY: "auto", padding: "4px 12px", scrollbarWidth: "none" }}>
+        {groups.map(group => (
+          <div key={group} style={{ marginBottom: 20 }}>
+            <p style={{ fontSize: 9, fontWeight: 700, letterSpacing: ".18em", textTransform: "uppercase", color: c.label, padding: "0 4px", marginBottom: 6 }}>{group}</p>
+            {NAV.filter(n => n.group === group).map(item => (
+              <NavItem key={item.href} item={item} active={isActive(item.href)} onClick={onNav} c={c} />
+            ))}
+          </div>
+        ))}
+
+        {/* External links */}
+        <div style={{ marginBottom: 20 }}>
+          <p style={{ fontSize: 9, fontWeight: 700, letterSpacing: ".18em", textTransform: "uppercase", color: c.label, padding: "0 4px", marginBottom: 6 }}>Public</p>
+          {[
+            { href: "/", label: "Landing Page", icon: ExternalLink, external: true },
+            { href: "/crew/login", label: "Crew Portal", icon: Users2, external: true },
+          ].map(link => (
+            <a key={link.href} href={link.href} target="_blank" rel="noopener noreferrer"
+              style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", borderRadius: 12, color: c.muted, textDecoration: "none", transition: "all .18s", marginBottom: 2 }}
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = c.hover; (e.currentTarget as HTMLElement).style.color = c.text; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "transparent"; (e.currentTarget as HTMLElement).style.color = c.muted; }}>
+              <link.icon size={15} style={{ flexShrink: 0 }} />
+              <span style={{ fontSize: 13, fontWeight: 500 }}>{link.label}</span>
+              <ExternalLink size={10} style={{ marginLeft: "auto", opacity: .4 }} />
+            </a>
+          ))}
+        </div>
+      </nav>
+
+      <div style={{ height: 1, background: c.border, margin: "0 12px" }} />
+
+      {/* User + actions */}
+      <div style={{ padding: "12px 12px 16px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 6px", marginBottom: 8 }}>
+          <div style={{ width: 34, height: 34, borderRadius: "50%", background: c.OR + "22", border: `1.5px solid ${c.OR}44`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            <span style={{ color: c.OR, fontWeight: 800, fontSize: 13 }}>{user?.name?.charAt(0) || "A"}</span>
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <p style={{ fontSize: 13, fontWeight: 700, color: c.text, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user?.name || "Admin"}</p>
+            <p style={{ fontSize: 10, color: c.muted, margin: 0, textTransform: "uppercase", letterSpacing: ".08em" }}>{user?.role || "Administrator"}</p>
+          </div>
+          {/* Theme toggle */}
+          <button onClick={toggleTheme}
+            style={{ width: 30, height: 30, borderRadius: 8, background: c.hover, border: `1px solid ${c.border}`, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: c.muted, flexShrink: 0 }}>
+            {theme === "dark" ? <Sun size={13} /> : <Moon size={13} />}
           </button>
         </div>
+
+        <button onClick={logout}
+          style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "9px 12px", borderRadius: 12, background: "transparent", border: "1px solid transparent", color: c.muted, cursor: "pointer", fontSize: 13, fontWeight: 500, fontFamily: "'Plus Jakarta Sans',sans-serif", transition: "all .18s" }}
+          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "rgba(239,68,68,.08)"; (e.currentTarget as HTMLElement).style.color = "#ef4444"; (e.currentTarget as HTMLElement).style.borderColor = "rgba(239,68,68,.2)"; }}
+          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "transparent"; (e.currentTarget as HTMLElement).style.color = c.muted; (e.currentTarget as HTMLElement).style.borderColor = "transparent"; }}>
+          <LogOut size={14} />
+          Sign Out
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ── AppLayout ─────────────────────────────────────────────────────────────────
+export function AppLayout({ children }: { children: ReactNode }) {
+  const [location] = useLocation();
+  const { user, logout } = useAuth();
+  const { theme, appearance } = useTheme();
+  const c = useColors(theme, appearance);
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  return (
+    <div style={{ display: "flex", minHeight: "100dvh", width: "100%", background: c.bg, color: c.text, fontFamily: "'Plus Jakarta Sans',sans-serif", position: "relative" }}>
+
+      {/* ── Mesh BG (subtle) ── */}
+      {appearance?.meshGradients && (
+        <div style={{ position: "fixed", inset: 0, pointerEvents: "none", zIndex: 0 }}>
+          <div style={{ position: "absolute", width: "60%", height: "60%", top: "-10%", left: "-10%", background: `radial-gradient(ellipse at center,${c.OR}18 0%,transparent 65%)`, filter: "blur(80px)", animation: "b1 20s ease-in-out infinite" }} />
+          <div style={{ position: "absolute", width: "50%", height: "50%", bottom: "-10%", right: "-10%", background: "radial-gradient(ellipse at center,#7c3aed14 0%,transparent 70%)", filter: "blur(90px)", animation: "b2 25s ease-in-out infinite" }} />
+        </div>
+      )}
+
+      {/* ── Desktop Sidebar ── */}
+      <aside style={{
+        width: 232, flexShrink: 0, display: "flex", flexDirection: "column",
+        background: c.sidebar, borderRight: `1px solid ${c.border}`,
+        backdropFilter: appearance?.glassmorphism ? "blur(24px)" : "none", position: "sticky", top: 0, height: "100dvh",
+        zIndex: 30, overflow: "hidden",
+      }}
+        className="hidden-mobile"
+      >
+        <SidebarContent pathname={location} c={c} user={user} logout={logout} />
       </aside>
 
-      {/* Main Content */}
-      <main className="flex-1 flex flex-col min-w-0 h-[100dvh] overflow-hidden relative">
-        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-primary/3 rounded-full blur-[120px] pointer-events-none" />
+      {/* ── Mobile Overlay ── */}
+      <AnimatePresence>
+        {mobileOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => setMobileOpen(false)}
+              style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.7)", zIndex: 40 }}
+            />
+            <motion.div
+              initial={{ x: -240 }} animate={{ x: 0 }} exit={{ x: -240 }}
+              transition={{ type: "spring", stiffness: 400, damping: 36 }}
+              style={{
+                position: "fixed", top: 0, left: 0, bottom: 0, width: 240,
+                background: c.sidebar, backdropFilter: appearance?.glassmorphism ? "blur(24px)" : "none",
+                borderRight: `1px solid ${c.border}`, zIndex: 50, overflow: "hidden",
+              }}
+            >
+              <SidebarContent pathname={location} onNav={() => setMobileOpen(false)} c={c} user={user} logout={logout} />
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* ── Main ── */}
+      <main style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, height: "100dvh", overflow: "hidden", position: "relative", zIndex: 10 }}>
 
         {/* Mobile Header */}
-        <header className="md:hidden flex items-center justify-between px-5 py-4 border-b border-border bg-sidebar/80 backdrop-blur-xl z-20">
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-md bg-primary flex items-center justify-center">
-              <span className="text-white text-xs font-black">F</span>
-            </div>
-            <span className="text-sm font-black tracking-tight">Frameless</span>
+        <header style={{
+          display: "none", alignItems: "center", justifyContent: "space-between",
+          padding: "0 18px", height: 58, flexShrink: 0,
+          background: c.sidebar, backdropFilter: appearance?.glassmorphism ? "blur(24px)" : "none",
+          borderBottom: `1px solid ${c.border}`, zIndex: 20,
+        }}
+          className="show-mobile"
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            {appearance?.logoUrl ? (
+              <img src={appearance.logoUrl} alt="Logo" style={{ width: 28, height: 28, borderRadius: 8, objectFit: "cover", flexShrink: 0 }} />
+            ) : (
+              <div style={{ width: 28, height: 28, borderRadius: 8, background: c.OR, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <span style={{ color: "#fff", fontWeight: 900, fontSize: 13 }}>F</span>
+              </div>
+            )}
+            <span style={{ fontWeight: 800, fontSize: 14, color: c.text, letterSpacing: "-.01em" }}>{appearance?.companyName || "Frameless"}</span>
           </div>
-          <div className="flex items-center gap-2">
-            <ThemeToggle />
-            <Sheet>
-              <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8 text-foreground">
-                  <Menu className="w-5 h-5" />
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="left" className="w-[228px] p-0 bg-sidebar border-border flex flex-col">
-                <SidebarNav pathname={location} />
-                <div className="p-4 border-t border-border">
-                  <Button
-                    variant="ghost"
-                    className="w-full justify-start text-muted-foreground hover:text-destructive hover:bg-destructive/8 rounded-xl"
-                    onClick={() => logoutMutation.mutate()}
-                  >
-                    <LogOut className="w-4 h-4 mr-2" />
-                    <span className="text-[13px] font-medium">Sign Out</span>
-                  </Button>
-                </div>
-              </SheetContent>
-            </Sheet>
-          </div>
+          <button onClick={() => setMobileOpen(true)}
+            style={{ width: 36, height: 36, borderRadius: 10, background: c.hover, border: `1px solid ${c.border}`, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: c.text }}>
+            <Menu size={18} />
+          </button>
         </header>
 
-        <div className="flex-1 overflow-y-auto z-10 p-5 md:p-8">
+        {/* Page content */}
+        <div style={{ flex: 1, overflowY: "auto", padding: "28px 28px" }} className="page-pad">
           <motion.div
             key={location}
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.25, ease: "easeOut" }}
-            className="max-w-7xl mx-auto"
+            transition={{ duration: .22, ease: "easeOut" }}
+            style={{ maxWidth: 1400, margin: "0 auto" }}
           >
             {children}
           </motion.div>
         </div>
       </main>
+
+      <AIChat dark={theme === "dark"} />
+
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap');
+        @keyframes b1{0%,100%{transform:translate(0,0);}50%{transform:translate(60px,-40px);}}
+        @keyframes b2{0%,100%{transform:translate(0,0);}50%{transform:translate(-50px,60px);}}
+        nav::-webkit-scrollbar{display:none;}
+        @media(max-width:768px){
+          .hidden-mobile{display:none!important;}
+          .show-mobile{display:flex!important;}
+          .page-pad{padding:18px 16px!important;}
+        }
+      `}</style>
     </div>
   );
 }

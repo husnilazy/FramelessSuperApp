@@ -60,14 +60,14 @@ function requireCrewAuth(req: any, res: any, next: any): void {
 
 router.get("/crew/projects", requireCrewAuth as any, async (req: any, res): Promise<void> => {
   const projects = await db.select().from(projectsTable)
-    .where(eq(projectsTable.status, "IN_PROGRESS"))
+    .where(or(eq(projectsTable.status, "active"), eq(projectsTable.status, "IN_PROGRESS")))
     .orderBy(desc(projectsTable.createdAt)).limit(20);
   res.json(projects);
 });
 
 router.get("/crew/tasks", requireCrewAuth as any, async (req: any, res): Promise<void> => {
   const tasks = await db.select().from(projectTasksTable)
-    .where(eq(projectTasksTable.assignee, req.crewMemberId))
+    .where(eq(projectTasksTable.memberId, req.crewMemberId))
     .orderBy(desc(projectTasksTable.createdAt)).limit(50);
   res.json(tasks);
 });

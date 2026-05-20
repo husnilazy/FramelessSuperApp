@@ -6,7 +6,8 @@ import { requireAuth } from "./middleware";
 
 const router: IRouter = Router();
 
-const uploadDir = path.join(process.cwd(), "uploads");
+// __dirname is injected by esbuild banner to point to dist/
+const uploadDir = path.resolve(__dirname, "../../../uploads");
 if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
 
 const storage = multer.diskStorage({

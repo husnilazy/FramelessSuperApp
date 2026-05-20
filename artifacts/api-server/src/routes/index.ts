@@ -18,6 +18,7 @@ import siteVideosRouter from "./site-videos";
 import siteLogosRouter from "./site-logos";
 import digitalAssetsRouter from "./digital-assets";
 import paymentsRouter from "./payments";
+import chatRouter from "./chat";
 
 const router: IRouter = Router();
 
@@ -40,5 +41,6 @@ router.use(siteVideosRouter);
 router.use(siteLogosRouter);
 router.use(digitalAssetsRouter);
 router.use(paymentsRouter);
+router.use("/", chatRouter);
 
 export default router;
