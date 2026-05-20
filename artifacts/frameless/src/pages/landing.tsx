@@ -180,7 +180,7 @@ function VideoModal({ url, onClose }: { url: string; onClose: () => void }) {
   );
 }
 
-// ── Portrait Reel Card (Premium Glassmorphism + Glow) ────────────────────────
+// ── Portrait Reel Card (Premium Glassmorphic Glow & Clean Fix) ────────────────
 function ReelCard({ video, onClick }: { video: SiteVideo; onClick: () => void }) {
   const th = getThumbnail(video.embedUrl, video.thumbnailUrl);
   const embedSrc = autoEmbed(video.embedUrl, true);
@@ -188,70 +188,82 @@ function ReelCard({ video, onClick }: { video: SiteVideo; onClick: () => void })
   return (
     <div className="reel-card"
       onClick={onClick}
-      style={{
-        flexShrink: 0,
-        width: "clamp(180px,26vw,240px)",
-        aspectRatio: "9/16",
-        borderRadius: 22,
-        overflow: "hidden",
-        position: "relative",
-        cursor: "pointer",
-        background: "rgba(255, 255, 255, 0.03)", // Dasar Glassmorphism
-        backdropFilter: "blur(12px)",
-        WebkitBackdropFilter: "blur(12px)",
-        // Border bercahaya tipis mewah & Drop shadow neon yang lembut
-        border: "1px solid rgba(255, 255, 255, 0.15)",
-        boxShadow: `0 8px 32px 0 rgba(0, 0, 0, 0.37), 
-                    0 0 16px 0px rgba(255, 106, 34, 0.15), 
+      style={{ 
+        flexShrink: 0, 
+        width: "clamp(180px,26vw,240px)", 
+        aspectRatio: "9/16", 
+        borderRadius: 22, 
+        overflow: "hidden", 
+        position: "relative", 
+        cursor: "pointer", 
+        background: "rgba(255, 255, 255, 0.02)", 
+        backdropFilter: "blur(16px)",
+        WebkitBackdropFilter: "blur(16px)",
+        border: "1px solid rgba(255, 255, 255, 0.12)", 
+        boxShadow: `0 12px 40px 0 rgba(0, 0, 0, 0.4), 
+                    0 0 20px 0px rgba(255, 106, 34, 0.15), 
                     inset 0 0 12px rgba(255, 255, 255, 0.05)`,
         transition: "transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s ease",
       }}
-      // Efek hover agar cahayanya makin menyala saat didekati kursor
       onMouseEnter={(e) => {
-        e.currentTarget.style.transform = "translateY(-6px) scale(1.02)";
-        e.currentTarget.style.boxShadow = `0 12px 40px 0 rgba(0, 0, 0, 0.5), 
-                                           0 0 24px 2px rgba(255, 106, 34, 0.35), 
-                                           inset 0 0 16px rgba(255, 255, 255, 0.1)`;
+        e.currentTarget.style.transform = "translateY(-8px) scale(1.02)";
+        e.currentTarget.style.boxShadow = `0 16px 50px 0 rgba(0, 0, 0, 0.55), 
+                                           0 0 30px 4px rgba(255, 106, 34, 0.35), 
+                                           inset 0 0 16px rgba(255, 255, 255, 0.15)`;
       }}
       onMouseLeave={(e) => {
         e.currentTarget.style.transform = "translateY(0) scale(1)";
-        e.currentTarget.style.boxShadow = `0 8px 32px 0 rgba(0, 0, 0, 0.37), 
-                                           0 0 16px 0px rgba(255, 106, 34, 0.15), 
+        e.currentTarget.style.boxShadow = `0 12px 40px 0 rgba(0, 0, 0, 0.4), 
+                                           0 0 20px 0px rgba(255, 106, 34, 0.15), 
                                            inset 0 0 12px rgba(255, 255, 255, 0.05)`;
       }}
     >
+      
+      {/* Container Video dengan Trik Zoom & Masking untuk Menyembunyikan Tombol Play YT */}
+      <div style={{ position: "absolute", inset: 0, overflow: "hidden", borderRadius: 22 }}>
+        {embedSrc ? (
+          <iframe 
+            src={`${embedSrc}&controls=0&modestbranding=1&rel=0`}
+            style={{ 
+              position: "absolute", 
+              top: "50%", 
+              left: "50%", 
+              width: "240%", 
+              height: "240%", 
+              transform: "translate(-50%, -50%)", 
+              border: "none", 
+              pointerEvents: "none" 
+            }}
+            allow="autoplay; muted" 
+          />
+        ) : (
+          th ? <img src={th} alt={video.title} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+            // MENGGANTI ${OR} MENJADI WARNA LANGSUNG #FF6A22 AGAR TIDAK ERROR
+            : <div style={{ width: "100%", height: "100%", background: "linear-gradient(135deg, rgba(255, 106, 34, 0.13), rgba(124, 58, 237, 0.13))" }} />
+        )}
+      </div>
 
-      {/* Video Autoplay (Tanpa Hambatan Masking / Ikon) */}
-      {embedSrc ? (
-        <iframe src={embedSrc}
-          style={{ position: "absolute", top: "50%", left: "50%", width: "200%", height: "200%", transform: "translate(-50%,-50%)", border: "none", pointerEvents: "none" }}
-          allow="autoplay; muted" />
-      ) : (
-        th ? <img src={th} alt={video.title} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
-          : <div style={{ width: "100%", height: "100%", background: `linear-gradient(135deg,${OR}22,#7c3aed22)` }} />
-      )}
+      {/* Gradasi Gelap Premium Semitransparan */}
+      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.15) 50%, transparent 100%)", pointerEvents: "none" }} />
 
-      {/* Gradasi gelap premium agar teks terbaca jelas */}
-      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.2) 60%, transparent 100%)", pointerEvents: "none" }} />
-
-      {/* Bagian bawah: Info Card dengan Efek Glassmorphism Tebal */}
-      <div style={{
-        position: "absolute",
-        bottom: 0,
-        left: 0,
-        right: 0,
-        padding: "16px 14px",
-        background: "rgba(15, 15, 20, 0.45)",
-        backdropFilter: "blur(25px)",
-        WebkitBackdropFilter: "blur(25px)",
-        borderTop: "1px solid rgba(255, 255, 255, 0.1)",
+      {/* Glassmorphism Info Text di Bagian Bawah */}
+      <div style={{ 
+        position: "absolute", 
+        bottom: 0, 
+        left: 0, 
+        right: 0, 
+        padding: "18px 16px", 
+        background: "rgba(10, 10, 14, 0.4)", 
+        backdropFilter: "blur(20px)", 
+        WebkitBackdropFilter: "blur(20px)",
+        borderTop: "1px solid rgba(255, 255, 255, 0.08)",
         pointerEvents: "none"
       }}>
-        <p style={{ fontSize: 12, fontWeight: 700, color: "#fff", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", letterSpacing: "0.3px" }}>
+        <p style={{ fontSize: 13, fontWeight: 700, color: "#fff", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", letterSpacing: "0.2px" }}>
           {video.title}
         </p>
         {video.description && (
-          <p style={{ fontSize: 10, color: "rgba(255, 255, 255, 0.5)", margin: "4px 0 0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          <p style={{ fontSize: 10.5, color: "rgba(255, 255, 255, 0.45)", margin: "4px 0 0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
             {video.description}
           </p>
         )}
@@ -259,7 +271,6 @@ function ReelCard({ video, onClick }: { video: SiteVideo; onClick: () => void })
     </div>
   );
 }
-
 // ── MAIN ──────────────────────────────────────────────────────────────────────
 export default function LandingPage() {
   const [modal, setModal] = useState<string | null>(null);
