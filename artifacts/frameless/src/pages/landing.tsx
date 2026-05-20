@@ -24,25 +24,23 @@ const FONT = "'Plus Jakarta Sans',sans-serif";
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function ytId(url?: string) {
   if (!url) return null;
-  // Mendukung YouTube biasa, Share link, dan YouTube Shorts
   return url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/))([\w-]{11})/)?.[1] ?? null;
 }
 
 function igId(url?: string) {
   if (!url) return null;
-  // Mendukung format link post, reels, dan instagram tv
   return url.match(/instagram\.com\/(?:p|reel|tv)\/([\w-]+)/)?.[1] ?? null;
 }
 
 function autoEmbed(url?: string, muted = true) {
   if (!url) return null;
-
+  
   const id = ytId(url);
   if (id) return `https://www.youtube.com/embed/${id}?autoplay=1&${muted ? "mute=1&" : ""}loop=1&playlist=${id}&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1`;
-
+  
   const vm = url.match(/vimeo\.com\/(\d+)/);
   if (vm) return `https://player.vimeo.com/video/${vm[1]}?autoplay=1&${muted ? "muted=1&" : ""}loop=1&background=1`;
-
+  
   const ig = igId(url);
   if (ig) return `https://www.instagram.com/p/${ig}/embed`;
 
@@ -52,10 +50,10 @@ function autoEmbed(url?: string, muted = true) {
 function watchUrl(url: string) {
   const id = ytId(url);
   if (id) return `https://www.youtube.com/embed/${id}?autoplay=1&rel=0`;
-
+  
   const vm = url.match(/vimeo\.com\/(\d+)/);
   if (vm) return `https://player.vimeo.com/video/${vm[1]}?autoplay=1`;
-
+  
   const ig = igId(url);
   if (ig) return `https://www.instagram.com/p/${ig}/embed`;
 
@@ -66,9 +64,6 @@ function getThumbnail(url: string, custom?: string) {
   if (custom) return custom;
   const id = ytId(url);
   if (id) return `https://img.youtube.com/vi/${id}/hqdefault.jpg`;
-
-  // Instagram tidak memberikan akses gambar thumbnail otomatis tanpa token API resmi,
-  // Jadi disarankan mengisi "Thumbnail URL" secara manual di CMS jika memakai Instagram.
   return "";
 }
 // ── Default Services ──────────────────────────────────────────────────────────
