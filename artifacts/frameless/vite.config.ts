@@ -1,4 +1,3 @@
-// artifacts/frameless/vite.config.ts
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
@@ -42,8 +41,11 @@ export default defineConfig({
   root: path.resolve(import.meta.dirname),
 
   build: {
-    outDir:     path.resolve(import.meta.dirname, "dist/public"),
+    // 1. Ubah outDir ke 'dist' biasa agar sesuai standar Vercel monorepo
+    outDir:     path.resolve(import.meta.dirname, "dist"),
     emptyOutDir: true,
+    // 2. Matikan sourcemap untuk membungkam error compiler shadcn UI
+    sourcemap: false,
   },
 
   server: {
