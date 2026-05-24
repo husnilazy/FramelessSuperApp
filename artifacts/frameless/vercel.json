@@ -3,6 +3,13 @@
   "outputDirectory": "dist",
   "installCommand": "pnpm install --frozen-lockfile",
   "rewrites": [
-    { "source": "/:path*", "destination": "/index.html" }
+    { 
+      "source": "/api/:path*", 
+      "destination": "https://frameless-super-app-api-server.vercel.app/api/:path*" 
+    },
+    { 
+      "source": "/:path*", 
+      "destination": "/index.html" 
+    }
   ]
 }

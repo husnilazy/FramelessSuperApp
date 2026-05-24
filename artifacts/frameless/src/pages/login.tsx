@@ -108,11 +108,12 @@ export default function LoginPage() {
         ? 'https://frameless-super-app-api-server.vercel.app' 
         : '';
 
-      const res = await fetch(`${baseUrl}/api/auth/login`, {
-        method:  "POST",
-        headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({ email: email.trim(), password }),
-      });
+      // Di dalam handleSubmit (login.tsx)
+const res = await fetch("/api/auth/login", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ email: email.trim(), password }),
+});
 
       const data = await res.json();
 
