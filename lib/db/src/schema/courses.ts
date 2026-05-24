@@ -9,6 +9,7 @@ export const coursesTable = pgTable("courses", {
   subtitle: text("subtitle"),
   description: text("description"),
   thumbnail: text("thumbnail"),
+  highlightVideoUrl: text("highlight_video_url"),
   instructor: text("instructor"),
   category: text("category").default("videography"),
   level: text("level").default("beginner"),

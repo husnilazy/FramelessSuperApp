@@ -7,7 +7,7 @@ const router: IRouter = Router();
 const OPENAI_BASE = process.env["OPENAI_API_BASE"] ?? "https://api.openai.com/v1";
 const OPENAI_KEY = process.env["OPENAI_API_KEY"] ?? "";
 
-async function chatCompletion(messages: { role: string; content: string }[], systemPrompt?: string) {
+export async function chatCompletion(messages: { role: string; content: string }[], systemPrompt?: string) {
   const msgs = systemPrompt
     ? [{ role: "system", content: systemPrompt }, ...messages]
     : messages;
@@ -46,6 +46,8 @@ Jawab dalam Bahasa Indonesia yang ramah dan profesional. Berikan jawaban yang pr
 const ADMIN_SYSTEM = `Kamu adalah asisten AI untuk admin Frameless Creative, perusahaan produksi video.
 Bantu dengan manajemen bisnis, analisis keuangan, strategi pemasaran, manajemen tim, dan pertanyaan operasional.
 Jawab dalam Bahasa Indonesia yang profesional.`;
+
+export { CREW_SYSTEM, ADMIN_SYSTEM };
 
 router.post("/ai/chat", async (req, res): Promise<void> => {
   try {

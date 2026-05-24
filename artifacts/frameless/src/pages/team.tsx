@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useListTeamMembers, useCreateTeamMember, useDeleteTeamMember, type CreateTeamMemberBody } from "@workspace/api-client-react";
+import { useListTeamMembers, useCreateTeamMember, useDeleteTeamMember, useUpdateTeamMember, type CreateTeamMemberBody } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Users, Mail, Briefcase, Trash2, Shield, ShieldOff, MessageCircle, Send, Key, X } from "lucide-react";
+import { Plus, Users, Mail, Briefcase, Trash2, Shield, ShieldOff, MessageCircle, Send, Key, X, Edit } from "lucide-react";
 
 const DEPT_COLORS: Record<string, string> = {
   Production: "bg-primary/20 text-primary border-primary/30",
@@ -33,11 +33,17 @@ export default function TeamPage() {
   const [chatMessages, setChatMessages] = useState<ChatMsg[]>([]);
   const [chatInput, setChatInput] = useState("");
   const [sendingChat, setSendingChat] = useState(false);
+  const [editingMember, setEditingMember] = useState<any | null>(null);
   const [activeTab, setActiveTab] = useState<"members" | "chat">("members");
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const { data: members, isLoading } = useListTeamMembers();
+  const [createPending, setCreatePending] = useState(false);
+  const [enablePending, setEnablePending] = useState(false);
+  const [disablePendingId, setDisablePendingId] = useState<string | null>(null);
+  const [deletePendingId, setDeletePendingId] = useState<string | null>(null);
+  const [updatePendingId, setUpdatePendingId] = useState<string | null>(null);
 
   useEffect(() => {
     let interval: any;
@@ -60,11 +66,45 @@ export default function TeamPage() {
     },
   });
 
+  async function createMemberSafe(data: CreateTeamMemberBody) {
+    setCreatePending(true);
+    try {
+      let res = await fetch('/api/team-safe', { method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeader() } as any, body: JSON.stringify(data) });
+      if (res.status === 404) {
+        // fallback to minimal debug endpoint when safe endpoint unavailable
+        res = await fetch('/api/team-debug', { method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeader() } as any, body: JSON.stringify({ name: data.name, role: data.role }) });
+      }
+      if (res.ok) {
+        queryClient.invalidateQueries({ queryKey: ["/api/team"] });
+        setOpen(false);
+        toast({ title: 'Team member added' });
+      } else {
+        const text = await res.text();
+        toast({ variant: 'destructive', title: 'Failed to add member', description: text });
+      }
+    } catch (err) {
+      toast({ variant: 'destructive', title: 'Failed to add member' });
+    } finally {
+      setCreatePending(false);
+    }
+  }
+
   const deleteMutation = useDeleteTeamMember({
     mutation: {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: ["/api/team"] });
         toast({ title: "Member removed" });
+      },
+    },
+  });
+
+  const updateMutation = useUpdateTeamMember({
+    mutation: {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ["/api/team"] });
+        setOpen(false);
+        setEditingMember(null);
+        toast({ title: "Team member updated" });
       },
     },
   });
@@ -75,30 +115,40 @@ export default function TeamPage() {
     if (!crewLoginModal) return;
     if (pwForm.password !== pwForm.confirm) { toast({ variant: "destructive", title: "Password tidak cocok" }); return; }
     if (pwForm.password.length < 6) { toast({ variant: "destructive", title: "Password minimal 6 karakter" }); return; }
-    const res = await fetch(`/api/team/${crewLoginModal.id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json", ...authHeader() } as any,
-      body: JSON.stringify({ canLogin: true, password: pwForm.password }),
-    });
-    if (res.ok) {
-      toast({ title: `Akses portal aktif untuk ${crewLoginModal.name}` });
-      queryClient.invalidateQueries({ queryKey: ["/api/team"] });
-      setCrewLoginModal(null);
-      setPwForm({ password: "", confirm: "" });
-    } else {
-      toast({ variant: "destructive", title: "Gagal mengaktifkan akses" });
+    setEnablePending(true);
+    try {
+      const res = await fetch(`/api/team/${crewLoginModal.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", ...authHeader() } as any,
+        body: JSON.stringify({ canLogin: true, password: pwForm.password }),
+      });
+      if (res.ok) {
+        toast({ title: `Akses portal aktif untuk ${crewLoginModal.name}` });
+        queryClient.invalidateQueries({ queryKey: ["/api/team"] });
+        setCrewLoginModal(null);
+        setPwForm({ password: "", confirm: "" });
+      } else {
+        toast({ variant: "destructive", title: "Gagal mengaktifkan akses" });
+      }
+    } finally {
+      setEnablePending(false);
     }
   }
 
   async function disableCrewLogin(id: string, name: string) {
-    const res = await fetch(`/api/team/${id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json", ...authHeader() } as any,
-      body: JSON.stringify({ canLogin: false }),
-    });
-    if (res.ok) {
-      toast({ title: `Akses portal dinonaktifkan untuk ${name}` });
-      queryClient.invalidateQueries({ queryKey: ["/api/team"] });
+    setDisablePendingId(id);
+    try {
+      const res = await fetch(`/api/team/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", ...authHeader() } as any,
+        body: JSON.stringify({ canLogin: false }),
+      });
+      if (res.ok) {
+        toast({ title: `Akses portal dinonaktifkan untuk ${name}` });
+        queryClient.invalidateQueries({ queryKey: ["/api/team"] });
+      }
+    } finally {
+      setDisablePendingId(null);
     }
   }
 
@@ -135,20 +185,26 @@ export default function TeamPage() {
           <p className="text-muted-foreground uppercase tracking-widest text-sm font-semibold mt-1">Team Management</p>
         </div>
         <div className="flex gap-3">
-          <Dialog open={open} onOpenChange={setOpen}>
+          <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setEditingMember(null); }}>
             <DialogTrigger asChild>
               <Button className="bg-primary hover:bg-primary/90 text-white font-heading tracking-wider">
                 <Plus className="w-4 h-4 mr-2" /> Add Member
               </Button>
             </DialogTrigger>
-            <DialogContent className="bg-card border-white/10 text-white max-w-md">
+                <DialogContent className="bg-card border-white/10 text-white max-w-md">
               <DialogHeader>
-                <DialogTitle className="font-heading tracking-wider text-2xl">Add Crew Member</DialogTitle>
+                <DialogTitle className="font-heading tracking-wider text-2xl">{editingMember ? "Edit Crew Member" : "Add Crew Member"}</DialogTitle>
               </DialogHeader>
-              <NewMemberForm
-                onSubmit={(data) => createMutation.mutate({ data })}
-                isPending={createMutation.isPending}
-              />
+                  <NewMemberForm
+                    initialData={editingMember || undefined}
+                    onSubmit={(data) => {
+                      if (editingMember) {
+                        setUpdatePendingId(editingMember.id);
+                        updateMutation.mutate({ id: editingMember.id, data }, { onSettled: () => setUpdatePendingId(null) });
+                      } else createMemberSafe(data as CreateTeamMemberBody);
+                    }}
+                    isPending={createPending || (editingMember ? updatePendingId === editingMember.id : false)}
+                  />
             </DialogContent>
           </Dialog>
         </div>
@@ -215,9 +271,18 @@ export default function TeamPage() {
                       variant="ghost"
                       size="icon"
                       className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                      onClick={() => deleteMutation.mutate({ id: member.id })}
+                      onClick={() => { setDeletePendingId(member.id); deleteMutation.mutate({ id: member.id }, { onSettled: () => setDeletePendingId(null) }); }}
+                      disabled={deletePendingId !== null}
                     >
-                      <Trash2 className="w-4 h-4" />
+                      {deletePendingId === member.id ? <div className="w-4 h-4 rounded-full border-2 border-primary border-t-transparent animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-primary"
+                      onClick={() => { setEditingMember(member); setOpen(true); }}
+                    >
+                      <Edit className="w-4 h-4" />
                     </Button>
                   </div>
                   <h3 className="text-lg font-semibold text-white mb-1">{member.name}</h3>
@@ -262,7 +327,11 @@ export default function TeamPage() {
                           className="flex items-center justify-center gap-1 text-xs px-3 py-2 rounded-lg bg-red-500/8 border border-red-500/20 text-red-400 hover:bg-red-500/15 transition-colors"
                           title="Nonaktifkan portal"
                         >
-                          <ShieldOff className="w-3 h-3" />
+                          {disablePendingId === member.id ? (
+                            <div className="w-3 h-3 rounded-full border-2 border-red-400 border-t-transparent animate-spin" />
+                          ) : (
+                            <ShieldOff className="w-3 h-3" />
+                          )}
                         </button>
                       </>
                     ) : (
@@ -347,8 +416,9 @@ export default function TeamPage() {
             </div>
             <div className="flex gap-3 pt-1">
               <Button onClick={() => setCrewLoginModal(null)} variant="ghost" className="flex-1 text-muted-foreground">Batal</Button>
-              <Button onClick={enableCrewLogin} className="flex-1 bg-primary hover:bg-primary/90">
-                <Shield className="w-4 h-4 mr-2" />Aktifkan
+              <Button onClick={enableCrewLogin} className="flex-1 bg-primary hover:bg-primary/90" disabled={enablePending}>
+                {enablePending ? <div className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin mr-2" /> : <Shield className="w-4 h-4 mr-2" />}
+                {enablePending ? 'Activating...' : 'Aktifkan'}
               </Button>
             </div>
           </div>
@@ -410,9 +480,18 @@ export default function TeamPage() {
   );
 }
 
-function NewMemberForm({ onSubmit, isPending }: { onSubmit: (data: any) => void; isPending: boolean }) {
+function NewMemberForm({ onSubmit, isPending, initialData }: { onSubmit: (data: any) => void; isPending: boolean; initialData?: any }) {
   const [form, setForm] = useState<any>({
-    name: "", role: "", email: "", department: "Production", status: "active", canLogin: false, password: ""
+    name: initialData?.name || "",
+    role: initialData?.role || "",
+    email: initialData?.email || "",
+    department: initialData?.department || "Production",
+    status: initialData?.status || "active",
+    canLogin: initialData?.canLogin || false,
+    password: "",
+    username: initialData?.username || "",
+    whatsapp: initialData?.whatsapp || "",
+    avatarUrl: initialData?.avatarUrl || "",
   });
 
   return (
@@ -450,9 +529,24 @@ function NewMemberForm({ onSubmit, isPending }: { onSubmit: (data: any) => void;
           className="bg-white/5 border-white/10 text-white" placeholder="email@frameless.com" />
       </div>
       <div className="space-y-1">
+        <label className="text-xs uppercase tracking-wider text-muted-foreground">Username</label>
+        <Input value={form.username || ""} onChange={(e) => setForm({ ...form, username: e.target.value })}
+          className="bg-white/5 border-white/10 text-white" placeholder="username (internal)" />
+      </div>
+      <div className="space-y-1">
+        <label className="text-xs uppercase tracking-wider text-muted-foreground">Avatar URL</label>
+        <Input value={form.avatarUrl || ""} onChange={(e) => setForm({ ...form, avatarUrl: e.target.value })}
+          className="bg-white/5 border-white/10 text-white" placeholder="https://..." />
+      </div>
+      <div className="space-y-1">
         <label className="text-xs uppercase tracking-wider text-muted-foreground">Phone</label>
         <Input type="text" value={form.phone || ""} onChange={(e) => setForm({ ...form, phone: e.target.value })}
           className="bg-white/5 border-white/10 text-white" placeholder="+62 8..." />
+      </div>
+      <div className="space-y-1">
+        <label className="text-xs uppercase tracking-wider text-muted-foreground">WhatsApp</label>
+        <Input type="text" value={form.whatsapp || ""} onChange={(e) => setForm({ ...form, whatsapp: e.target.value })}
+          className="bg-white/5 border-white/10 text-white" placeholder="+62 8... (whatsapp)" />
       </div>
       
       <div className="p-3 bg-white/5 border border-white/10 rounded-xl space-y-3 mt-4">
@@ -475,7 +569,7 @@ function NewMemberForm({ onSubmit, isPending }: { onSubmit: (data: any) => void;
       </div>
 
       <Button type="submit" disabled={isPending || (form.canLogin && (!form.email || form.password.length < 6))} className="w-full bg-primary hover:bg-primary/90 text-white font-heading tracking-wider mt-2">
-        {isPending ? "Adding..." : "Add Member"}
+        {isPending ? (initialData ? "Saving..." : "Adding...") : (initialData ? "Save Changes" : "Add Member")}
       </Button>
     </form>
   );

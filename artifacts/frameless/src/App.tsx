@@ -1,3 +1,4 @@
+// artifacts/frameless/src/App.tsx
 import { Switch, Route, Router as WouterRouter } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -7,30 +8,37 @@ import { ThemeProvider } from "@/lib/theme";
 import NotFound from "@/pages/not-found";
 import { AppLayout } from "@/components/layout";
 
-import LoginPage from "@/pages/login";
-import LandingPage from "@/pages/landing";
-import CoursePage from "@/pages/course-page";
-import CrewLoginPage from "@/pages/crew-login";
-import CrewDashboard from "@/pages/crew-dashboard";
-import Dashboard from "@/pages/dashboard";
-import ProjectsPage from "@/pages/projects";
-import ProjectDetailPage from "@/pages/project-detail";
-import TeamPage from "@/pages/team";
-import ClientsPage from "@/pages/clients";
-import InvoicesPage from "@/pages/invoices";
-import InvoiceEditorPage from "@/pages/invoice-editor";
-import ExpensesPage from "@/pages/expenses";
-import FinancePage from "@/pages/finance";
-import SettingsPage from "@/pages/settings";
-import AppearanceSettingsPage from "@/pages/appearance";
-import CmsEditorPage from "@/pages/cms-editor";
-import PaymentSettingsPage from "@/pages/payment-settings";
-import CoursesAdminPage from "@/pages/courses-admin";
-import DigitalAssetsAdminPage from "@/pages/digital-assets-admin";
-import DigitalAssetsPage from "@/pages/digital-assets";
-import PortalPage from "@/pages/portal";
-import ServicesPage from "@/pages/services";
+// Auth
+import LoginPage         from "@/pages/login";
 
+// Public pages
+import LandingPage       from "@/pages/landing";
+import ServicesPage      from "@/pages/services";
+import ServiceDetailPage from "@/pages/service-detail";
+import CoursePage        from "@/pages/course-page";
+import CoursesPage       from "@/pages/courses";
+import DigitalAssetsPage from "@/pages/digital-assets";
+import PortalPage        from "@/pages/portal";
+
+// Crew
+import CrewLoginPage     from "@/pages/crew-login";
+import CrewDashboard     from "@/pages/crew-dashboard";
+
+// Admin pages
+import Dashboard           from "@/pages/dashboard";
+import ProjectsPage        from "@/pages/projects";
+import ProjectDetailPage   from "@/pages/project-detail";
+import TeamPage            from "@/pages/team";
+import ClientsPage         from "@/pages/clients";
+import InvoicesPage        from "@/pages/invoices";
+import InvoiceEditorPage   from "@/pages/invoice-editor";
+import ExpensesPage        from "@/pages/expenses";
+import FinancePage         from "@/pages/finance";
+import SettingsPage        from "@/pages/settings";
+import CmsEditorPage       from "@/pages/cms-editor";
+import PaymentSettingsPage from "@/pages/payment-settings";
+import CoursesAdminPage    from "@/pages/courses-admin";
+import DigitalAssetsAdminPage from "@/pages/digital-assets-admin";
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 30_000 } },
@@ -41,26 +49,23 @@ function ProtectedRoutes() {
     <AuthGuard>
       <AppLayout>
         <Switch>
-          <Route path="/" component={Dashboard} />
-          <Route path="/dashboard" component={Dashboard} />
-          <Route path="/projects/:id" component={ProjectDetailPage} />
-          <Route path="/projects" component={ProjectsPage} />
-          <Route path="/team" component={TeamPage} />
-          <Route path="/clients" component={ClientsPage} />
-          <Route path="/invoices/new" component={InvoiceEditorPage} />
-          <Route path="/invoices/:id" component={InvoiceEditorPage} />
-          <Route path="/invoices" component={InvoicesPage} />
-          <Route path="/expenses" component={ExpensesPage} />
-          <Route path="/finance" component={FinancePage} />
-          <Route path="/appearance" component={AppearanceSettingsPage} />
-          <Route path="/settings" component={SettingsPage} />
-          <Route path="/cms" component={CmsEditorPage} />
-          <Route path="/payment-settings" component={PaymentSettingsPage} />
-          <Route path="/courses-admin" component={CoursesAdminPage} />
-          <Route path="/digital-assets-admin" component={DigitalAssetsAdminPage} />
-          <Route component={NotFound} />
-
-          <Route path="/services" component={ServicesPage} />
+          <Route path="/"                         component={Dashboard} />
+          <Route path="/dashboard"                component={Dashboard} />
+          <Route path="/projects/:id"             component={ProjectDetailPage} />
+          <Route path="/projects"                 component={ProjectsPage} />
+          <Route path="/team"                     component={TeamPage} />
+          <Route path="/clients"                  component={ClientsPage} />
+          <Route path="/invoices/new"             component={InvoiceEditorPage} />
+          <Route path="/invoices/:id"             component={InvoiceEditorPage} />
+          <Route path="/invoices"                 component={InvoicesPage} />
+          <Route path="/expenses"                 component={ExpensesPage} />
+          <Route path="/finance"                  component={FinancePage} />
+          <Route path="/settings"                 component={SettingsPage} />
+          <Route path="/cms"                      component={CmsEditorPage} />
+          <Route path="/payment-settings"         component={PaymentSettingsPage} />
+          <Route path="/courses-admin"            component={CoursesAdminPage} />
+          <Route path="/digital-assets-admin"     component={DigitalAssetsAdminPage} />
+          <Route                                  component={NotFound} />
         </Switch>
       </AppLayout>
     </AuthGuard>
@@ -70,32 +75,40 @@ function ProtectedRoutes() {
 function Router() {
   return (
     <Switch>
-      <Route path="/login" component={LoginPage} />
-      <Route path="/" component={LandingPage} />
-      <Route path="/landing" component={LandingPage} />
-      <Route path="/store" component={DigitalAssetsPage} />
-      <Route path="/course/:slug" component={CoursePage} />
-      <Route path="/portal/:id" component={PortalPage} />
-      <Route path="/crew/login" component={CrewLoginPage} />
+      {/* Public */}
+      <Route path="/"              component={LandingPage} />
+      <Route path="/landing"       component={LandingPage} />
+      <Route path="/login"         component={LoginPage} />
+      <Route path="/services"      component={ServicesPage} />
+      <Route path="/services/:slug" component={ServiceDetailPage} />
+      <Route path="/courses"       component={CoursesPage} />
+      <Route path="/course/:slug"  component={CoursePage} />
+      <Route path="/store"         component={DigitalAssetsPage} />
+      <Route path="/portal/:id"    component={PortalPage} />
+
+      {/* Crew */}
+      <Route path="/crew/login"     component={CrewLoginPage} />
       <Route path="/crew/dashboard" component={CrewDashboard} />
-      <Route path="/crew" component={CrewDashboard} />
-      <Route path="/admin" component={ProtectedRoutes} />
-      <Route path="/dashboard" component={ProtectedRoutes} />
-      <Route path="/projects" component={ProtectedRoutes} />
-      <Route path="/projects/:id" component={ProtectedRoutes} />
-      <Route path="/team" component={ProtectedRoutes} />
-      <Route path="/clients" component={ProtectedRoutes} />
-      <Route path="/invoices" component={ProtectedRoutes} />
-      <Route path="/invoices/new" component={ProtectedRoutes} />
-      <Route path="/invoices/:id" component={ProtectedRoutes} />
-      <Route path="/expenses" component={ProtectedRoutes} />
-      <Route path="/finance" component={ProtectedRoutes} />
-      <Route path="/appearance" component={ProtectedRoutes} />
-      <Route path="/settings" component={ProtectedRoutes} />
-      <Route path="/cms" component={ProtectedRoutes} />
-      <Route path="/payment-settings" component={ProtectedRoutes} />
-      <Route path="/courses-admin" component={ProtectedRoutes} />
+      <Route path="/crew"           component={CrewDashboard} />
+
+      {/* Admin (protected) */}
+      <Route path="/admin"               component={ProtectedRoutes} />
+      <Route path="/dashboard"           component={ProtectedRoutes} />
+      <Route path="/projects"            component={ProtectedRoutes} />
+      <Route path="/projects/:id"        component={ProtectedRoutes} />
+      <Route path="/team"                component={ProtectedRoutes} />
+      <Route path="/clients"             component={ProtectedRoutes} />
+      <Route path="/invoices"            component={ProtectedRoutes} />
+      <Route path="/invoices/new"        component={ProtectedRoutes} />
+      <Route path="/invoices/:id"        component={ProtectedRoutes} />
+      <Route path="/expenses"            component={ProtectedRoutes} />
+      <Route path="/finance"             component={ProtectedRoutes} />
+      <Route path="/settings"            component={ProtectedRoutes} />
+      <Route path="/cms"                 component={ProtectedRoutes} />
+      <Route path="/payment-settings"    component={ProtectedRoutes} />
+      <Route path="/courses-admin"       component={ProtectedRoutes} />
       <Route path="/digital-assets-admin" component={ProtectedRoutes} />
+
       <Route component={NotFound} />
     </Switch>
   );

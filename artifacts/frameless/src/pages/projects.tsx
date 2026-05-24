@@ -17,6 +17,7 @@ interface Project {
   id: string; title: string; client: string; status: string; progress: number;
   deadline?: string; startDate?: string; description?: string; projectType?: string;
   priority: string; budget?: number; notes?: string; driveUrl?: string;
+  assignedMemberId?: string | null;
   createdAt: string; updatedAt: string; tasks?: Task[];
 }
 
@@ -132,7 +133,7 @@ function KanbanCard({ project, onEdit, onDelete }: { project: Project; onEdit: (
 }
 
 // ── Project Modal ──────────────────────────────────────────────────────────────
-function ProjectModal({ project, onClose, onSave }: { project: Project | null; onClose: () => void; onSave: (data: Partial<Project>) => void }) {
+function ProjectModal({ project, onClose, onSave, members }: { project: Project | null; onClose: () => void; onSave: (data: Partial<Project>) => void; members?: any[] }) {
   const isEdit = !!project?.id;
   const [form, setForm] = useState<Partial<Project>>(project || { status: "active", priority: "medium", progress: 0 });
   const [saving, setSaving] = useState(false);
@@ -162,6 +163,7 @@ function ProjectModal({ project, onClose, onSave }: { project: Project | null; o
             { k: "startDate", l: "Start Date", type: "date" },
             { k: "deadline", l: "Deadline", type: "date" },
             { k: "driveUrl", l: "Drive/Link URL", full: true, ph: "https://drive.google.com/..." },
+            { k: "assignedMemberId", l: "Assigned To", type: "memberSelect" },
             { k: "description", l: "Description", full: true, type: "textarea", ph: "Deskripsi proyek..." },
             { k: "notes", l: "Internal Notes", full: true, type: "textarea", ph: "Catatan internal tim..." },
           ].map((field: any) => (
@@ -172,6 +174,12 @@ function ProjectModal({ project, onClose, onSave }: { project: Project | null; o
                   style={{ width: "100%", background: "rgba(255,255,255,.05)", border: "1px solid rgba(255,255,255,.1)", borderRadius: 10, padding: "10px 12px", color: "#fff", fontSize: 13, outline: "none", fontFamily: FONT, cursor: "pointer" }}>
                   <option value="">— Pilih —</option>
                   {field.opts.map((o: string) => <option key={o} value={o} style={{ background: "#111318" }}>{STATUS_CONFIG[o]?.label || PRIORITY_CONFIG[o]?.label || o}</option>)}
+                </select>
+              ) : field.type === "memberSelect" ? (
+                <select value={(form as any)[field.k] || ""} onChange={e => f(field.k as any, e.target.value || null)}
+                  style={{ width: "100%", background: "rgba(255,255,255,.05)", border: "1px solid rgba(255,255,255,.1)", borderRadius: 10, padding: "10px 12px", color: "#fff", fontSize: 13, outline: "none", fontFamily: FONT, cursor: "pointer" }}>
+                  <option value="">— Unassigned —</option>
+                  {members?.map(m => <option key={m.id} value={m.id}>{m.name} — {m.role}</option>)}
                 </select>
               ) : field.type === "textarea" ? (
                 <textarea value={(form as any)[field.k] || ""} onChange={e => f(field.k as any, e.target.value)} placeholder={field.ph} rows={3}
@@ -200,6 +208,7 @@ function ProjectModal({ project, onClose, onSave }: { project: Project | null; o
 export default function ProjectsPage() {
   const { toast } = useToast();
   const [projects, setProjects] = useState<Project[]>([]);
+  const [members, setMembers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
@@ -211,7 +220,9 @@ export default function ProjectsPage() {
     try {
       setLoading(true);
       const data = await apiFetch(`/api/projects${search ? `?search=${encodeURIComponent(search)}` : ""}`);
+      const team = await apiFetch(`/api/team`).catch(() => []);
       setProjects(Array.isArray(data) ? data : []);
+      setMembers(Array.isArray(team) ? team : []);
     } catch (e: any) { toast({ variant: "destructive", title: "Failed to load projects", description: e.message }); }
     finally { setLoading(false); }
   }, [search, toast]);
@@ -444,6 +455,7 @@ export default function ProjectsPage() {
           project={modal === "new" ? null : modal as Project}
           onClose={() => setModal(null)}
           onSave={handleSave}
+          members={members}
         />
       )}
     </div>

@@ -22,7 +22,8 @@ export default function CrewLoginPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Login failed");
       localStorage.setItem("crew_token", data.token);
-      localStorage.setItem("crew_member", JSON.stringify(data.member));
+      // normalize key to `crew_user` so CrewDashboard can read it
+      localStorage.setItem("crew_user", JSON.stringify(data.member || data.user || data.crew));
       navigate("/crew/dashboard");
     } catch (err: any) {
       toast({ variant: "destructive", title: err.message || "Login gagal" });

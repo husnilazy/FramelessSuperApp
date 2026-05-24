@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useRoute } from "wouter";
-import { useGetProject, useListProjectTasks, useCreateProjectTask, useDeleteTask, useUpdateProject, type CreateTaskBody } from "@workspace/api-client-react";
+import { useGetProject, useListProjectTasks, useCreateProjectTask, useDeleteTask, useUpdateProject, useListTeamMembers, useUpdateTask, type CreateTaskBody } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { formatCurrency, formatDate } from "@/lib/formatters";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -34,6 +34,9 @@ export default function ProjectDetailPage() {
 
   const { data: project, isLoading } = useGetProject(id);
   const { data: tasks } = useListProjectTasks(id);
+  const { data: members } = useListTeamMembers();
+  const [editingTask, setEditingTask] = useState<any | null>(null);
+  const updateTaskMutation = useUpdateTask({ mutation: { onSuccess: () => { queryClient.invalidateQueries({ queryKey: [`/api/projects/${id}/tasks`] }); setEditingTask(null); toast({ title: "Task updated" }); } } });
 
   const createTask = useCreateProjectTask({
     mutation: {
@@ -44,6 +47,7 @@ export default function ProjectDetailPage() {
       },
     },
   });
+
 
   const deleteTask = useDeleteTask({
     mutation: {
@@ -92,7 +96,22 @@ export default function ProjectDetailPage() {
               {project.status?.replace("_", " ")}
             </Badge>
           </div>
-          <p className="text-muted-foreground text-sm mt-1">{project.client} · {project.projectType}</p>
+          <div className="flex items-center gap-4 mt-1">
+            <p className="text-muted-foreground text-sm">{project.client} · {project.projectType}</p>
+            <div className="flex items-center gap-2">
+              <label className="text-xs uppercase tracking-wider text-muted-foreground">Assigned</label>
+              <select
+                value={project.assignedMemberId || ""}
+                onChange={(e) => updateProject.mutate({ id, data: { assignedMemberId: e.target.value || null } })}
+                className="bg-white/5 border-white/10 text-white text-sm rounded px-2 py-1"
+              >
+                <option value="">Unassigned</option>
+                {members?.map(m => (
+                  <option key={m.id} value={m.id}>{m.name} — {m.role}</option>
+                ))}
+              </select>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -152,10 +171,11 @@ export default function ProjectDetailPage() {
               <DialogHeader>
                 <DialogTitle className="font-heading tracking-wider">Add Task</DialogTitle>
               </DialogHeader>
-              <NewTaskForm
-                onSubmit={(data) => createTask.mutate({ id, data })}
-                isPending={createTask.isPending}
-              />
+                <NewTaskForm
+                  members={members}
+                  onSubmit={(data) => createTask.mutate({ id, data })}
+                  isPending={createTask.isPending}
+                />
             </DialogContent>
           </Dialog>
         </div>
@@ -177,6 +197,9 @@ export default function ProjectDetailPage() {
                 {task.dueDate && (
                   <p className="text-xs text-muted-foreground">{formatDate(task.dueDate)}</p>
                 )}
+                {task.memberId && (
+                  <p className="text-xs text-muted-foreground">Assigned to: {members?.find(m => m.id === task.memberId)?.name || task.memberId}</p>
+                )}
               </div>
               <Button
                 variant="ghost"
@@ -185,6 +208,14 @@ export default function ProjectDetailPage() {
                 onClick={() => deleteTask.mutate({ id: task.id })}
               >
                 <Trash2 className="w-4 h-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-primary shrink-0"
+                onClick={() => setEditingTask(task)}
+              >
+                <Edit3 className="w-4 h-4" />
               </Button>
             </div>
           ))}
@@ -206,6 +237,46 @@ export default function ProjectDetailPage() {
           </CardContent>
         </Card>
       )}
+
+      {/* Edit Task Modal */}
+      {editingTask && (
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
+          <div className="bg-card border border-white/10 rounded-2xl p-6 w-full max-w-md">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-white">Edit Task</h3>
+              <button onClick={() => setEditingTask(null)} className="text-muted-foreground hover:text-white">Close</button>
+            </div>
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs uppercase tracking-wider text-muted-foreground">Title</label>
+                <Input value={editingTask.title} onChange={(e) => setEditingTask((t:any)=>({...t,title:e.target.value}))} className="bg-white/5 border-white/10 text-white" />
+              </div>
+              <div>
+                <label className="text-xs uppercase tracking-wider text-muted-foreground">Status</label>
+                <Select value={editingTask.status} onValueChange={(v) => setEditingTask((t:any)=>({...t,status:v}))}>
+                  <SelectTrigger className="bg-white/5 border-white/10 text-white"><SelectValue /></SelectTrigger>
+                  <SelectContent className="bg-card border-white/10">
+                    <SelectItem value="TODO">To Do</SelectItem>
+                    <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
+                    <SelectItem value="DONE">Done</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label className="text-xs uppercase tracking-wider text-muted-foreground">Assign To</label>
+                <select value={editingTask.memberId || ""} onChange={(e)=>setEditingTask((t:any)=>({...t,memberId:e.target.value||undefined}))} className="bg-white/5 border-white/10 text-white w-full p-2 rounded">
+                  <option value="">Unassigned</option>
+                  {members?.map(m => <option key={m.id} value={m.id}>{m.name} — {m.role}</option>)}
+                </select>
+              </div>
+              <div className="flex gap-3 justify-end pt-2">
+                <Button variant="ghost" onClick={() => setEditingTask(null)}>Cancel</Button>
+                <Button onClick={() => updateTaskMutation.mutate({ id: editingTask.id, data: { title: editingTask.title, status: editingTask.status, memberId: editingTask.memberId } })} className="bg-primary">Save</Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -224,8 +295,8 @@ function StatCard({ icon: Icon, label, value }: { icon: any; label: string; valu
   );
 }
 
-function NewTaskForm({ onSubmit, isPending }: { onSubmit: (data: CreateTaskBody) => void; isPending: boolean }) {
-  const [form, setForm] = useState<CreateTaskBody>({ title: "", status: "TODO", priority: "medium" });
+function NewTaskForm({ onSubmit, isPending, members }: { onSubmit: (data: CreateTaskBody) => void; isPending: boolean; members?: any[] }) {
+  const [form, setForm] = useState<CreateTaskBody>({ title: "", status: "TODO", priority: "medium", memberId: undefined as any });
 
   return (
     <form onSubmit={(e) => { e.preventDefault(); onSubmit(form); }} className="space-y-4">
@@ -266,6 +337,15 @@ function NewTaskForm({ onSubmit, isPending }: { onSubmit: (data: CreateTaskBody)
         <label className="text-xs uppercase tracking-wider text-muted-foreground">Due Date</label>
         <Input type="date" value={form.dueDate as string || ""} onChange={(e) => setForm({ ...form, dueDate: e.target.value })}
           className="bg-white/5 border-white/10 text-white" />
+      </div>
+      <div className="space-y-1">
+        <label className="text-xs uppercase tracking-wider text-muted-foreground">Assign To</label>
+        <select value={form.memberId || ""} onChange={(e) => setForm({ ...form, memberId: e.target.value || undefined })} className="bg-white/5 border-white/10 text-white">
+          <option value="">Unassigned</option>
+          {members?.map(m => (
+            <option key={m.id} value={m.id}>{m.name} — {m.role}</option>
+          ))}
+        </select>
       </div>
       <Button type="submit" disabled={isPending} className="w-full bg-primary hover:bg-primary/90 text-white font-heading tracking-wider">
         {isPending ? "Adding..." : "Add Task"}

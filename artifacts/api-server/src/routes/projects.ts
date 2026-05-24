@@ -2,6 +2,8 @@ import { Router, type IRouter } from "express";
 import { db, projectsTable, projectTasksTable } from "@workspace/db";
 import { eq, ilike, or } from "drizzle-orm";
 import crypto from "crypto";
+import { logger } from "../lib/logger";
+import { chatCompletion, ADMIN_SYSTEM } from "./ai";
 
 const router: IRouter = Router();
 
@@ -44,7 +46,7 @@ router.get("/projects", async (req, res): Promise<void> => {
 });
 
 router.post("/projects", async (req, res): Promise<void> => {
-  const { title, client, status, priority, description, projectType, budget, deadline, startDate, notes, driveUrl } = req.body;
+  const { title, client, status, priority, description, projectType, budget, deadline, startDate, notes, driveUrl, assignedMemberId } = req.body;
   if (!title) {
     res.status(400).json({ error: "Title is required" });
     return;
@@ -63,6 +65,7 @@ router.post("/projects", async (req, res): Promise<void> => {
       startDate,
       notes,
       driveFolderUrl: driveUrl,
+      assignedMemberId,
     })
     .returning();
   await logActivity("project.created", `Project "${title}" created`, undefined, undefined);
@@ -81,7 +84,10 @@ router.get("/projects/:id", async (req, res): Promise<void> => {
 
 router.put("/projects/:id", async (req, res): Promise<void> => {
   const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
-  const { title, client, status, priority, progress, description, projectType, budget, deadline, startDate, notes, driveUrl } = req.body;
+  const { title, client, status, priority, progress, description, projectType, budget, deadline, startDate, notes, driveUrl, assignedMemberId } = req.body;
+  // fetch previous project to detect assignment changes
+  const [prevProject] = await db.select().from(projectsTable).where(eq(projectsTable.id, id)).limit(1);
+
   const [project] = await db
     .update(projectsTable)
     .set({
@@ -97,6 +103,7 @@ router.put("/projects/:id", async (req, res): Promise<void> => {
       ...(startDate !== undefined && { startDate }),
       ...(notes !== undefined && { notes }),
       ...(driveUrl !== undefined && { driveFolderUrl: driveUrl }),
+      ...(assignedMemberId !== undefined && { assignedMemberId }),
       updatedAt: new Date(),
     })
     .where(eq(projectsTable.id, id))
@@ -104,6 +111,27 @@ router.put("/projects/:id", async (req, res): Promise<void> => {
   if (!project) {
     res.status(404).json({ error: "Project not found" });
     return;
+  }
+
+  // If assigned member changed, generate AI suggestion and notify crew via chat
+  try {
+    const prevAssigned = prevProject?.assignedMemberId;
+    if (assignedMemberId && assignedMemberId !== prevAssigned) {
+      logger.info({ projectId: id, assignedMemberId }, "Project reassigned - generating AI suggestion");
+      try {
+        const prompt = `You are asked to suggest onboarding steps and first tasks for a crew member assigned to project: ${project.title}. Provide concise actionable steps.`;
+        const reply = await chatCompletion([{ role: "user", content: prompt }], ADMIN_SYSTEM);
+        if (reply) {
+          const { chatMessagesTable } = await import("@workspace/db");
+          await db.insert(chatMessagesTable).values({ crewId: assignedMemberId, senderRole: "system", senderName: "AI Assistant", message: reply });
+          logger.info({ projectId: id, assignedMemberId }, "AI suggestion stored in chat_messages");
+        }
+      } catch (aiErr:any) {
+        logger.error({ err: aiErr, projectId: id }, "AI suggestion failed");
+      }
+    }
+  } catch (e:any) {
+    logger.error({ err: e, projectId: id }, "Error handling assignment AI flow");
   }
   res.json(mapProject(project));
 });
@@ -126,7 +154,7 @@ router.get("/projects/:id/tasks", async (req, res): Promise<void> => {
 
 router.post("/projects/:id/tasks", async (req, res): Promise<void> => {
   const projectId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
-  const { title, description, status, priority, dueDate, roleLabel } = req.body;
+  const { title, description, status, priority, dueDate, roleLabel, memberId } = req.body;
   if (!title) {
     res.status(400).json({ error: "Title is required" });
     return;
@@ -143,6 +171,7 @@ router.post("/projects/:id/tasks", async (req, res): Promise<void> => {
       priority: priority || "medium",
       dueDate: dueDate ? new Date(dueDate) : null,
       roleLabel,
+      memberId,
     })
     .returning();
   res.status(201).json(mapTask(task));
@@ -150,7 +179,7 @@ router.post("/projects/:id/tasks", async (req, res): Promise<void> => {
 
 router.put("/tasks/:id", async (req, res): Promise<void> => {
   const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
-  const { title, description, status, priority, dueDate, roleLabel, timeSpent } = req.body;
+  const { title, description, status, priority, dueDate, roleLabel, timeSpent, memberId } = req.body;
   const [task] = await db
     .update(projectTasksTable)
     .set({
@@ -160,6 +189,7 @@ router.put("/tasks/:id", async (req, res): Promise<void> => {
       ...(priority && { priority }),
       ...(dueDate !== undefined && { dueDate: dueDate ? new Date(dueDate) : null }),
       ...(roleLabel !== undefined && { roleLabel }),
+      ...(memberId !== undefined && { memberId }),
       ...(timeSpent !== undefined && { timeSpent }),
       updatedAt: new Date(),
     })
@@ -193,6 +223,7 @@ function mapProject(p: any) {
     startDate: p.startDate,
     notes: p.notes,
     driveUrl: p.driveFolderUrl,
+    assignedMemberId: p.assignedMemberId,
     createdAt: p.createdAt,
     updatedAt: p.updatedAt,
   };
@@ -208,6 +239,7 @@ function mapTask(t: any) {
     priority: t.priority,
     dueDate: t.dueDate,
     roleLabel: t.roleLabel,
+    memberId: t.memberId,
     timeSpent: t.timeSpent,
     createdAt: t.createdAt,
     updatedAt: t.updatedAt,

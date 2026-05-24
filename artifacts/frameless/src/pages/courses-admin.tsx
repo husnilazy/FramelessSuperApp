@@ -9,12 +9,47 @@ import { formatCurrency } from "@/lib/formatters";
 
 interface Package { id: string; name: string; price: string; isTrial: boolean; durationDays?: number; features?: string; description?: string; isActive?: boolean; }
 interface Material { id: string; title: string; description: string; url: string; type: string; orderIndex: number; isActive: boolean; }
-interface Course { id: string; slug: string; title: string; subtitle?: string; description?: string; thumbnail?: string; instructor?: string; level?: string; category?: string; isPublished?: boolean; curriculumPdfUrl?: string; packages: Package[]; materials?: Material[]; }
+interface Course { id: string; slug: string; title: string; subtitle?: string; description?: string; thumbnail?: string; highlightVideoUrl?: string; instructor?: string; level?: string; category?: string; isPublished?: boolean; curriculumPdfUrl?: string; packages: Package[]; materials?: Material[]; }
 interface Enrollment { id: string; courseId: string; packageId: string; name: string; email: string; phone?: string; status: string; paymentStatus?: string; midtransOrderId?: string; paidAt?: string; notes?: string; createdAt: string; }
+type CourseSaveState = { tone: "saving" | "success" | "error"; title: string; message: string; };
 
 function authHeader() { return { Authorization: `Bearer ${localStorage.getItem("token") || ""}` }; }
 
-function UploadBtn({ value, onChange, label = "Upload" }: { value: string; onChange: (url: string) => void; label?: string }) {
+function slugifyCourseValue(value: string) {
+  return value
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .replace(/-{2,}/g, "-");
+}
+
+function isUrlLike(value?: string) {
+  return !!value && /^https?:\/\//i.test(value.trim());
+}
+
+function normalizeCourseSlug(slug?: string, title?: string) {
+  const source = isUrlLike(slug) ? (title || "") : (slug || title || "");
+  return slugifyCourseValue(source);
+}
+
+function courseHref(slug: string) {
+  return `/course/${encodeURIComponent(slug)}`;
+}
+
+function UploadBtn({
+  value,
+  onChange,
+  label = "Upload",
+  accept = "image/*,.pdf",
+}: {
+  value: string;
+  onChange: (url: string) => void;
+  label?: string;
+  accept?: string;
+}) {
   const ref = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   async function handle(e: React.ChangeEvent<HTMLInputElement>) {
@@ -32,7 +67,7 @@ function UploadBtn({ value, onChange, label = "Upload" }: { value: string; onCha
       <button onClick={() => ref.current?.click()} className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-muted/40 border border-border text-xs font-semibold text-muted-foreground hover:text-foreground transition-all whitespace-nowrap">
         {uploading ? <div className="w-3 h-3 rounded-full border-2 border-primary border-t-transparent animate-spin" /> : <Upload className="w-3 h-3" />} {label}
       </button>
-      <input ref={ref} type="file" accept="image/*,.pdf" className="hidden" onChange={handle} />
+      <input ref={ref} type="file" accept={accept} className="hidden" onChange={handle} />
     </div>
   );
 }
@@ -64,8 +99,21 @@ export default function CoursesAdminPage() {
   const [selectedCourseForMat, setSelectedCourseForMat] = useState<string>("");
   const [enrollmentNote, setEnrollmentNote] = useState<Record<string, string>>({});
   const [savingNote, setSavingNote] = useState<string>("");
+  const [savingCourse, setSavingCourse] = useState(false);
+  const [courseSaveState, setCourseSaveState] = useState<CourseSaveState | null>(null);
 
   useEffect(() => { loadCourses(); loadEnrollments(); }, []);
+
+  function openCourseEditor(course: Partial<Course>) {
+    setCourseSaveState(null);
+    setEditingCourse({ ...course, slug: normalizeCourseSlug(course.slug, course.title) });
+  }
+
+  function closeCourseEditor() {
+    if (savingCourse) return;
+    setCourseSaveState(null);
+    setEditingCourse(null);
+  }
 
   async function loadCourses() {
     const res = await fetch("/api/courses"); if (res.ok) { const data = await res.json(); setCourses(data); if (data[0]) setSelectedCourseForMat(data[0].id); }
@@ -82,10 +130,68 @@ export default function CoursesAdminPage() {
 
   async function saveCourse() {
     if (!editingCourse) return;
+    const title = editingCourse.title?.trim() || "";
+    const slug = normalizeCourseSlug(editingCourse.slug, title);
+
+    if (!title || !slug) {
+      const message = "Judul course wajib diisi. Slug akan dibuat otomatis dari judul.";
+      setCourseSaveState({ tone: "error", title: "Data course belum lengkap", message });
+      toast({ variant: "destructive", title: "Data course belum lengkap", description: message });
+      return;
+    }
+
+    const payload = {
+      slug,
+      title,
+      subtitle: editingCourse.subtitle?.trim() || null,
+      description: editingCourse.description?.trim() || null,
+      thumbnail: editingCourse.thumbnail?.trim() || null,
+      highlightVideoUrl: editingCourse.highlightVideoUrl?.trim() || null,
+      instructor: editingCourse.instructor?.trim() || null,
+      level: editingCourse.level || "beginner",
+      category: editingCourse.category?.trim() || "videography",
+      isPublished: editingCourse.isPublished ?? true,
+      curriculumPdfUrl: editingCourse.curriculumPdfUrl?.trim() || null,
+    };
+
     const method = editingCourse.id ? "PUT" : "POST";
     const url = editingCourse.id ? `/api/courses/${editingCourse.id}` : "/api/courses";
-    const res = await fetch(url, { method, headers: { "Content-Type": "application/json", ...authHeader() } as any, body: JSON.stringify(editingCourse) });
-    if (res.ok) { toast({ title: "Course tersimpan" }); loadCourses(); setEditingCourse(null); }
+    const successTitle = editingCourse.id ? "Course berhasil diperbarui" : "Course baru berhasil dibuat";
+    setSavingCourse(true);
+    setCourseSaveState({
+      tone: "saving",
+      title: editingCourse.id ? "Menyimpan perubahan course..." : "Membuat course baru...",
+      message: "Tunggu sebentar, data course sedang dikirim ke server.",
+    });
+    setEditingCourse(prev => prev ? ({ ...prev, slug, title }) : prev);
+    try {
+      const res = await fetch(url, { method, headers: { "Content-Type": "application/json", ...authHeader() } as any, body: JSON.stringify(payload) });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error(data?.error || "Gagal menyimpan course");
+      }
+      setCourseSaveState({
+        tone: "success",
+        title: successTitle,
+        message: "Perubahan sudah tersimpan. Landing page dan halaman detail ikut ter-update.",
+      });
+      toast({
+        title: successTitle,
+        description: "Data course sudah masuk dan siap tampil di website.",
+        className: "border-emerald-500/25 bg-[#08150e] text-white",
+      });
+      await loadCourses();
+      setTimeout(() => {
+        setCourseSaveState(null);
+        setEditingCourse(null);
+      }, 900);
+    } catch (err: any) {
+      const message = err.message || "Gagal menyimpan course";
+      setCourseSaveState({ tone: "error", title: "Simpan course gagal", message });
+      toast({ variant: "destructive", title: "Simpan course gagal", description: message });
+    } finally {
+      setSavingCourse(false);
+    }
   }
   async function deleteCourse(id: string) {
     if (!confirm("Hapus course ini?")) return;
@@ -93,7 +199,23 @@ export default function CoursesAdminPage() {
     loadCourses();
   }
   async function togglePublish(course: Course) {
-    await fetch(`/api/courses/${course.id}`, { method: "PUT", headers: { "Content-Type": "application/json", ...authHeader() } as any, body: JSON.stringify({ isPublished: !course.isPublished }) });
+    await fetch(`/api/courses/${course.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", ...authHeader() } as any,
+      body: JSON.stringify({
+        slug: course.slug,
+        title: course.title,
+        subtitle: course.subtitle,
+        description: course.description,
+        thumbnail: course.thumbnail,
+        highlightVideoUrl: course.highlightVideoUrl,
+        instructor: course.instructor,
+        level: course.level,
+        category: course.category,
+        curriculumPdfUrl: course.curriculumPdfUrl,
+        isPublished: !course.isPublished,
+      }),
+    });
     loadCourses();
   }
   async function savePkg() {
@@ -138,7 +260,7 @@ export default function CoursesAdminPage() {
           <h1 className="text-3xl font-black tracking-tight text-foreground">Videography Courses</h1>
           <p className="text-sm text-muted-foreground mt-1">Kelola course, materi, dan pendaftaran siswa</p>
         </div>
-        <Button onClick={() => setEditingCourse({ level: "beginner", category: "videography", isPublished: true, packages: [] })} className="bg-primary hover:bg-primary/90 text-white rounded-xl">
+        <Button onClick={() => openCourseEditor({ level: "beginner", category: "videography", isPublished: true, packages: [] })} className="bg-primary hover:bg-primary/90 text-white rounded-xl">
           <Plus className="w-4 h-4 mr-2" /> Tambah Course
         </Button>
       </div>
@@ -187,14 +309,14 @@ export default function CoursesAdminPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2 flex-wrap">
-                    <a href={`/course/${course.slug}`} target="_blank" className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg border border-border text-muted-foreground hover:text-foreground">
+                    <a href={courseHref(course.slug)} target="_blank" className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg border border-border text-muted-foreground hover:text-foreground">
                       <ExternalLink className="w-3 h-3" /> Preview
                     </a>
                     <button onClick={e => { e.stopPropagation(); togglePublish(course); }}
                       className={`text-xs px-2.5 py-1.5 rounded-lg border ${course.isPublished ? "text-green-400 border-green-400/25 bg-green-400/8" : "text-muted-foreground border-border bg-muted/25"}`}>
                       {course.isPublished ? "Publik" : "Draft"}
                     </button>
-                    <button onClick={e => { e.stopPropagation(); setEditingCourse(course); }}
+                    <button onClick={e => { e.stopPropagation(); openCourseEditor(course); }}
                       className="text-xs px-2.5 py-1.5 rounded-lg border border-border text-muted-foreground hover:text-foreground bg-muted/25">
                       Edit
                     </button>
@@ -393,17 +515,94 @@ export default function CoursesAdminPage() {
           <div className="bg-card border border-border rounded-2xl p-6 w-full max-w-lg space-y-4 max-h-[92vh] overflow-y-auto">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-bold text-foreground">{editingCourse.id ? "Edit Course" : "Tambah Course"}</h3>
-              <button onClick={() => setEditingCourse(null)} className="text-muted-foreground hover:text-foreground"><X className="w-5 h-5" /></button>
+              <button onClick={closeCourseEditor} disabled={savingCourse} className="text-muted-foreground hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"><X className="w-5 h-5" /></button>
             </div>
-            {[["title", "Judul Course"], ["slug", "Slug (URL)"], ["subtitle", "Subtitle"], ["instructor", "Instruktur"]].map(([k, l]) => (
+            {courseSaveState && (
+              <div className={`relative overflow-hidden rounded-2xl border px-4 py-3 ${
+                courseSaveState.tone === "saving"
+                  ? "border-primary/25 bg-primary/10"
+                  : courseSaveState.tone === "success"
+                    ? "border-emerald-500/25 bg-emerald-500/10"
+                    : "border-red-500/25 bg-red-500/10"
+              }`}>
+                <div className={`absolute inset-y-0 left-0 w-24 blur-3xl opacity-40 ${
+                  courseSaveState.tone === "saving"
+                    ? "bg-primary animate-pulse"
+                    : courseSaveState.tone === "success"
+                      ? "bg-emerald-400"
+                      : "bg-red-400"
+                }`} />
+                <div className="relative flex items-center gap-3">
+                  <div className={`flex h-11 w-11 items-center justify-center rounded-full border ${
+                    courseSaveState.tone === "saving"
+                      ? "border-primary/35 bg-primary/15"
+                      : courseSaveState.tone === "success"
+                        ? "border-emerald-500/35 bg-emerald-500/15"
+                        : "border-red-500/35 bg-red-500/15"
+                  }`}>
+                    {courseSaveState.tone === "saving" ? (
+                      <div className="h-5 w-5 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+                    ) : courseSaveState.tone === "success" ? (
+                      <Check className="h-5 w-5 text-emerald-400" />
+                    ) : (
+                      <X className="h-5 w-5 text-red-400" />
+                    )}
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-sm font-semibold text-foreground">{courseSaveState.title}</p>
+                    <p className="text-xs leading-relaxed text-muted-foreground">{courseSaveState.message}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+            <div className="space-y-1.5">
+              <label className="text-[11px] uppercase tracking-widest text-muted-foreground font-semibold">Judul Course</label>
+              <Input
+                value={editingCourse.title || ""}
+                onChange={e => setEditingCourse(prev => {
+                  if (!prev) return prev;
+                  const nextTitle = e.target.value;
+                  const shouldFollowTitle = !prev.slug || prev.slug === normalizeCourseSlug(prev.slug, prev.title);
+                  return {
+                    ...prev,
+                    title: nextTitle,
+                    ...(shouldFollowTitle ? { slug: normalizeCourseSlug(prev.slug, nextTitle) } : {}),
+                  };
+                })}
+                className="bg-muted/30 border-border"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-[11px] uppercase tracking-widest text-muted-foreground font-semibold">Slug (URL)</label>
+              <Input
+                value={editingCourse.slug || ""}
+                onChange={e => setEditingCourse(prev => prev ? ({ ...prev, slug: normalizeCourseSlug(e.target.value, prev.title) }) : prev)}
+                className="bg-muted/30 border-border"
+                placeholder="video-editing-basics"
+              />
+              <p className="text-[11px] leading-relaxed text-muted-foreground">
+                Link course: <span className="text-foreground">/course/{normalizeCourseSlug(editingCourse.slug, editingCourse.title) || "slug-course"}</span>. Slug dibersihkan otomatis saat kamu mengetik.
+              </p>
+            </div>
+            {([["subtitle", "Subtitle"], ["instructor", "Instruktur"]] as const).map(([k, l]) => (
               <div key={k} className="space-y-1.5">
                 <label className="text-[11px] uppercase tracking-widest text-muted-foreground font-semibold">{l}</label>
-                <Input value={(editingCourse as any)[k] || ""} onChange={e => setEditingCourse(p => ({...p!, [k]: e.target.value}))} className="bg-muted/30 border-border" />
+                <Input value={editingCourse[k] || ""} onChange={e => setEditingCourse(p => ({...p!, [k]: e.target.value}))} className="bg-muted/30 border-border" />
               </div>
             ))}
             <div className="space-y-1.5">
-              <label className="text-[11px] uppercase tracking-widest text-muted-foreground font-semibold">Thumbnail URL</label>
-              <UploadBtn value={editingCourse.thumbnail || ""} onChange={url => setEditingCourse(p => ({...p!, thumbnail: url}))} label="Upload" />
+              <label className="text-[11px] uppercase tracking-widest text-muted-foreground font-semibold">Thumbnail / Poster Course</label>
+              <UploadBtn value={editingCourse.thumbnail || ""} onChange={url => setEditingCourse(p => ({...p!, thumbnail: url}))} label="Upload Gambar" accept="image/*" />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-[11px] uppercase tracking-widest text-muted-foreground font-semibold">Highlight / Banner Video</label>
+              <UploadBtn
+                value={editingCourse.highlightVideoUrl || ""}
+                onChange={url => setEditingCourse(p => ({...p!, highlightVideoUrl: url}))}
+                label="Upload Video"
+                accept="video/*"
+              />
+              <p className="text-[11px] text-muted-foreground">Bisa upload MP4/WebM/MOV atau paste URL video YouTube/Vimeo.</p>
             </div>
             <div className="space-y-1.5">
               <label className="text-[11px] uppercase tracking-widest text-muted-foreground font-semibold">Kurikulum PDF URL</label>
@@ -430,8 +629,15 @@ export default function CoursesAdminPage() {
               <span className="text-sm text-foreground">Tampilkan di landing page</span>
             </label>
             <div className="flex gap-3 pt-2">
-              <Button onClick={() => setEditingCourse(null)} variant="ghost" className="flex-1 rounded-xl">Batal</Button>
-              <Button onClick={saveCourse} className="flex-1 bg-primary hover:bg-primary/90 text-white rounded-xl">Simpan Course</Button>
+              <Button onClick={closeCourseEditor} variant="ghost" disabled={savingCourse} className="flex-1 rounded-xl disabled:opacity-50">Batal</Button>
+              <Button onClick={saveCourse} disabled={savingCourse} className="flex-1 bg-primary hover:bg-primary/90 text-white rounded-xl">
+                {savingCourse ? (
+                  <span className="inline-flex items-center gap-2">
+                    <span className="h-4 w-4 rounded-full border-2 border-white/70 border-t-transparent animate-spin" />
+                    Menyimpan...
+                  </span>
+                ) : "Simpan Course"}
+              </Button>
             </div>
           </div>
         </div>

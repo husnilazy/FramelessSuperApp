@@ -2,7 +2,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
-  Play, X, ArrowRight, Check, ChevronRight, Menu,
+  Play, X, ArrowRight, ChevronRight, Menu,
   Users, Award, Film, BookOpen, Shield, Zap, Mail,
   MessageCircle, MapPin, Phone, Instagram, Youtube,
   Star, Clock, TrendingUp, Volume2, VolumeX,
@@ -14,7 +14,7 @@ interface CmsData { [s: string]: { [k: string]: string } }
 interface SiteVideo { id: string; title: string; description: string; embedUrl: string; thumbnailUrl: string; category: string; tags: string; isActive: boolean; orderIndex: number; }
 interface SiteLogo { id: string; name: string; imageUrl: string; isActive: boolean; orderIndex: number; }
 interface Package { id: string; name: string; price: string; isTrial: boolean; isActive?: boolean; features?: string; description?: string; }
-interface Course { id: string; title: string; slug: string; level: string; subtitle?: string; thumbnail?: string; instructor?: string; category?: string; packages: Package[]; }
+interface Course { id: string; title: string; slug: string; level: string; subtitle?: string; thumbnail?: string; highlightVideoUrl?: string; instructor?: string; category?: string; isPublished?: boolean; packages: Package[]; }
 interface DigitalAsset { id: string; title: string; description?: string; price: string; thumbnailUrl?: string; category?: string; fileType?: string; isActive: boolean; }
 interface Service { icon: string; title: string; description: string; tags: string[]; slug: string; price?: string; }
 
@@ -34,13 +34,13 @@ function igId(url?: string) {
 
 function autoEmbed(url?: string, muted = true) {
   if (!url) return null;
-  
+
   const id = ytId(url);
   if (id) return `https://www.youtube.com/embed/${id}?autoplay=1&${muted ? "mute=1&" : ""}loop=1&playlist=${id}&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1`;
-  
+
   const vm = url.match(/vimeo\.com\/(\d+)/);
   if (vm) return `https://player.vimeo.com/video/${vm[1]}?autoplay=1&${muted ? "muted=1&" : ""}loop=1&background=1`;
-  
+
   const ig = igId(url);
   if (ig) return `https://www.instagram.com/p/${ig}/embed`;
 
@@ -50,10 +50,10 @@ function autoEmbed(url?: string, muted = true) {
 function watchUrl(url: string) {
   const id = ytId(url);
   if (id) return `https://www.youtube.com/embed/${id}?autoplay=1&rel=0`;
-  
+
   const vm = url.match(/vimeo\.com\/(\d+)/);
   if (vm) return `https://player.vimeo.com/video/${vm[1]}?autoplay=1`;
-  
+
   const ig = igId(url);
   if (ig) return `https://www.instagram.com/p/${ig}/embed`;
 
@@ -65,6 +65,14 @@ function getThumbnail(url: string, custom?: string) {
   const id = ytId(url);
   if (id) return `https://img.youtube.com/vi/${id}/hqdefault.jpg`;
   return "";
+}
+
+function isDirectVideo(url?: string) {
+  return !!url && /\.(mp4|webm|mov|m4v)(?:\?|#|$)/i.test(url);
+}
+
+function courseHref(slug: string) {
+  return `/course/${encodeURIComponent(slug)}`;
 }
 // ── Default Services ──────────────────────────────────────────────────────────
 const DEFAULT_SERVICES: Service[] = [
@@ -169,7 +177,11 @@ function VideoModal({ url, onClose }: { url: string; onClose: () => void }) {
     <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 999, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,.95)", backdropFilter: "blur(20px)", animation: "fadeIn .18s ease" }}>
       <button onClick={onClose} style={{ position: "absolute", top: 20, right: 20, width: 44, height: 44, borderRadius: "50%", background: "rgba(255,255,255,.08)", border: "1px solid rgba(255,255,255,.15)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff" }}><X size={18} /></button>
       <div onClick={e => e.stopPropagation()} style={{ width: "min(92vw,1000px)", aspectRatio: "16/9" }}>
-        <iframe src={watchUrl(url)} style={{ width: "100%", height: "100%", borderRadius: 14, border: "none" }} allow="autoplay;fullscreen" allowFullScreen />
+        {isDirectVideo(url) ? (
+          <video src={url} controls autoPlay playsInline style={{ width: "100%", height: "100%", borderRadius: 14, border: "none", background: "#000" }} />
+        ) : (
+          <iframe src={watchUrl(url)} style={{ width: "100%", height: "100%", borderRadius: 14, border: "none" }} allow="autoplay;fullscreen" allowFullScreen />
+        )}
       </div>
     </div>
   );
@@ -183,18 +195,18 @@ function ReelCard({ video, onClick }: { video: SiteVideo; onClick: () => void })
   return (
     <div className="reel-card"
       onClick={onClick}
-      style={{ 
-        flexShrink: 0, 
-        width: "clamp(180px,26vw,240px)", 
-        aspectRatio: "9/16", 
-        borderRadius: 22, 
-        overflow: "hidden", 
-        position: "relative", 
-        cursor: "pointer", 
-        background: "rgba(255, 255, 255, 0.02)", 
+      style={{
+        flexShrink: 0,
+        width: "clamp(180px,26vw,240px)",
+        aspectRatio: "9/16",
+        borderRadius: 22,
+        overflow: "hidden",
+        position: "relative",
+        cursor: "pointer",
+        background: "rgba(255, 255, 255, 0.02)",
         backdropFilter: "blur(16px)",
         WebkitBackdropFilter: "blur(16px)",
-        border: "1px solid rgba(255, 255, 255, 0.12)", 
+        border: "1px solid rgba(255, 255, 255, 0.12)",
         boxShadow: `0 12px 40px 0 rgba(0, 0, 0, 0.4), 
                     0 0 20px 0px rgba(255, 106, 34, 0.15), 
                     inset 0 0 12px rgba(255, 255, 255, 0.05)`,
@@ -213,23 +225,23 @@ function ReelCard({ video, onClick }: { video: SiteVideo; onClick: () => void })
                                            inset 0 0 12px rgba(255, 255, 255, 0.05)`;
       }}
     >
-      
+
       {/* Container Video dengan Trik Zoom & Masking untuk Menyembunyikan Tombol Play YT */}
       <div style={{ position: "absolute", inset: 0, overflow: "hidden", borderRadius: 22 }}>
         {embedSrc ? (
-          <iframe 
+          <iframe
             src={`${embedSrc}&controls=0&modestbranding=1&rel=0`}
-            style={{ 
-              position: "absolute", 
-              top: "50%", 
-              left: "50%", 
-              width: "240%", 
-              height: "240%", 
-              transform: "translate(-50%, -50%)", 
-              border: "none", 
-              pointerEvents: "none" 
+            style={{
+              position: "absolute",
+              top: "50%",
+              left: "50%",
+              width: "240%",
+              height: "240%",
+              transform: "translate(-50%, -50%)",
+              border: "none",
+              pointerEvents: "none"
             }}
-            allow="autoplay; muted" 
+            allow="autoplay; muted"
           />
         ) : (
           th ? <img src={th} alt={video.title} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
@@ -242,14 +254,14 @@ function ReelCard({ video, onClick }: { video: SiteVideo; onClick: () => void })
       <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.15) 50%, transparent 100%)", pointerEvents: "none" }} />
 
       {/* Glassmorphism Info Text di Bagian Bawah */}
-      <div style={{ 
-        position: "absolute", 
-        bottom: 0, 
-        left: 0, 
-        right: 0, 
-        padding: "18px 16px", 
-        background: "rgba(10, 10, 14, 0.4)", 
-        backdropFilter: "blur(20px)", 
+      <div style={{
+        position: "absolute",
+        bottom: 0,
+        left: 0,
+        right: 0,
+        padding: "18px 16px",
+        background: "rgba(10, 10, 14, 0.4)",
+        backdropFilter: "blur(20px)",
         WebkitBackdropFilter: "blur(20px)",
         borderTop: "1px solid rgba(255, 255, 255, 0.08)",
         pointerEvents: "none"
@@ -273,6 +285,8 @@ export default function LandingPage() {
   const [vReady, setVReady] = useState(false);
   const [mobileNav, setMobileNav] = useState(false);
   const bgRef = useRef<HTMLDivElement>(null);
+  const [slideIndex, setSlideIndex] = useState(0);
+  const pfSliderRef = useRef<HTMLDivElement>(null);
 
   // Parallax
   useEffect(() => {
@@ -291,6 +305,14 @@ export default function LandingPage() {
     };
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => { window.removeEventListener("scroll", onScroll); cancelAnimationFrame(raf); };
+  // Autoplay slider for portfolio
+  useEffect(() => {
+    if (pfShown.length === 0) return;
+    const interval = setInterval(() => {
+      setSlideIndex(prev => (prev + 1) % pfShown.length);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [pfShown]);
   }, []);
 
   // ── Queries ───────────────────────────────────────────────────────────────
@@ -336,10 +358,11 @@ export default function LandingPage() {
   const allTags = Array.from(new Set(pfVids.flatMap(v => { try { return JSON.parse(v.tags || "[]"); } catch { return []; } })));
   const pfShown = pfTag === "All" ? pfVids : pfVids.filter(v => { try { return JSON.parse(v.tags || "[]").includes(pfTag); } catch { return false; } });
 
-  const pubCourses = courses.filter(c => c.packages?.length > 0);
+  const pubCourses = courses.filter(c => c.isPublished !== false && c.packages?.length > 0);
   const pubAssets = assets.filter(a => a.isActive).slice(0, 6);
 
-  const wa = cont.whatsapp ? `https://wa.me/${cont.whatsapp.replace(/\D/g, "")}` : "#";
+  const waMsg = "Halo%20Admin%20Frameless%20Creative!%20%F0%9F%91%8B%20Saya%20ingin%20menanyakan%20mengenai%20project%20video.%20Bisa%20dibantu%3F";
+  const wa = cont.whatsapp ? `https://wa.me/${cont.whatsapp.replace(/\D/g, "")}?text=${waMsg}` : "#";
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
@@ -368,13 +391,7 @@ export default function LandingPage() {
           <a href="/" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none", flexShrink: 0 }}>
             {logoUrl
               ? <img src={logoUrl} alt={brandName} style={{ height: 32, width: "auto", objectFit: "contain", filter: "brightness(0) invert(1)" }} />
-              : <>
-                <div style={{ width: 34, height: 34, borderRadius: 10, background: OR, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: `0 4px 16px ${OR}55`, flexShrink: 0 }}><span style={{ color: "#fff", fontWeight: 900, fontSize: 16, letterSpacing: "-.02em" }}>F</span></div>
-                <div>
-                  <div style={{ fontSize: 14, fontWeight: 900, color: "#fff", letterSpacing: "-.02em", lineHeight: 1 }}>Frameless</div>
-                  <div style={{ fontSize: 9, color: "rgba(255,255,255,.4)", letterSpacing: ".08em", marginTop: 1 }}>CREATIVE STUDIO</div>
-                </div>
-              </>
+              : <div style={{ fontSize: 15, fontWeight: 900, color: "#fff", letterSpacing: "-.02em", lineHeight: 1 }}>{brandName}</div>
             }
           </a>
 
@@ -546,27 +563,33 @@ export default function LandingPage() {
                 ))}
               </div>
             </div>
-            <div className="g3" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(280px,1fr))", gap: 18 }}>
-              {pfShown.map((v, i) => {
+          {/* Portfolio Slider with Autoplay */}
+          {pfShown.length > 0 && (
+            <div className="g3" style={{ display: "grid", gridTemplateColumns: "1fr", gap: 18 }}>
+              {/* Autoplay effect */}
+              {/* Initialize slide index state */}
+              {(() => {
+                const v = pfShown[slideIndex];
                 const t = getThumbnail(v.embedUrl, v.thumbnailUrl);
-                const big = i === 0 && pfShown.length > 2;
                 return (
                   <div key={v.id} className="pf-card" onClick={() => setModal(v.embedUrl)}
-                    style={{ position: "relative", borderRadius: 18, overflow: "hidden", cursor: "pointer", aspectRatio: big ? "16/9" : "4/3", border: "1px solid rgba(255,255,255,.07)", gridColumn: big ? "1/-1" : undefined }}>
+                    style={{ position: "relative", borderRadius: 18, overflow: "hidden", cursor: "pointer", aspectRatio: "16/9", border: "1px solid rgba(255,255,255,.07)" }}>
                     {t ? <img src={t} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} alt={v.title} /> : <div style={{ width: "100%", height: "100%", minHeight: 200, background: "rgba(255,255,255,.04)" }} />}
                     <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top,rgba(0,0,0,.85) 0%,transparent 55%)" }} />
                     <div className="overlay" style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,.22)" }}>
                       <div style={{ width: 58, height: 58, borderRadius: "50%", background: OR, display: "flex", alignItems: "center", justifyContent: "center" }}><Play size={20} style={{ fill: "#fff", color: "#fff", marginLeft: 2 }} /></div>
                     </div>
                     <div style={{ position: "absolute", bottom: 18, left: 22, right: 22 }}>
-                      {big && <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: ".15em", color: OR, textTransform: "uppercase", marginBottom: 5 }}>FEATURED</div>}
-                      <div style={{ fontSize: big ? 20 : 15, fontWeight: 700, color: "#fff" }}>{v.title}</div>
+                      <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: ".15em", color: OR, textTransform: "uppercase", marginBottom: 5 }}>FEATURED</div>
+                      <div style={{ fontSize: 20, fontWeight: 700, color: "#fff" }}>{v.title}</div>
                       {v.description && <div style={{ fontSize: 12, color: "rgba(255,255,255,.44)", marginTop: 3 }}>{v.description}</div>}
                     </div>
                   </div>
                 );
-              })}
+              })()}
             </div>
+          )}
+
           </div>
         </section>
       )}
@@ -599,36 +622,55 @@ export default function LandingPage() {
           {/* Course cards — real links */}
           {pubCourses.length > 0 ? (
             <>
-              <div className="g3" style={{ display: "grid", gridTemplateColumns: `repeat(${Math.min(pubCourses.length, 3)},1fr)`, gap: 22, marginBottom: 48 }}>
+              <div
+                className="g3"
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,320px),380px))",
+                  justifyContent: "center",
+                  gap: 22,
+                  marginBottom: 48,
+                }}
+              >
                 {pubCourses.slice(0, 3).map((c, idx) => {
                   const pkgs = c.packages.filter(p => p.isActive !== false);
                   const trial = pkgs.find(p => p.isTrial), paid = pkgs.filter(p => !p.isTrial);
                   const minPr = paid.length ? Math.min(...paid.map(p => Number(p.price))) : 0;
                   const pop = idx === 0 && pubCourses.length > 1;
-                  const feats = (() => { const f = paid[0]?.features || trial?.features || ""; try { return JSON.parse(f); } catch { return f.split("\n").filter(Boolean).slice(0, 4); } })();
+                  const highlightUrl = c.highlightVideoUrl || "";
+                  const hasHighlight = !!highlightUrl;
+                  const directHighlight = isDirectVideo(highlightUrl);
+                  const poster = getThumbnail(highlightUrl, c.thumbnail);
                   return (
-                    <a key={c.id} href={`/course/${c.slug}`} className="course-card" style={{ textDecoration: "none", display: "flex", flexDirection: "column", borderRadius: 24, overflow: "hidden", border: `1.5px solid ${pop ? OR + "55" : "rgba(255,255,255,.08)"}`, background: "rgba(255,255,255,.022)", position: "relative" }}>
-                      {pop && <div style={{ position: "absolute", top: 14, right: 14, background: OR, color: "#fff", fontSize: 10, padding: "4px 14px", borderRadius: 100, fontWeight: 700, textTransform: "uppercase", zIndex: 2 }}>⭐ Popular</div>}
-                      <div style={{ aspectRatio: "16/9", background: c.thumbnail ? `url(${c.thumbnail}) center/cover` : "linear-gradient(135deg,#1a0800,#3d1500)", display: "flex", alignItems: "center", justifyContent: "center", position: "relative" }}>
-                        {!c.thumbnail && <span style={{ fontSize: 42 }}>🎬</span>}
+                    <a key={c.id} href={courseHref(c.slug)} className="course-card" style={{ textDecoration: "none", display: "flex", flexDirection: "column", borderRadius: 24, overflow: "hidden", border: `1.5px solid ${pop ? OR + "55" : "rgba(255,255,255,.08)"}`, background: "rgba(255,255,255,.022)", position: "relative", transition: "all .3s cubic-bezier(0.23, 1, 0.320, 1)" }}>
+                      {pop && <div style={{ position: "absolute", top: 14, right: 14, background: OR, color: "#fff", fontSize: 10, padding: "6px 16px", borderRadius: 100, fontWeight: 700, textTransform: "uppercase", zIndex: 2, boxShadow: `0 8px 24px ${OR}33` }}>Popular</div>}
+                      <div style={{ aspectRatio: "16/9", background: poster ? `url(${poster}) center/cover` : "linear-gradient(135deg,#1a0800,#3d1500)", display: "flex", alignItems: "center", justifyContent: "center", position: "relative", overflow: "hidden", transition: "transform .4s" }}>
+                        {directHighlight ? (
+                          <video src={highlightUrl} poster={poster || undefined} autoPlay muted loop playsInline style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
+                        ) : poster ? (
+                          <img src={poster} alt={c.title} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
+                        ) : (
+                          <Film size={40} color="rgba(255,255,255,.28)" />
+                        )}
                         <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top,rgba(0,0,0,.65) 0%,transparent 60%)" }} />
-                        <div style={{ position: "absolute", bottom: 12, left: 14, display: "flex", gap: 6 }}>
+                        <div style={{ position: "absolute", bottom: 12, left: 14, display: "flex", gap: 6, flexWrap: "wrap", zIndex: 2 }}>
                           <span style={{ background: `${OR}22`, border: `1px solid ${OR}44`, color: OR, fontSize: 10, padding: "3px 10px", borderRadius: 100, fontWeight: 700, backdropFilter: "blur(8px)" }}>{c.level}</span>
                           {c.category && <span style={{ background: "rgba(0,0,0,.35)", color: "rgba(255,255,255,.6)", fontSize: 10, padding: "3px 10px", borderRadius: 100, backdropFilter: "blur(8px)" }}>{c.category}</span>}
                         </div>
+                        {hasHighlight && <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setModal(highlightUrl); }} style={{ position: "absolute", right: 14, bottom: 12, display: "inline-flex", alignItems: "center", gap: 7, padding: "8px 12px", borderRadius: 100, border: "1px solid rgba(255,255,255,.16)", background: "rgba(10,10,12,.48)", color: "#fff", fontSize: 11, fontWeight: 700, cursor: "pointer", backdropFilter: "blur(10px)", zIndex: 2 }}><Play size={12} fill="#fff" /> Highlight</button>}
                       </div>
-                      <div style={{ padding: "20px 20px 24px", flex: 1, display: "flex", flexDirection: "column" }}>
-                        <h3 style={{ fontSize: 18, fontWeight: 800, color: "#fff", margin: "0 0 6px", letterSpacing: "-.02em", lineHeight: 1.2 }}>{c.title}</h3>
-                        {c.subtitle && <p style={{ fontSize: 13, color: "rgba(255,255,255,.42)", margin: "0 0 12px", lineHeight: 1.55 }}>{c.subtitle}</p>}
-                        {c.instructor && <p style={{ fontSize: 11, color: "rgba(255,255,255,.27)", margin: "0 0 12px" }}>Instruktur: <strong style={{ color: "rgba(255,255,255,.55)" }}>{c.instructor}</strong></p>}
-                        <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 18, flex: 1 }}>
-                          {(feats.length > 0 ? feats.slice(0, 3) : ["Kurikulum terstruktur", "Sertifikat resmi", trial ? "Trial gratis" : "Materi pro"]).map((f: string) => (
-                            <div key={f} style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 12, color: "rgba(255,255,255,.47)" }}><Check size={11} color={OR} style={{ flexShrink: 0 }} />{f}</div>
-                          ))}
-                        </div>
-                        <div style={{ borderTop: "1px solid rgba(255,255,255,.06)", paddingTop: 14, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                          <div>{minPr > 0 ? (<><p style={{ fontSize: 9, color: "rgba(255,255,255,.27)", margin: "0 0 1px", textTransform: "uppercase", letterSpacing: ".08em" }}>Mulai dari</p><p style={{ fontSize: 20, fontWeight: 900, color: OR, margin: 0 }}>{formatCurrency(minPr)}</p></>) : trial && <p style={{ fontSize: 17, fontWeight: 800, color: OR, margin: 0 }}>GRATIS</p>}</div>
-                          <div style={{ display: "flex", alignItems: "center", gap: 5, padding: "10px 16px", borderRadius: 100, background: OR, color: "#fff", fontSize: 12, fontWeight: 700 }}>Daftar <ChevronRight size={12} /></div>
+                      <div style={{ padding: "22px 20px 24px", flex: 1, display: "flex", flexDirection: "column" }}>
+                        <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: ".18em", color: "rgba(255,255,255,.26)", textTransform: "uppercase", margin: "0 0 10px" }}>Kelas Online Frameless</p>
+                        <h3 style={{ fontSize: 20, fontWeight: 800, color: "#fff", margin: "0 0 8px", letterSpacing: "-.025em", lineHeight: 1.15 }}>{c.title}</h3>
+                        {c.subtitle && <p style={{ fontSize: 13, color: "rgba(255,255,255,.42)", margin: "0 0 14px", lineHeight: 1.6 }}>{c.subtitle}</p>}
+                        {c.instructor && <p style={{ fontSize: 12, color: "rgba(255,255,255,.32)", margin: "0 0 18px" }}>Instruktur: <strong style={{ color: "rgba(255,255,255,.62)" }}>{c.instructor}</strong></p>}
+                        <div style={{ marginTop: "auto", borderTop: "1px solid rgba(255,255,255,.06)", paddingTop: 16, display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 14 }}>
+                          <div>
+                            <p style={{ fontSize: 9, color: "rgba(255,255,255,.27)", margin: "0 0 4px", textTransform: "uppercase", letterSpacing: ".08em" }}>Harga mulai</p>
+                            <p style={{ fontSize: 22, fontWeight: 900, color: OR, margin: 0 }}>{minPr > 0 ? formatCurrency(minPr) : trial ? "GRATIS" : "Hubungi Kami"}</p>
+                            <p style={{ fontSize: 11, color: "rgba(255,255,255,.34)", margin: "6px 0 0" }}>{trial ? "Trial tersedia, detail paket ada di halaman course." : "Detail paket lengkap ada di halaman course."}</p>
+                          </div>
+                          <div style={{ display: "flex", alignItems: "center", gap: 5, padding: "10px 16px", borderRadius: 100, background: OR, color: "#fff", fontSize: 12, fontWeight: 700, whiteSpace: "nowrap" }}>Lihat Detail <ChevronRight size={12} /></div>
                         </div>
                       </div>
                     </a>
@@ -637,7 +679,7 @@ export default function LandingPage() {
               </div>
               {pubCourses.length > 3 && (
                 <div style={{ textAlign: "center", marginBottom: 48 }}>
-                  <a href="/store" style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "12px 28px", borderRadius: 100, border: "1px solid rgba(255,255,255,.15)", color: "rgba(255,255,255,.7)", textDecoration: "none", fontSize: 14, fontWeight: 600 }}>
+                  <a href="/courses" style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "12px 28px", borderRadius: 100, border: "1px solid rgba(255,255,255,.15)", color: "rgba(255,255,255,.7)", textDecoration: "none", fontSize: 14, fontWeight: 600 }}>
                     Lihat semua {pubCourses.length} kursus <ChevronRight size={15} />
                   </a>
                 </div>
@@ -659,7 +701,7 @@ export default function LandingPage() {
                 <p style={{ color: "rgba(255,255,255,.41)", fontSize: 14, maxWidth: 400, lineHeight: 1.65 }}>Trial gratis tersedia. Tidak perlu kartu kredit. 500+ alumni.</p>
               </div>
               <div style={{ display: "flex", gap: 10, flexDirection: "column", flexShrink: 0 }}>
-                <a href="/store" style={{ padding: "13px 26px", borderRadius: 100, background: OR, color: "#fff", textDecoration: "none", fontSize: 14, fontWeight: 700, whiteSpace: "nowrap", textAlign: "center" }}>Lihat Semua Kelas →</a>
+                <a href="/courses" style={{ padding: "13px 26px", borderRadius: 100, background: OR, color: "#fff", textDecoration: "none", fontSize: 14, fontWeight: 700, whiteSpace: "nowrap", textAlign: "center" }}>Lihat Semua Kelas →</a>
                 <a href="#contact" style={{ padding: "11px 20px", borderRadius: 100, border: "1px solid rgba(255,255,255,.14)", color: "rgba(255,255,255,.63)", textDecoration: "none", fontSize: 13, fontWeight: 600, textAlign: "center" }}>Konsultasi dulu</a>
               </div>
             </div>
@@ -744,7 +786,7 @@ export default function LandingPage() {
           <div className="col" style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
             {cont.whatsapp && <a href={wa} target="_blank" rel="noopener noreferrer" style={{ display: "flex", alignItems: "center", gap: 9, padding: "14px 26px", borderRadius: 100, background: "#25D366", color: "#fff", textDecoration: "none", fontSize: 15, fontWeight: 700 }}><MessageCircle size={16} /> WhatsApp</a>}
             {cont.email && <a href={`mailto:${cont.email}`} style={{ display: "flex", alignItems: "center", gap: 8, padding: "14px 26px", borderRadius: 100, border: "1px solid rgba(255,255,255,.15)", color: "rgba(255,255,255,.78)", textDecoration: "none", fontSize: 15, fontWeight: 600 }}><Mail size={15} />{cont.email}</a>}
-            {!cont.whatsapp && !cont.email && <a href="mailto:hello@frameless.id" style={{ display: "flex", alignItems: "center", gap: 8, padding: "14px 28px", borderRadius: 100, background: OR, color: "#fff", textDecoration: "none", fontSize: 15, fontWeight: 700 }}>Hubungi Kami <ArrowRight size={15} /></a>}
+            {!cont.whatsapp && !cont.email && <a href="https://wa.me/0859106723181?text=Halo%20Admin%20Frameless%20Creative!%20%F0%9F%91%8B%20Saya%20ingin%20menanyakan%20mengenai%20project%20video.%20Bisa%20dibantu%3F" target="_blank" rel="noopener noreferrer" style={{ display: "flex", alignItems: "center", gap: 8, padding: "14px 28px", borderRadius: 100, background: OR, color: "#fff", textDecoration: "none", fontSize: 15, fontWeight: 700 }}>Hubungi Kami <ArrowRight size={15} /></a>}
           </div>
         </div>
       </section>
@@ -756,12 +798,11 @@ export default function LandingPage() {
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
               {logoUrl ? <img src={logoUrl} alt={brandName} style={{ height: 32, width: "auto", filter: "brightness(0) invert(1)" }} />
-                : <><div style={{ width: 36, height: 36, borderRadius: 11, background: OR, display: "flex", alignItems: "center", justifyContent: "center" }}><span style={{ color: "#fff", fontWeight: 900, fontSize: 17 }}>F</span></div>
-                  <div><div style={{ fontSize: 15, fontWeight: 900, color: "#fff", letterSpacing: "-.01em" }}>{brandName}</div><div style={{ fontSize: 9, color: "rgba(255,255,255,.3)", letterSpacing: ".08em" }}>MEDIA AGENCY</div></div></>}
+                : <div style={{ fontSize: 15, fontWeight: 900, color: "#fff", letterSpacing: "-.01em" }}>{brandName}</div>}
             </div>
             <p style={{ fontSize: 13, color: "rgba(255,255,255,.4)", lineHeight: 1.72, maxWidth: 280, marginBottom: 24 }}>Video production & media agency profesional berbasis di Wonosobo, Central Java. Mengubah ide menjadi visual sinematik yang tak terlupakan.</p>
             <div style={{ display: "flex", gap: 9 }}>
-              {[{ icon: <Instagram size={14} />, href: cont.instagram || "#", label: "IG" }, { icon: <Youtube size={14} />, href: cont.youtube || "#", label: "YT" }, { icon: <MessageCircle size={14} />, href: wa, label: "WA" }].map(s => (
+              {[{ icon: <Instagram size={14} />, href: "https://www.instagram.com/framelesscreative/", label: "IG" }, { icon: <Youtube size={14} />, href: "https://www.youtube.com/@framelesscreativeproject", label: "YT" }, { icon: <MessageCircle size={14} />, href: "https://wa.me/0859106723181?text=Halo%20Admin%20Frameless%20Creative!%20%F0%9F%91%8B%20Saya%20ingin%20menanyakan%20mengenai%20project%20video.%20Bisa%20dibantu%3F", label: "WA" }].map(s => (
                 <a key={s.label} href={s.href} target="_blank" rel="noopener noreferrer" title={s.label} style={{ width: 36, height: 36, borderRadius: 10, background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.09)", display: "flex", alignItems: "center", justifyContent: "center", color: "rgba(255,255,255,.45)", textDecoration: "none", transition: "all .2s" }}
                   onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.background = `${OR}22`; el.style.borderColor = `${OR}44`; el.style.color = OR; }}
                   onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.background = "rgba(255,255,255,.06)"; el.style.borderColor = "rgba(255,255,255,.09)"; el.style.color = "rgba(255,255,255,.45)"; }}>
@@ -798,7 +839,18 @@ export default function LandingPage() {
               </div>
               {cont.email && <div style={{ display: "flex", gap: 9, alignItems: "center" }}><Mail size={13} color={OR} style={{ flexShrink: 0 }} /><a href={`mailto:${cont.email}`} style={{ fontSize: 13, color: "rgba(255,255,255,.44)", textDecoration: "none" }}>{cont.email}</a></div>}
               {cont.phone && <div style={{ display: "flex", gap: 9, alignItems: "center" }}><Phone size={13} color={OR} style={{ flexShrink: 0 }} /><span style={{ fontSize: 13, color: "rgba(255,255,255,.44)" }}>{cont.phone}</span></div>}
-              {cont.whatsapp && <a href={wa} target="_blank" rel="noopener noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "9px 16px", borderRadius: 100, background: "#25D366", color: "#fff", textDecoration: "none", fontSize: 12, fontWeight: 700, width: "fit-content", marginTop: 4 }}><MessageCircle size={13} /> Chat Sekarang</a>}
+              {/* Google Maps embed */}
+              <div style={{ marginTop: 6, borderRadius: 10, overflow: "hidden", border: "1px solid rgba(255,255,255,.09)" }}>
+                <iframe
+                  src="https://www.google.com/maps/embed?pb=!1m28!1m12!1m3!1d1282.932926945778!2d109.9148975916254!3d-7.34204572618802!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!4m13!3e6!4m5!1s0xcfceb45b974374f%3A0xdca036b64eb9f09d!2sFrameless%20Creative%20Agency%2C%20Jl.%20Lurah%20Sudarto%2C%20Rw.%204%2C%20Jlamprang%2C%20Kec.%20Wonosobo%2C%20Kabupaten%20Wonosobo%2C%20Jawa%20Tengah%2056319!3m2!1d-7.3413482!2d109.9147435!4m5!1s0xcfceb45b974374f%3A0xdca036b64eb9f09d!2sFrameless%20Creative%20Agency%2C%20Jl.%20Lurah%20Sudarto%2C%20Rw.%204%2C%20Jlamprang%2C%20Kec.%20Wonosobo%2C%20Kabupaten%20Wonosobo%2C%20Jawa%20Tengah%2056319!3m2!1d-7.3413482!2d109.9147435!5e0!3m2!1sid!2sid!4v1779628893899!5m2!1sid!2sid"
+                  width="100%"
+                  height="160"
+                  style={{ border: 0, display: "block" }}
+                  allowFullScreen
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                />
+              </div>
             </div>
           </div>
         </div>

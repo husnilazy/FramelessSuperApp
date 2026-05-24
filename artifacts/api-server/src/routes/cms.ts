@@ -33,4 +33,32 @@ router.put("/cms", requireAuth, async (req, res): Promise<void> => {
   res.json({ success: true });
 });
 
+// POST /cms/inquiry — simpan atau kirim email inquiry
+router.post("/cms/inquiry", async (req, res): Promise<void> => {
+  try {
+    const { name, email, phone, message, service, slug } = req.body;
+
+    if (!name || !email) {
+      res.status(400).json({ error: "Nama dan email wajib diisi" });
+      return;
+    }
+
+    // Log inquiry (bisa ditambahkan ke DB atau dikirim via email)
+    console.log(`[Inquiry] ${new Date().toISOString()}`);
+    console.log(`  Service: ${service || "General"}`);
+    console.log(`  Name   : ${name}`);
+    console.log(`  Email  : ${email}`);
+    console.log(`  Phone  : ${phone || "-"}`);
+    console.log(`  Message: ${message || "-"}`);
+
+    // TODO: Kirim email notifikasi ke admin menggunakan nodemailer
+    // atau simpan ke database jika ada tabel inquiry
+
+    res.json({ success: true, message: "Inquiry diterima" });
+  } catch (err) {
+    console.error("[inquiry] Error:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
 export default router;

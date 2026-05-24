@@ -73,8 +73,8 @@ router.get("/crew/tasks", requireCrewAuth as any, async (req: any, res): Promise
 });
 
 router.patch("/crew/tasks/:id", requireCrewAuth as any, async (req: any, res): Promise<void> => {
-  const { status, progress } = req.body;
-  const [task] = await db.update(projectTasksTable).set({ status, progress, updatedAt: new Date() })
+  const { status } = req.body;
+  const [task] = await db.update(projectTasksTable).set({ status, updatedAt: new Date() })
     .where(eq(projectTasksTable.id, req.params.id)).returning();
   res.json(task);
 });
@@ -107,21 +107,23 @@ router.get("/crew/calendar", requireCrewAuth as any, async (req: any, res): Prom
 });
 
 router.get("/admin/chat/:crewId", requireAuth, async (req, res): Promise<void> => {
+  const crewId = req.params.crewId as string;
   const messages = await db.select().from(chatMessagesTable)
-    .where(eq(chatMessagesTable.crewId, req.params.crewId))
+    .where(eq(chatMessagesTable.crewId, crewId))
     .orderBy(chatMessagesTable.createdAt).limit(200);
   res.json(messages);
 });
 
 router.post("/admin/chat/:crewId", requireAuth, async (req, res): Promise<void> => {
+  const crewId = req.params.crewId as string;
   const [msg] = await db.insert(chatMessagesTable).values({
-    crewId: req.params.crewId,
+    crewId,
     senderRole: "admin",
     senderName: req.body.senderName || "Admin",
     message: req.body.message,
   }).returning();
   await db.update(chatMessagesTable).set({ isRead: true })
-    .where(and(eq(chatMessagesTable.crewId, req.params.crewId), eq(chatMessagesTable.senderRole, "crew")));
+    .where(and(eq(chatMessagesTable.crewId, crewId), eq(chatMessagesTable.senderRole, "crew")));
   res.status(201).json(msg);
 });
 

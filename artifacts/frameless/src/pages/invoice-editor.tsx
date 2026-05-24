@@ -94,8 +94,8 @@ export default function InvoiceEditorPage() {
   const { data: existingInvoice } = useGetInvoice(invoiceId ?? "", {
     query: { enabled: !!invoiceId } as any,
   });
-  const { data: clients } = useListClients();
-  const { data: projects } = useListProjects();
+  const { data: clients, isLoading: clientsLoading, isError: clientsError } = useListClients();
+  const { data: projects, isLoading: projectsLoading, isError: projectsError } = useListProjects();
 
   const createMutation = useCreateInvoice({
     mutation: {
@@ -112,7 +112,7 @@ export default function InvoiceEditorPage() {
 
   const defaultInv: InvoiceData = {
     fromName: "FRAMELESS CREATIVE PROJECT PT",
-    fromAddress: "Jakarta, Indonesia\ninfo@frameless.id · +62 xxx xxxx xxxx\nwww.frameless.id",
+    fromAddress: "Jl. Lurah Sudarto Jlamprang Wonosobo 56319\ninfo@frameless.com · www.framelesscreative.com",
     billTo: "",
     shipTo: "",
     invoiceNumber: `INV-${Date.now().toString().slice(-4)}`,
@@ -122,7 +122,7 @@ export default function InvoiceEditorPage() {
     poNumber: "",
     items: [newItem()],
     notes: "",
-    terms: "Pembayaran dilakukan dalam 14 hari kalender sejak tanggal invoice. Keterlambatan pembayaran dikenakan denda 2% per bulan.",
+    terms: "1. Pembayaran dilakukan dalam 14 hari kalender sejak tanggal invoice.\n2. Keterlambatan pembayaran dikenakan denda 2% per bulan.\n3. Pembayaran DP minimal 50% wajib dilunasi sebelum produksi dimulai.\n4. File/aset final hanya diserahkan setelah pelunasan penuh.\n5. Revisi di luar scope pekerjaan yang telah disepakati dapat dikenakan biaya tambahan.\n6. Invoice ini sah sebagai dokumen tagihan resmi tanpa tanda tangan basah.",
     taxRate: 11,
     discount: 0,
     shipping: 0,
@@ -133,14 +133,19 @@ export default function InvoiceEditorPage() {
   };
 
   const draft = !invoiceId ? loadDraft() : null;
-  const [inv, setInv] = useState<InvoiceData>(draft ? { ...defaultInv, ...draft } : defaultInv);
+  const [inv, setInv] = useState<InvoiceData>(draft ? {
+    ...defaultInv, ...draft,
+    fromName: defaultInv.fromName,
+    fromAddress: defaultInv.fromAddress,
+    terms: defaultInv.terms,
+  } : defaultInv);
 
   useEffect(() => {
     if (existingInvoice) {
       setInv((prev) => ({
         ...prev,
         fromName: "FRAMELESS CREATIVE PROJECT PT",
-        fromAddress: "Jakarta, Indonesia\ninfo@frameless.id · +62 xxx xxxx xxxx\nwww.frameless.id",
+        fromAddress: "Jl. Lurah Sudarto Jlamprang Wonosobo 56319\ninfo@frameless.com · www.framelesscreative.com",
         billTo: existingInvoice.billTo || "",
         shipTo: existingInvoice.shipTo || "",
         invoiceNumber: existingInvoice.number,
@@ -439,12 +444,20 @@ export default function InvoiceEditorPage() {
                 <label className="text-xs uppercase tracking-wider text-muted-foreground">Client *</label>
                 <Select value={inv.clientId} onValueChange={(v) => setInv((p) => ({ ...p, clientId: v }))}>
                   <SelectTrigger className="bg-white/5 border-white/10 text-white">
-                    <SelectValue placeholder="Pilih client..." />
+                    <SelectValue placeholder={clientsLoading ? "Memuat..." : clientsError ? "Gagal memuat client" : "Pilih client..."} />
                   </SelectTrigger>
                   <SelectContent className="bg-card border-white/10">
-                    {clients?.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                    ))}
+                    {clientsError ? (
+                      <div className="px-3 py-2 text-xs text-muted-foreground">Gagal memuat data client</div>
+                    ) : clientsLoading ? (
+                      <div className="px-3 py-2 text-xs text-muted-foreground">Memuat...</div>
+                    ) : clients && clients.length > 0 ? (
+                      clients.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                      ))
+                    ) : (
+                      <div className="px-3 py-2 text-xs text-muted-foreground">Belum ada client</div>
+                    )}
                   </SelectContent>
                 </Select>
               </div>
@@ -456,9 +469,17 @@ export default function InvoiceEditorPage() {
                   </SelectTrigger>
                   <SelectContent className="bg-card border-white/10">
                     <SelectItem value="__none__">None</SelectItem>
-                    {projects?.map((p) => (
-                      <SelectItem key={p.id} value={p.id}>{p.title}</SelectItem>
-                    ))}
+                    {projectsError ? (
+                      <div className="px-3 py-2 text-xs text-muted-foreground">Gagal memuat data project</div>
+                    ) : projectsLoading ? (
+                      <div className="px-3 py-2 text-xs text-muted-foreground">Memuat...</div>
+                    ) : projects && projects.length > 0 ? (
+                      projects.map((p) => (
+                        <SelectItem key={p.id} value={p.id}>{p.title}</SelectItem>
+                      ))
+                    ) : (
+                      <div className="px-3 py-2 text-xs text-muted-foreground">Belum ada project</div>
+                    )}
                   </SelectContent>
                 </Select>
               </div>
