@@ -1,5 +1,6 @@
 {
-  "buildCommand": "pnpm install && pnpm --filter frameless run build",
-  "outputDirectory": "artifacts/frameless/dist",
+  "root": "artifacts/frameless",
+  "buildCommand": "pnpm --filter frameless run build",
+  "outputDirectory": "dist",
   "installCommand": "pnpm install --frozen-lockfile"
 }
