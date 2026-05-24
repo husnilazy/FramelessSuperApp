@@ -1,25 +1,26 @@
 import express, { type Express } from "express";
 import cors from "cors";
-import pinoHttpModule from "pino-http";
+import { pinoHttp } from "pino-http"; // 1. Gunakan named import untuk mengatasi 'no call signatures'
 import path from "path";
 import router from "./routes";
 import { logger } from "./lib/logger";
+import type { IncomingMessage, ServerResponse } from "http"; // 2. Import tipe data bawaan Node.js
 
-const pinoHttp = pinoHttpModule as any;
 const app: Express = express();
 
 app.use(
   pinoHttp({
     logger,
     serializers: {
-      req(req: any) {
+      // 3. Definisikan tipe data secara eksplisit untuk menghindari implicit 'any'
+      req(req: IncomingMessage & { id?: string | number }) {
         return {
           id: req.id,
           method: req.method,
           url: req.url?.split("?")[0],
         };
       },
-      res(res: any) {
+      res(res: ServerResponse) {
         return {
           statusCode: res.statusCode,
         };
@@ -27,6 +28,7 @@ app.use(
     },
   }),
 );
+
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
