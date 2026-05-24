@@ -1,15 +1,6 @@
-{
-  "buildCommand": "pnpm --filter frameless run build",
-  "outputDirectory": "dist",
-  "installCommand": "pnpm install --frozen-lockfile",
-  "rewrites": [
-    { 
-      "source": "/api/:path*", 
-      "destination": "https://frameless-super-app-api-server.vercel.app/api/:path*" 
-    },
-    { 
-      "source": "/:path*", 
-      "destination": "/index.html" 
-    }
-  ]
-}
+// Di login.tsx, ubah bagian fetch:
+const res = await fetch("https://frameless-super-app-api-server.vercel.app/api/auth/login", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ email: email.trim(), password }),
+});
