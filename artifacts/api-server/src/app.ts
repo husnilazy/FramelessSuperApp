@@ -1,26 +1,26 @@
 import express, { type Express } from "express";
 import cors from "cors";
-import { pinoHttp } from "pino-http"; // 1. Gunakan named import untuk mengatasi 'no call signatures'
+import pinoHttpModule from "pino-http";
 import path from "path";
 import router from "./routes";
 import { logger } from "./lib/logger";
-import type { IncomingMessage, ServerResponse } from "http"; // 2. Import tipe data bawaan Node.js
 
+// Perbaikan untuk mengatasi "Expression is not callable" di Vercel
+const pinoHttp = (pinoHttpModule as any).default || pinoHttpModule;
 const app: Express = express();
 
 app.use(
   pinoHttp({
     logger,
     serializers: {
-      // 3. Definisikan tipe data secara eksplisit untuk menghindari implicit 'any'
-      req(req: IncomingMessage & { id?: string | number }) {
+      req(req: any) {
         return {
           id: req.id,
           method: req.method,
           url: req.url?.split("?")[0],
         };
       },
-      res(res: ServerResponse) {
+      res(res: any) {
         return {
           statusCode: res.statusCode,
         };
@@ -28,7 +28,6 @@ app.use(
     },
   }),
 );
-
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
