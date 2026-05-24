@@ -28,9 +28,16 @@ app.use(
     },
   }),
 );
-app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// ... kode lainnya
+app.use(
+  cors({
+    origin: "https://frameless-super-app-frameless.vercel.app", // Alamat frontend kamu
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: true, // Penting jika kamu menggunakan session/cookies
+  })
+);
+// ... kode lainnya
 
 // __dirname is injected by esbuild banner to point to dist/
 const uploadDir = path.resolve(__dirname, "../../../uploads");
