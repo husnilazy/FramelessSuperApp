@@ -103,7 +103,12 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const res = await fetch("/api/auth/login", {
+      // Menambahkan baseUrl agar aplikasi menembak ke Vercel di mode production
+      const baseUrl = import.meta.env.PROD 
+        ? 'https://frameless-super-app-api-server.vercel.app' 
+        : '';
+
+      const res = await fetch(`${baseUrl}/api/auth/login`, {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
         body:    JSON.stringify({ email: email.trim(), password }),
