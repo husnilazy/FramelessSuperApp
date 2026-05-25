@@ -5,7 +5,6 @@ import path from "path";
 import router from "./routes";
 import { logger } from "./lib/logger";
 
-// Perbaikan untuk mengatasi "Expression is not callable" di Vercel
 const pinoHttp = (pinoHttpModule as any).default || pinoHttpModule;
 const app: Express = express();
 
@@ -28,18 +27,23 @@ app.use(
     },
   }),
 );
-// ... kode lainnya
+
 app.use(
   cors({
-    origin: "https://frameless-super-app-frameless.vercel.app", // Alamat frontend kamu
+    origin: [
+      "https://www.framelesscreative.com",
+      "https://framelesscreative.com",
+      "https://frameless-super-app-frameless.vercel.app",
+    ],
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
-    credentials: true, // Penting jika kamu menggunakan session/cookies
+    credentials: true,
   })
 );
-// ... kode lainnya
 
-// __dirname is injected by esbuild banner to point to dist/
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
 const uploadDir = path.resolve(__dirname, "../../../uploads");
 app.use("/api/uploads", express.static(uploadDir));
 app.use("/api", router);
