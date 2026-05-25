@@ -1,30 +1,46 @@
 import { type Request, type Response, type NextFunction } from "express";
-import { tokenStore } from "./auth";
+import jwt from "jsonwebtoken";
 import { db, usersTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
+
+const JWT_SECRET =
+  process.env.JWT_SECRET || "frameless-dev-secret";
+
+type TokenPayload = {
+  userId: string;
+};
 
 export async function requireAuth(
   req: Request,
   res: Response,
   next: NextFunction,
 ): Promise<void> {
-  const authHeader = req.headers.authorization;
+  try {
+    const authHeader = req.headers.authorization;
 
-  if (!authHeader?.startsWith("Bearer ")) {
-    res.status(401).json({ error: "Unauthorized" });
-    return;
+    if (!authHeader?.startsWith("Bearer ")) {
+      res.status(401).json({
+        error: "Unauthorized",
+      });
+      return;
+    }
+
+    const token = authHeader.slice(7).trim();
+
+    const decoded = jwt.verify(
+      token,
+      JWT_SECRET
+    ) as TokenPayload;
+
+    (req as any).userId = decoded.userId;
+
+    next();
+
+  } catch {
+    res.status(401).json({
+      error: "Invalid or expired token",
+    });
   }
-
-  const token = authHeader.slice(7);
-
-  const userId = tokenStore.get(token);
-
-  if (!userId) {
-    res.status(401).json({ error: "Invalid or expired token" });
-    return;
-  }
-
-  next();
 }
 
 export async function requireAdmin(
@@ -32,45 +48,81 @@ export async function requireAdmin(
   res: Response,
   next: NextFunction,
 ): Promise<void> {
-  const authHeader = req.headers.authorization;
+  try {
+    const authHeader = req.headers.authorization;
 
-  if (!authHeader?.startsWith("Bearer ")) {
-    res.status(401).json({ error: "Unauthorized" });
-    return;
+    if (!authHeader?.startsWith("Bearer ")) {
+      res.status(401).json({
+        error: "Unauthorized",
+      });
+      return;
+    }
+
+    const token = authHeader.slice(7).trim();
+
+    const decoded = jwt.verify(
+      token,
+      JWT_SECRET
+    ) as TokenPayload;
+
+    const userId = decoded.userId;
+
+    const [user] = await db
+      .select()
+      .from(usersTable)
+      .where(eq(usersTable.id, userId))
+      .limit(1);
+
+    if (!user) {
+      res.status(403).json({
+        error: "User not found",
+      });
+      return;
+    }
+
+    // aktifkan jika role admin sudah dipakai
+    /*
+    if (user.role !== "ADMIN") {
+      res.status(403).json({
+        error: "Admin access required"
+      });
+      return;
+    }
+    */
+
+    (req as any).userId = user.id;
+
+    next();
+
+  } catch {
+    res.status(401).json({
+      error: "Invalid or expired token",
+    });
   }
-
-  const token = authHeader.slice(7);
-
-  const userId = tokenStore.get(token);
-
-  if (!userId) {
-    res.status(401).json({ error: "Invalid or expired token" });
-    return;
-  }
-
-  const [user] = await db
-    .select()
-    .from(usersTable)
-    .where(eq(usersTable.id, userId))
-    .limit(1);
-
-  // Temporary bypass admin role check
-  // Any authenticated user can access admin routes
-
-  if (!user) {
-    res.status(403).json({ error: "Forbidden" });
-    return;
-  }
-
-  next();
 }
 
-export function getTokenUserId(req: Request): string | null {
-  const authHeader = req.headers.authorization;
+export function getTokenUserId(
+  req: Request
+): string | null {
+  try {
+    const authHeader =
+      req.headers.authorization;
 
-  if (!authHeader?.startsWith("Bearer ")) {
+    if (!authHeader?.startsWith("Bearer ")) {
+      return null;
+    }
+
+    const token =
+      authHeader.slice(7).trim();
+
+    const decoded = jwt.verify(
+      token,
+      JWT_SECRET
+    ) as TokenPayload;
+
+    return decoded.userId;
+
+  } catch {
     return null;
   }
-
-  return tokenStore.get(authHeader.slice(7)) ?? null;
 }
