@@ -48,6 +48,15 @@ export async function requireAdmin(
   res: Response,
   next: NextFunction,
 ): Promise<void> {
+  // 1. TAMBAHKAN GUARD CLAUSE DI PALING ATAS FUNGSI:
+  if (!db || typeof db.select !== 'function') {
+    console.error("[middleware/auth] Database client 'db' is undefined or not ready.");
+    res.status(500).json({
+      error: "Database connection is initializing. Please try again in a moment.",
+    });
+    return;
+  }
+
   try {
     const authHeader = req.headers.authorization;
 
