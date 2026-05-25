@@ -5,7 +5,11 @@ import * as schema from "./schema";
 const { Pool } = pg;
 
 // Ambil koneksi string secara aman
-const connectionString = process.env.DATABASE_URL || "";
+const connectionString = 
+  process.env.DATABASE_URL || 
+  process.env.NEXT_PUBLIC_DATABASE_URL || 
+  process.env.POSTGRES_URL || 
+  "";
 
 if (!connectionString) {
   console.warn("⚠️ WARNING: DATABASE_URL belum terdeteksi saat inisialisasi modul.");
