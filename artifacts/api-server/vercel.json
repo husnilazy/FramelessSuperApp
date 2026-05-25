@@ -1,11 +1,7 @@
 {
   "version": 2,
   "buildCommand": "node build.mjs",
-  "outputDirectory": "dist",
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "dist/index.mjs"
-    }
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/api/index" }
   ]
 }
