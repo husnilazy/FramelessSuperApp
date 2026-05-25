@@ -44,7 +44,9 @@ app.use(
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-const uploadDir = path.resolve(__dirname, "../../../uploads");
+const uploadDir = process.env.NODE_ENV === "production"
+  ? "/tmp/uploads"
+  : path.resolve(__dirname, "../../../uploads");
 app.use("/api/uploads", express.static(uploadDir));
 app.use("/api", router);
 
