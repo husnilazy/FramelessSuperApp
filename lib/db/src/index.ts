@@ -4,30 +4,41 @@ import * as schema from "./schema";
 
 const { Pool } = pg;
 
-if (!process.env.DATABASE_URL) {
-  throw new Error(
-    "DATABASE_URL must be set. Did you forget to provision a database?",
-  );
+// Ambil koneksi string secara aman
+const connectionString = process.env.DATABASE_URL || "";
+
+if (!connectionString) {
+  console.warn("⚠️ WARNING: DATABASE_URL belum terdeteksi saat inisialisasi modul.");
 }
 
-export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-// Optional debug: when DB_DEBUG=true, log all queries and parameters to console
-if (process.env.DB_DEBUG === "true") {
+// Inisialisasi pool secara aman tanpa langsung throw error
+export const pool = connectionString ? new Pool({ connectionString }) : null;
+
+// Gunakan Proxy Fallback agar tidak memicu Fatal Crash 500 jika DB belum siap dibaca Vercel
+export const db = pool
+  ? drizzle(pool, { schema })
+  : new Proxy({} as any, {
+      get(target, prop) {
+        return () => {
+          throw new Error(`Database belum siap atau DATABASE_URL kosong. Gagal memanggil method .${String(prop)}()`);
+        };
+      }
+    });
+
+// Debug query jika DB_DEBUG aktif
+if (process.env.DB_DEBUG === "true" && pool) {
   const origQuery = pool.query.bind(pool);
   // @ts-ignore
   pool.query = async function (text: any, params: any) {
     try {
       console.log("[db] QUERY:", typeof text === "string" ? text : (text && text.text) || text);
       console.log("[db] PARAMS:", params);
-    } catch (e) {
-      // ignore logging errors
-    }
-    // forward to original
+    } catch (e) {}
     // @ts-ignore
     return origQuery(text, params);
   };
+  
   try {
-    // also wrap Client.prototype.query to catch queries executed on client instances
     // @ts-ignore
     const origClientQuery = (pg.Client.prototype as any).query;
     // @ts-ignore
@@ -41,14 +52,10 @@ if (process.env.DB_DEBUG === "true") {
           console.log('[db][client] PARAMS:', config.values || values);
         }
       } catch (e) {}
-      // call original
       return origClientQuery.call(this, config, values, callback);
     };
-  } catch (e) {
-    console.error('Failed to wrap pg.Client.prototype.query', e);
-  }
+  } catch (e) {}
 }
 
-export const db = drizzle(pool, { schema });
-
+// Ekspor kembali semuanya agar aman digunakan di tempat lain
 export * from "./schema";
