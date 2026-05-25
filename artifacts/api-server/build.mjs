@@ -3,18 +3,19 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { build as esbuild } from "esbuild";
 import esbuildPluginPino from "esbuild-plugin-pino";
-import { rm, cp } from "node:fs/promises";
+import { rm, cp, mkdir, writeFile } from "node:fs/promises";
 
 globalThis.require = createRequire(import.meta.url);
 
 const artifactDir = path.dirname(fileURLToPath(import.meta.url));
 
 async function buildAll() {
-  const distDir = path.resolve(artifactDir, "dist");
-  const apiDir  = path.resolve(artifactDir, "api");
+  const distDir       = path.resolve(artifactDir, "dist");
+  const vercelOut     = path.resolve(artifactDir, ".vercel/output");
+  const funcDir       = path.resolve(vercelOut, "functions/index.func");
 
-  await rm(distDir, { recursive: true, force: true });
-  await rm(apiDir,  { recursive: true, force: true });
+  await rm(distDir,   { recursive: true, force: true });
+  await rm(vercelOut, { recursive: true, force: true });
 
   await esbuild({
     entryPoints: [path.resolve(artifactDir, "src/index.ts")],
@@ -44,20 +45,29 @@ async function buildAll() {
       js: `import { createRequire as __bannerCrReq } from 'node:module';
 import __bannerPath from 'node:path';
 import __bannerUrl from 'node:url';
-
 globalThis.require = __bannerCrReq(import.meta.url);
 globalThis.__filename = __bannerUrl.fileURLToPath(import.meta.url);
-globalThis.__dirname = __bannerPath.dirname(globalThis.__filename);
-    `,
+globalThis.__dirname = __bannerPath.dirname(globalThis.__filename);`,
     },
   });
 
-  // Copy dist → api/ supaya Vercel auto-detect sebagai serverless function
-  await cp(distDir, apiDir, { recursive: true });
-  console.log("✅ Copied dist → api/");
+  // ── Vercel Build Output API v3 ─────────────────────────────────────────
+  await mkdir(funcDir, { recursive: true });
+  await cp(distDir, funcDir, { recursive: true });
+
+  await writeFile(path.resolve(funcDir, ".vc-config.json"), JSON.stringify({
+    runtime: "nodejs20.x",
+    handler: "index.mjs",
+    launcherType: "Nodejs",
+    shouldAddHelpers: true,
+  }, null, 2));
+
+  await writeFile(path.resolve(vercelOut, "config.json"), JSON.stringify({
+    version: 3,
+    routes: [{ src: "/(.*)", dest: "/index" }]
+  }, null, 2));
+
+  console.log("✅ dist built + Vercel Output API structure created");
 }
 
-buildAll().catch((err) => {
-  console.error(err);
-  process.exit(1);
-});
+buildAll().catch((err) => { console.error(err); process.exit(1); });
