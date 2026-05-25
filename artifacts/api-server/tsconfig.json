@@ -5,7 +5,8 @@
     "rootDir": "src",
     "types": ["node"],
     "skipLibCheck": true,
-    "noEmitOnError": false
+    "noEmitOnError": false,
+    "strictFunctionTypes": false
   },
   "include": ["src"],
   "references": [
