@@ -3,113 +3,80 @@ import { createClient } from "@supabase/supabase-js";
 
 const router: IRouter = Router();
 
-// Initialize Supabase client
 const supabaseUrl = process.env.SUPABASE_URL || "";
-const supabaseKey = process.env.SUPABASE_ANON_KEY || "";
+const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || "";
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
 
-console.log("\n[🔧 Supabase Config]");
-console.log("  SUPABASE_URL:", supabaseUrl ? "✅ SET" : "❌ EMPTY");
-console.log("  SUPABASE_ANON_KEY:", supabaseKey ? "✅ SET" : "❌ EMPTY");
-console.log("  SUPABASE_SERVICE_ROLE_KEY:", supabaseServiceKey ? "✅ SET" : "❌ EMPTY\n");
-
-if (!supabaseUrl || !supabaseKey) {
-  console.error("❌ FATAL: Supabase credentials missing!");
+if (!supabaseUrl || !supabaseAnonKey || !supabaseServiceKey) {
+  console.error("[auth] Missing Supabase env vars");
 }
 
-const supabase = createClient(supabaseUrl, supabaseKey);
-const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    autoRefreshToken: false,
+    persistSession: false,
+  },
+});
 
-// Login endpoint
+const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
+  auth: {
+    autoRefreshToken: false,
+    persistSession: false,
+  },
+});
+
 router.post("/auth/login", async (req, res): Promise<void> => {
   try {
     const { email, password } = req.body ?? {};
 
-    console.log(`[auth/login] Attempt: ${email}`);
-
     if (!email || !password) {
-      console.warn("[auth/login] Missing email or password");
-      res.status(400).json({
-        error: "Email dan password wajib diisi",
-      });
+      res.status(400).json({ error: "Email dan password wajib diisi" });
       return;
     }
 
-    // Step 1: SignIn dengan Supabase Auth
-    console.log("[auth/login] Step 1: Attempting Supabase signIn...");
-    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-      email: email.trim().toLowerCase(),
-      password,
-    });
+    const normalizedEmail = String(email).trim().toLowerCase();
 
-    if (authError) {
-      console.error("[auth/login] Auth error:", authError.message);
-      res.status(401).json({
-        error: "Email atau password salah",
+    const { data: authData, error: authError } =
+      await supabase.auth.signInWithPassword({
+        email: normalizedEmail,
+        password,
       });
+
+    if (authError || !authData.user) {
+      console.error("[auth/login] Auth error:", authError?.message);
+      res.status(401).json({ error: "Email atau password salah" });
       return;
     }
 
-    if (!authData.user) {
-      console.error("[auth/login] No user returned from auth");
-      res.status(401).json({
-        error: "User tidak ditemukan",
-      });
-      return;
-    }
-
-    console.log(`[auth/login] Step 1 OK: User ID ${authData.user.id}`);
-
-    // Step 2: Get user profile
-    console.log("[auth/login] Step 2: Fetching user profile...");
-    const { data: userProfile, error: profileError } = await supabase
+    const { data: userProfile, error: profileError } = await supabaseAdmin
       .from("users")
-      .select("*")
+      .select("id,name,email,role,is_active")
       .eq("id", authData.user.id)
       .single();
 
-    if (profileError) {
-      console.error("[auth/login] Profile fetch error:", profileError.message);
-      // Return 500 dengan detail error untuk debugging
+    if (profileError || !userProfile) {
+      console.error("[auth/login] Profile fetch error:", profileError?.message);
       res.status(500).json({
         error: "Gagal mengambil profile user",
-        detail: profileError.message,
+        detail: profileError?.message || "Profile not found",
       });
       return;
     }
 
-    if (!userProfile) {
-      console.error("[auth/login] User profile not found in database");
-      res.status(500).json({
-        error: "Profile user tidak ditemukan di database",
-      });
-      return;
-    }
-
-    console.log(`[auth/login] Step 2 OK: Profile found`);
-
-    // Step 3: Check if active
     if (!userProfile.is_active) {
-      console.warn("[auth/login] User inactive:", authData.user.id);
       res.status(403).json({
         error: "Akun tidak aktif. Hubungi administrator.",
       });
       return;
     }
 
-    // Step 4: Success response
     const token = authData.session?.access_token;
     if (!token) {
-      console.error("[auth/login] No token in session");
-      res.status(500).json({
-        error: "Gagal membuat session token",
-      });
+      res.status(500).json({ error: "Gagal membuat session token" });
       return;
     }
 
-    console.log(`[auth/login] ✅ SUCCESS for ${email}`);
-
-    const response = {
+    res.json({
       token,
       user: {
         id: authData.user.id,
@@ -118,11 +85,7 @@ router.post("/auth/login", async (req, res): Promise<void> => {
         role: userProfile.role,
         isActive: userProfile.is_active,
       },
-    };
-
-    console.log("[auth/login] Sending response:", JSON.stringify(response, null, 2));
-    res.json(response);
-
+    });
   } catch (err) {
     console.error("[auth/login] EXCEPTION:", err);
     res.status(500).json({
@@ -132,23 +95,15 @@ router.post("/auth/login", async (req, res): Promise<void> => {
   }
 });
 
-// Logout endpoint
-router.post("/auth/logout", async (req, res) => {
+router.post("/auth/logout", async (_req, res): Promise<void> => {
   try {
-    const authHeader = req.headers.authorization;
-    if (authHeader?.startsWith("Bearer ")) {
-      const token = authHeader.slice(7);
-      await supabase.auth.signOut();
-    }
-    
     res.json({ success: true });
   } catch (err) {
-    console.error("[auth/logout]", err);
+    console.error("[auth/logout] EXCEPTION:", err);
     res.status(500).json({ error: "Logout failed" });
   }
 });
 
-// Get current user endpoint
 router.get("/auth/me", async (req, res): Promise<void> => {
   try {
     const authHeader = req.headers.authorization;
@@ -158,26 +113,22 @@ router.get("/auth/me", async (req, res): Promise<void> => {
       return;
     }
 
-    const token = authHeader.slice(7);
+    const token = authHeader.slice(7).trim();
 
-    // Verify token
     const { data, error } = await supabase.auth.getUser(token);
 
     if (error || !data.user) {
-      console.error("[auth/me] Token verification failed:", error?.message);
       res.status(401).json({ error: "Token expired" });
       return;
     }
 
-    // Get profile
-    const { data: userProfile, error: profileError } = await supabase
+    const { data: userProfile, error: profileError } = await supabaseAdmin
       .from("users")
-      .select("*")
+      .select("id,name,email,role,is_active")
       .eq("id", data.user.id)
       .single();
 
     if (profileError || !userProfile) {
-      console.error("[auth/me] Profile error:", profileError?.message);
       res.status(401).json({ error: "User tidak ditemukan" });
       return;
     }
@@ -189,14 +140,12 @@ router.get("/auth/me", async (req, res): Promise<void> => {
       role: userProfile.role,
       isActive: userProfile.is_active,
     });
-
   } catch (err) {
-    console.error("[auth/me] Exception:", err);
+    console.error("[auth/me] EXCEPTION:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
 
-// Register endpoint (optional)
 router.post("/auth/register", async (req, res): Promise<void> => {
   try {
     const { email, password, name } = req.body ?? {};
@@ -208,23 +157,23 @@ router.post("/auth/register", async (req, res): Promise<void> => {
       return;
     }
 
-    // Create auth user
+    const normalizedEmail = String(email).trim().toLowerCase();
+
     const { data, error } = await supabaseAdmin.auth.admin.createUser({
-      email: email.trim().toLowerCase(),
+      email: normalizedEmail,
       password,
       email_confirm: true,
     });
 
-    if (error) {
-      console.error("[auth/register] Error creating user:", error.message);
+    if (error || !data.user) {
+      console.error("[auth/register] Error creating user:", error?.message);
       res.status(400).json({
-        error: error.message || "Gagal membuat user",
+        error: error?.message || "Gagal membuat user",
       });
       return;
     }
 
-    // Create profile
-    const { data: userProfile, error: profileError } = await supabase
+    const { data: userProfile, error: profileError } = await supabaseAdmin
       .from("users")
       .insert({
         id: data.user.id,
@@ -233,18 +182,17 @@ router.post("/auth/register", async (req, res): Promise<void> => {
         role: "USER",
         is_active: true,
       })
-      .select()
+      .select("id,name,email,role,is_active")
       .single();
 
-    if (profileError) {
-      console.error("[auth/register] Profile error:", profileError.message);
+    if (profileError || !userProfile) {
+      console.error("[auth/register] Profile error:", profileError?.message);
       res.status(500).json({
         error: "Gagal membuat profile user",
+        detail: profileError?.message || "Unknown error",
       });
       return;
     }
-
-    console.log(`[auth/register] ✅ User registered: ${email}`);
 
     res.json({
       user: {
@@ -255,9 +203,8 @@ router.post("/auth/register", async (req, res): Promise<void> => {
         isActive: userProfile.is_active,
       },
     });
-
   } catch (err) {
-    console.error("[auth/register] Exception:", err);
+    console.error("[auth/register] EXCEPTION:", err);
     res.status(500).json({
       error: "Server error",
     });

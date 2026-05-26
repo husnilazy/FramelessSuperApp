@@ -1,17 +1,36 @@
 import { type Request, type Response, type NextFunction } from "express";
-import jwt from "jsonwebtoken";
-import { db, usersTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { createClient } from "@supabase/supabase-js";
 
-const JWT_SECRET =
-  process.env.JWT_SECRET || "frameless-dev-secret";
+const supabaseUrl = process.env.SUPABASE_URL || "";
+const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || "";
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
 
-type TokenPayload = {
-  userId: string;
+const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    autoRefreshToken: false,
+    persistSession: false,
+  },
+});
+
+const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
+  auth: {
+    autoRefreshToken: false,
+    persistSession: false,
+  },
+});
+
+type AuthedRequest = Request & {
+  user?: {
+    id: string;
+    name: string;
+    email: string | null;
+    role: string;
+    isActive: boolean;
+  };
 };
 
 export async function requireAuth(
-  req: Request,
+  req: AuthedRequest,
   res: Response,
   next: NextFunction,
 ): Promise<void> {
@@ -19,107 +38,106 @@ export async function requireAuth(
     const authHeader = req.headers.authorization;
 
     if (!authHeader?.startsWith("Bearer ")) {
-      res.status(401).json({
-        error: "Unauthorized",
-      });
+      res.status(401).json({ error: "Unauthorized" });
       return;
     }
 
     const token = authHeader.slice(7).trim();
+    const { data, error } = await supabase.auth.getUser(token);
 
-    const decoded = jwt.verify(
-      token,
-      JWT_SECRET
-    ) as TokenPayload;
+    if (error || !data.user) {
+      res.status(401).json({ error: "Invalid or expired token" });
+      return;
+    }
 
-    (req as any).userId = decoded.userId;
+    const { data: profile, error: profileError } = await supabaseAdmin
+      .from("users")
+      .select("id,name,email,role,is_active")
+      .eq("id", data.user.id)
+      .single();
+
+    if (profileError || !profile) {
+      res.status(403).json({ error: "Profile not found" });
+      return;
+    }
+
+    if (!profile.is_active) {
+      res.status(403).json({ error: "Account is inactive" });
+      return;
+    }
+
+    req.user = {
+      id: profile.id,
+      name: profile.name,
+      email: profile.email,
+      role: profile.role,
+      isActive: profile.is_active,
+    };
 
     next();
-
-  } catch {
-    res.status(401).json({
-      error: "Invalid or expired token",
-    });
+  } catch (err) {
+    console.error("[middleware/auth] requireAuth EXCEPTION:", err);
+    res.status(500).json({ error: "Server error" });
   }
 }
 
 export async function requireAdmin(
-  req: Request,
+  req: AuthedRequest,
   res: Response,
   next: NextFunction,
 ): Promise<void> {
-  // 1. TAMBAHKAN GUARD CLAUSE DI PALING ATAS FUNGSI:
-  if (!db || typeof db.select !== 'function') {
-    console.error("[middleware/auth] Database client 'db' is undefined or not ready.");
-    res.status(500).json({
-      error: "Database connection is initializing. Please try again in a moment.",
-    });
-    return;
-  }
-
   try {
     const authHeader = req.headers.authorization;
 
     if (!authHeader?.startsWith("Bearer ")) {
-      res.status(401).json({
-        error: "Unauthorized",
-      });
+      res.status(401).json({ error: "Unauthorized" });
       return;
     }
 
     const token = authHeader.slice(7).trim();
+    const { data, error } = await supabase.auth.getUser(token);
 
-    const decoded = jwt.verify(
-      token,
-      JWT_SECRET
-    ) as TokenPayload;
-
-    const [user] = await db
-      .select()
-      .from(usersTable)
-      .where(eq(usersTable.id, decoded.userId))
-      .limit(1);
-
-    if (!user) {
-      res.status(403).json({
-        error: "User not found",
-      });
+    if (error || !data.user) {
+      res.status(401).json({ error: "Invalid or expired token" });
       return;
     }
 
-    (req as any).userId = user.id;
+    const { data: profile, error: profileError } = await supabaseAdmin
+      .from("users")
+      .select("id,name,email,role,is_active")
+      .eq("id", data.user.id)
+      .single();
+
+    if (profileError || !profile) {
+      res.status(403).json({ error: "Profile not found" });
+      return;
+    }
+
+    if (!profile.is_active) {
+      res.status(403).json({ error: "Account is inactive" });
+      return;
+    }
+
+    if (profile.role !== "ADMIN") {
+      res.status(403).json({ error: "Forbidden" });
+      return;
+    }
+
+    req.user = {
+      id: profile.id,
+      name: profile.name,
+      email: profile.email,
+      role: profile.role,
+      isActive: profile.is_active,
+    };
 
     next();
-
-  } catch {
-    res.status(401).json({
-      error: "Invalid or expired token",
-    });
+  } catch (err) {
+    console.error("[middleware/auth] requireAdmin EXCEPTION:", err);
+    res.status(500).json({ error: "Server error" });
   }
 }
 
-export function getTokenUserId(
-  req: Request
-): string | null {
-  try {
-    const authHeader =
-      req.headers.authorization;
-
-    if (!authHeader?.startsWith("Bearer ")) {
-      return null;
-    }
-
-    const token =
-      authHeader.slice(7).trim();
-
-    const decoded = jwt.verify(
-      token,
-      JWT_SECRET
-    ) as TokenPayload;
-
-    return decoded.userId;
-
-  } catch {
-    return null;
-  }
+export function getTokenUserId(req: Request): string | null {
+  return null;
 }
