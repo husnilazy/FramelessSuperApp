@@ -88,7 +88,7 @@ export default function LoginPage() {
         ? "https://frameless-super-app-api-server.vercel.app"
         : "";
 
-      const res = await fetch(`${baseUrl}/auth/login`, {
+      const res = await fetch(`${baseUrl}/api/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: email.trim(), password }),
@@ -97,20 +97,24 @@ export default function LoginPage() {
       const text = await res.text();
       let data: any = null;
 
-      try {
-        data = text ? JSON.parse(text) : null;
-      } catch {
-        throw new Error(text || `Login failed with status ${res.status}`);
+      if (text) {
+        try {
+          data = JSON.parse(text);
+        } catch {
+          throw new Error(text || `Login failed with status ${res.status}`);
+        }
       }
 
       if (!res.ok) {
         throw new Error(data?.error || data?.message || text || "Invalid credentials");
       }
 
-      if (data.token && data.user) {
+      if (data?.token && data?.user) {
         login(data.token, data.user);
-      } else if (data.token) {
+      } else if (data?.token) {
         localStorage.setItem("token", data.token);
+      } else {
+        throw new Error("Token tidak ditemukan dari server");
       }
 
       toast({ title: "Access Granted", description: "Welcome to Frameless Control." });
@@ -143,22 +147,42 @@ export default function LoginPage() {
           <div style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 56, height: 56, borderRadius: 16, background: `linear-gradient(135deg, ${OR}, #e84d00)`, marginBottom: 20, boxShadow: `0 0 40px ${OR}55` }}>
             <span style={{ color: "#fff", fontWeight: 900, fontSize: 22, letterSpacing: "-.02em" }}>F</span>
           </div>
-          <h1 style={{ fontSize: 36, fontWeight: 900, color: "#fff", letterSpacing: ".18em", textTransform: "uppercase", marginBottom: 6 }}>
-            FRAMELESS<span style={{ color: OR, fontSize: 22, verticalAlign: "super", letterSpacing: "normal" }}>™</span>
+
+          <h1 style={{
+            fontSize: 36, fontWeight: 900, color: "#fff",
+            letterSpacing: ".18em", textTransform: "uppercase",
+            marginBottom: 6,
+          }}>
+            FRAMELESS
+            <span style={{ color: OR, fontSize: 22, verticalAlign: "super", letterSpacing: "normal" }}>™</span>
           </h1>
           <p style={{ fontSize: 11, fontWeight: 600, letterSpacing: ".22em", color: "rgba(255,255,255,.35)", textTransform: "uppercase" }}>
             Operational Control
           </p>
+
           <div style={{ display: "inline-flex", alignItems: "center", gap: 6, marginTop: 14, padding: "4px 12px", borderRadius: 100, background: "rgba(74,222,128,.07)", border: "1px solid rgba(74,222,128,.15)" }}>
             <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#4ade80", animation: "pulse 2s ease infinite" }} />
             <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: ".18em", color: "rgba(74,222,128,.7)", textTransform: "uppercase" }}>System Online</span>
           </div>
         </div>
 
-        <div style={{ background: "rgba(255,255,255,.032)", border: "1px solid rgba(255,255,255,.08)", borderTop: `1px solid ${OR}28`, borderRadius: 24, padding: "36px 32px", backdropFilter: "blur(24px)", boxShadow: "0 32px 80px rgba(0,0,0,.5), 0 0 0 1px rgba(255,255,255,.04) inset" }}>
+        <div style={{
+          background: "rgba(255,255,255,.032)",
+          border: "1px solid rgba(255,255,255,.08)",
+          borderTop: `1px solid ${OR}28`,
+          borderRadius: 24,
+          padding: "36px 32px",
+          backdropFilter: "blur(24px)",
+          boxShadow: "0 32px 80px rgba(0,0,0,.5), 0 0 0 1px rgba(255,255,255,.04) inset",
+        }}>
           <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 20 }}>
             <div>
-              <label style={{ display: "block", fontSize: 10, fontWeight: 700, letterSpacing: ".18em", textTransform: "uppercase", color: errors.email ? "#f87171" : "rgba(255,255,255,.35)", marginBottom: 8 }}>
+              <label style={{
+                display: "block", fontSize: 10, fontWeight: 700,
+                letterSpacing: ".18em", textTransform: "uppercase",
+                color: errors.email ? "#f87171" : "rgba(255,255,255,.35)",
+                marginBottom: 8,
+              }}>
                 Operator ID
               </label>
               <input
@@ -167,15 +191,27 @@ export default function LoginPage() {
                 type="email"
                 placeholder="admin@frameless.com"
                 value={email}
-                onChange={e => { setEmail(e.target.value); if (errors.email) setErrors(p => ({ ...p, email: undefined })); }}
+                onChange={e => {
+                  setEmail(e.target.value);
+                  if (errors.email) setErrors(p => ({ ...p, email: undefined }));
+                }}
                 autoComplete="email"
                 style={errors.email ? { borderColor: "rgba(248,113,113,.5)", background: "rgba(248,113,113,.06)" } : {}}
               />
-              {errors.email && <p style={{ fontSize: 11, color: "#f87171", marginTop: 5, display: "flex", alignItems: "center", gap: 4 }}>⚠ {errors.email}</p>}
+              {errors.email && (
+                <p style={{ fontSize: 11, color: "#f87171", marginTop: 5, display: "flex", alignItems: "center", gap: 4 }}>
+                  ⚠ {errors.email}
+                </p>
+              )}
             </div>
 
             <div>
-              <label style={{ display: "block", fontSize: 10, fontWeight: 700, letterSpacing: ".18em", textTransform: "uppercase", color: errors.password ? "#f87171" : "rgba(255,255,255,.35)", marginBottom: 8 }}>
+              <label style={{
+                display: "block", fontSize: 10, fontWeight: 700,
+                letterSpacing: ".18em", textTransform: "uppercase",
+                color: errors.password ? "#f87171" : "rgba(255,255,255,.35)",
+                marginBottom: 8,
+              }}>
                 Clearance Code
               </label>
               <div style={{ position: "relative" }}>
@@ -184,7 +220,10 @@ export default function LoginPage() {
                   type={showPass ? "text" : "password"}
                   placeholder="••••••••"
                   value={password}
-                  onChange={e => { setPassword(e.target.value); if (errors.password) setErrors(p => ({ ...p, password: undefined })); }}
+                  onChange={e => {
+                    setPassword(e.target.value);
+                    if (errors.password) setErrors(p => ({ ...p, password: undefined }));
+                  }}
                   autoComplete="current-password"
                   style={{
                     paddingRight: 48,
@@ -194,7 +233,13 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={() => setShowPass(p => !p)}
-                  style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "rgba(255,255,255,.3)", fontSize: 13, padding: "2px 4px", transition: "color .2s" }}
+                  style={{
+                    position: "absolute", right: 14, top: "50%",
+                    transform: "translateY(-50%)",
+                    background: "none", border: "none", cursor: "pointer",
+                    color: "rgba(255,255,255,.3)", fontSize: 13, padding: "2px 4px",
+                    transition: "color .2s",
+                  }}
                 >
                   {showPass ? "🙈" : "👁"}
                 </button>
@@ -216,7 +261,11 @@ export default function LoginPage() {
 
           <div style={{ borderTop: "1px solid rgba(255,255,255,.07)", margin: "24px 0 20px" }} />
 
-          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 14px", borderRadius: 10, background: "rgba(255,255,255,.03)", border: "1px solid rgba(255,255,255,.06)" }}>
+          <div style={{
+            display: "flex", alignItems: "center", gap: 8,
+            padding: "10px 14px", borderRadius: 10,
+            background: "rgba(255,255,255,.03)", border: "1px solid rgba(255,255,255,.06)",
+          }}>
             <span style={{ fontSize: 13 }}>🔒</span>
             <p style={{ fontSize: 11, color: "rgba(255,255,255,.25)", lineHeight: 1.5 }}>
               Akses terbatas untuk operator resmi Frameless Creative. Semua sesi akan dicatat.
@@ -231,7 +280,10 @@ export default function LoginPage() {
           </p>
         </div>
 
-        <p style={{ textAlign: "center", marginTop: 24, fontSize: 10, letterSpacing: ".14em", color: "rgba(255,255,255,.12)", textTransform: "uppercase" }}>
+        <p style={{
+          textAlign: "center", marginTop: 24, fontSize: 10,
+          letterSpacing: ".14em", color: "rgba(255,255,255,.12)", textTransform: "uppercase",
+        }}>
           Frameless Creative · {new Date().getFullYear()} · All Systems Nominal
         </p>
       </div>

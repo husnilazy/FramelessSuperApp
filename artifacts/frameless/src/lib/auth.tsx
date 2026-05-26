@@ -1,4 +1,3 @@
-// artifacts/frameless/src/lib/auth.tsx
 import {
   createContext, useContext, useEffect, useState,
   useCallback, type ReactNode,
@@ -6,51 +5,53 @@ import {
 import { useLocation } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 
-// ── Types ─────────────────────────────────────────────────────────────────────
 export interface User {
-  id:        string;
-  name:      string;
-  email:     string;
-  role:      string;
-  isActive:  boolean;
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  isActive: boolean;
   createdAt?: string;
 }
 
 interface AuthContextType {
-  user:            User | null;
-  isLoading:       boolean;
+  user: User | null;
+  isLoading: boolean;
   isAuthenticated: boolean;
-  login:           (token: string, user: User) => void;
-  logout:          () => void;
-  refetch:         () => Promise<void>;
+  login: (token: string, user: User) => void;
+  logout: () => void;
+  refetch: () => Promise<void>;
 }
 
-// ── Context ───────────────────────────────────────────────────────────────────
 const AuthContext = createContext<AuthContextType>({
-  user:            null,
-  isLoading:       true,
+  user: null,
+  isLoading: true,
   isAuthenticated: false,
-  login:           () => {},
-  logout:          () => {},
-  refetch:         async () => {},
+  login: () => {},
+  logout: () => {},
+  refetch: async () => {},
 });
 
-// ── Token helpers ─────────────────────────────────────────────────────────────
+const API_BASE_URL = import.meta.env.PROD
+  ? "https://frameless-super-app-api-server.vercel.app"
+  : "";
+
 export function getToken(): string | null {
   return localStorage.getItem("token");
 }
+
 export function setToken(token: string) {
   localStorage.setItem("token", token);
 }
+
 export function clearToken() {
   localStorage.removeItem("token");
   localStorage.removeItem("user");
 }
 
-// ── fetchMe — calls /api/auth/me with Authorization header ────────────────────
 async function fetchMe(token: string): Promise<User | null> {
   try {
-    const res = await fetch("/api/auth/me", {
+    const res = await fetch(`${API_BASE_URL}/api/auth/me`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     if (!res.ok) return null;
@@ -60,14 +61,12 @@ async function fetchMe(token: string): Promise<User | null> {
   }
 }
 
-// ── AuthProvider ──────────────────────────────────────────────────────────────
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user,      setUser]      = useState<User | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [, setLocation]           = useLocation();
-  const queryClient               = useQueryClient();
+  const [, setLocation] = useLocation();
+  const queryClient = useQueryClient();
 
-  // On mount: verify token in localStorage
   useEffect(() => {
     const token = getToken();
     if (!token) {
@@ -75,19 +74,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    // Try to restore user from localStorage first (instant load)
     const cached = localStorage.getItem("user");
     if (cached) {
-      try { setUser(JSON.parse(cached)); } catch { /* ignore */ }
+      try {
+        setUser(JSON.parse(cached));
+      } catch {
+        localStorage.removeItem("user");
+      }
     }
 
-    // Verify token with backend
     fetchMe(token).then((me) => {
       if (me) {
         setUser(me);
         localStorage.setItem("user", JSON.stringify(me));
       } else {
-        // Token invalid/expired
         clearToken();
         setUser(null);
       }
@@ -105,8 +105,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = useCallback(() => {
     const token = getToken();
     if (token) {
-      fetch("/api/auth/logout", {
-        method:  "POST",
+      fetch(`${API_BASE_URL}/api/auth/logout`, {
+        method: "POST",
         headers: { Authorization: `Bearer ${token}` },
       }).catch(() => {});
     }
@@ -119,6 +119,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const refetch = useCallback(async () => {
     const token = getToken();
     if (!token) return;
+
     const me = await fetchMe(token);
     if (me) {
       setUser(me);
@@ -144,12 +145,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 }
 
-// ── Hooks ─────────────────────────────────────────────────────────────────────
 export function useAuth() {
   return useContext(AuthContext);
 }
 
-// ── AuthGuard ─────────────────────────────────────────────────────────────────
 export function AuthGuard({ children }: { children: ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
   const [, setLocation] = useLocation();
