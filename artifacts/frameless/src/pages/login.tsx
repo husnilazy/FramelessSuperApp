@@ -84,9 +84,7 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const baseUrl = import.meta.env.PROD
-        ? "https://frameless-super-app-api-server.vercel.app"
-        : "";
+      const baseUrl = import.meta.env.VITE_API_BASE_URL || "";
 
       const res = await fetch(`${baseUrl}/api/auth/login`, {
         method: "POST",
@@ -147,7 +145,6 @@ export default function LoginPage() {
           <div style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 56, height: 56, borderRadius: 16, background: `linear-gradient(135deg, ${OR}, #e84d00)`, marginBottom: 20, boxShadow: `0 0 40px ${OR}55` }}>
             <span style={{ color: "#fff", fontWeight: 900, fontSize: 22, letterSpacing: "-.02em" }}>F</span>
           </div>
-
           <h1 style={{
             fontSize: 36, fontWeight: 900, color: "#fff",
             letterSpacing: ".18em", textTransform: "uppercase",
@@ -159,7 +156,6 @@ export default function LoginPage() {
           <p style={{ fontSize: 11, fontWeight: 600, letterSpacing: ".22em", color: "rgba(255,255,255,.35)", textTransform: "uppercase" }}>
             Operational Control
           </p>
-
           <div style={{ display: "inline-flex", alignItems: "center", gap: 6, marginTop: 14, padding: "4px 12px", borderRadius: 100, background: "rgba(74,222,128,.07)", border: "1px solid rgba(74,222,128,.15)" }}>
             <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#4ade80", animation: "pulse 2s ease infinite" }} />
             <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: ".18em", color: "rgba(74,222,128,.7)", textTransform: "uppercase" }}>System Online</span>
