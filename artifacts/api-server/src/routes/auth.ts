@@ -54,13 +54,20 @@ router.post("/auth/login", async (req, res): Promise<void> => {
       .from("users")
       .select("id,name,email,role,is_active")
       .eq("id", authData.user.id)
-      .single();
+      .maybeSingle();
 
-    if (profileError || !userProfile) {
-      console.error("[auth/login] Profile fetch error:", profileError?.message);
+    if (profileError) {
+      console.error("[auth/login] Profile fetch error:", profileError.message);
       res.status(500).json({
         error: "Gagal mengambil profile user",
-        detail: profileError?.message || "Profile not found",
+        detail: profileError.message,
+      });
+      return;
+    }
+
+    if (!userProfile) {
+      res.status(404).json({
+        error: "Profile user belum dibuat",
       });
       return;
     }
@@ -128,10 +135,18 @@ router.get("/auth/me", async (req, res): Promise<void> => {
       .from("users")
       .select("id,name,email,role,is_active")
       .eq("id", data.user.id)
-      .single();
+      .maybeSingle();
 
-    if (profileError || !userProfile) {
-      res.status(401).json({ error: "User tidak ditemukan" });
+    if (profileError) {
+      res.status(500).json({
+        error: "Gagal mengambil profile user",
+        detail: profileError.message,
+      });
+      return;
+    }
+
+    if (!userProfile) {
+      res.status(404).json({ error: "User tidak ditemukan" });
       return;
     }
 
@@ -185,7 +200,7 @@ router.post("/auth/register", async (req, res): Promise<void> => {
         is_active: true,
       })
       .select("id,name,email,role,is_active")
-      .single();
+      .maybeSingle();
 
     if (profileError || !userProfile) {
       console.error("[auth/register] Profile error:", profileError?.message);
