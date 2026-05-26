@@ -10,11 +10,11 @@ globalThis.require = createRequire(import.meta.url);
 const artifactDir = path.dirname(fileURLToPath(import.meta.url));
 
 async function buildAll() {
-  const distDir       = path.resolve(artifactDir, "dist");
-  const vercelOut     = path.resolve(artifactDir, ".vercel/output");
-  const funcDir       = path.resolve(vercelOut, "functions/index.func");
+  const distDir = path.resolve(artifactDir, "dist");
+  const vercelOut = path.resolve(artifactDir, ".vercel/output");
+  const funcDir = path.resolve(vercelOut, "functions/index.func");
 
-  await rm(distDir,   { recursive: true, force: true });
+  await rm(distDir, { recursive: true, force: true });
   await rm(vercelOut, { recursive: true, force: true });
 
   await esbuild({
@@ -51,23 +51,41 @@ globalThis.__dirname = __bannerPath.dirname(globalThis.__filename);`,
     },
   });
 
-  // ── Vercel Build Output API v3 ─────────────────────────────────────────
   await mkdir(funcDir, { recursive: true });
   await cp(distDir, funcDir, { recursive: true });
 
-  await writeFile(path.resolve(funcDir, ".vc-config.json"), JSON.stringify({
-    runtime: "nodejs20.x",
-    handler: "index.mjs",
-    launcherType: "Nodejs",
-    shouldAddHelpers: true,
-  }, null, 2));
+  await writeFile(
+    path.resolve(funcDir, ".vc-config.json"),
+    JSON.stringify(
+      {
+        runtime: "nodejs20.x",
+        handler: "index.mjs",
+        launcherType: "Nodejs",
+        shouldAddHelpers: true,
+      },
+      null,
+      2
+    )
+  );
 
-  await writeFile(path.resolve(vercelOut, "config.json"), JSON.stringify({
-    version: 3,
-    routes: [{ src: "/(.*)", dest: "/index" }]
-  }, null, 2));
+  await writeFile(
+    path.resolve(vercelOut, "config.json"),
+    JSON.stringify(
+      {
+        version: 3,
+        routes: [
+          { src: "/api/(.*)", dest: "/index" }
+        ]
+      },
+      null,
+      2
+    )
+  );
 
   console.log("✅ dist built + Vercel Output API structure created");
 }
 
-buildAll().catch((err) => { console.error(err); process.exit(1); });
+buildAll().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});
