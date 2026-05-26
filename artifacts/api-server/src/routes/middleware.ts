@@ -1,15 +1,16 @@
 import { type Request, type Response, type NextFunction } from "express";
-import jwt from "jsonwebtoken";
-import { db, usersTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { createClient } from "@supabase/supabase-js";
 
-const JWT_SECRET =
-  process.env.JWT_SECRET || "frameless-dev-secret";
+const supabaseUrl = process.env.SUPABASE_URL || "";
+const supabaseKey = process.env.SUPABASE_ANON_KEY || "";
+
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 type TokenPayload = {
-  userId: string;
+  sub: string; // Supabase user ID
 };
 
+// Middleware: Require authentication
 export async function requireAuth(
   req: Request,
   res: Response,
@@ -27,22 +28,30 @@ export async function requireAuth(
 
     const token = authHeader.slice(7).trim();
 
-    const decoded = jwt.verify(
-      token,
-      JWT_SECRET
-    ) as TokenPayload;
+    // Verify token dengan Supabase
+    const { data, error } = await supabase.auth.getUser(token);
 
-    (req as any).userId = decoded.userId;
+    if (error || !data.user) {
+      res.status(401).json({
+        error: "Invalid or expired token",
+      });
+      return;
+    }
+
+    (req as any).userId = data.user.id;
+    (req as any).user = data.user;
 
     next();
 
-  } catch {
+  } catch (err) {
+    console.error("[requireAuth]", err);
     res.status(401).json({
       error: "Invalid or expired token",
     });
   }
 }
 
+// Middleware: Require admin role
 export async function requireAdmin(
   req: Request,
   res: Response,
@@ -60,69 +69,96 @@ export async function requireAdmin(
 
     const token = authHeader.slice(7).trim();
 
-    const decoded = jwt.verify(
-      token,
-      JWT_SECRET
-    ) as TokenPayload;
+    // Verify token
+    const { data, error } = await supabase.auth.getUser(token);
 
-    const userId = decoded.userId;
+    if (error || !data.user) {
+      res.status(401).json({
+        error: "Invalid or expired token",
+      });
+      return;
+    }
 
-    const [user] = await db
-      .select()
-      .from(usersTable)
-      .where(eq(usersTable.id, userId))
-      .limit(1);
+    const userId = data.user.id;
 
-    if (!user) {
+    // Get user profile untuk check role
+    const { data: userProfile, error: profileError } = await supabase
+      .from("users")
+      .select("*")
+      .eq("id", userId)
+      .single();
+
+    if (profileError || !userProfile) {
       res.status(403).json({
         error: "User not found",
       });
       return;
     }
 
-    // aktifkan jika role admin sudah dipakai
-    /*
-    if (user.role !== "ADMIN") {
+    // Check if user is admin
+    if (userProfile.role !== "ADMIN") {
       res.status(403).json({
-        error: "Admin access required"
+        error: "Admin access required",
       });
       return;
     }
-    */
 
-    (req as any).userId = user.id;
+    (req as any).userId = userId;
+    (req as any).user = data.user;
+    (req as any).userProfile = userProfile;
 
     next();
 
-  } catch {
+  } catch (err) {
+    console.error("[requireAdmin]", err);
     res.status(401).json({
       error: "Invalid or expired token",
     });
   }
 }
 
-export function getTokenUserId(
-  req: Request
-): string | null {
+// Helper: Get user ID dari token
+export async function getTokenUserId(req: Request): Promise<string | null> {
   try {
-    const authHeader =
-      req.headers.authorization;
+    const authHeader = req.headers.authorization;
 
     if (!authHeader?.startsWith("Bearer ")) {
       return null;
     }
 
-    const token =
-      authHeader.slice(7).trim();
+    const token = authHeader.slice(7).trim();
 
-    const decoded = jwt.verify(
-      token,
-      JWT_SECRET
-    ) as TokenPayload;
+    const { data, error } = await supabase.auth.getUser(token);
 
-    return decoded.userId;
+    if (error || !data.user) {
+      return null;
+    }
 
-  } catch {
+    return data.user.id;
+
+  } catch (err) {
+    console.error("[getTokenUserId]", err);
+    return null;
+  }
+}
+
+// Helper: Get full user profile
+export async function getUserProfile(userId: string): Promise<any> {
+  try {
+    const { data, error } = await supabase
+      .from("users")
+      .select("*")
+      .eq("id", userId)
+      .single();
+
+    if (error) {
+      return null;
+    }
+
+    return data;
+
+  } catch (err) {
+    console.error("[getUserProfile]", err);
     return null;
   }
 }
