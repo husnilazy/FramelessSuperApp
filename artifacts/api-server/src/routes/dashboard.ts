@@ -1,8 +1,36 @@
 import { Router, type IRouter } from "express";
 import { db, projectsTable, clientsTable, teamMembersTable, invoicesTable, expensesTable, activityLogsTable } from "@workspace/db";
-import { eq, sql, gte } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 
 const router: IRouter = Router();
+
+type ProjectRow = {
+  status: string;
+};
+
+type InvoiceRow = {
+  status: string;
+  total: unknown;
+  paidAmount?: unknown;
+  dueDate?: string | Date | null;
+  paidAt?: string | Date | null;
+  updatedAt?: string | Date | null;
+};
+
+type ExpenseRow = {
+  amount: unknown;
+  category: string;
+  date?: string | Date | null;
+};
+
+type ActivityRow = {
+  id: unknown;
+  userId: unknown;
+  projectId: unknown;
+  action: unknown;
+  description: unknown;
+  createdAt: unknown;
+};
 
 router.get("/dashboard/stats", async (_req, res): Promise<void> => {
   const [projects, clients, team, invoices, expenses] = await Promise.all([
@@ -11,14 +39,14 @@ router.get("/dashboard/stats", async (_req, res): Promise<void> => {
     db.select().from(teamMembersTable).where(eq(teamMembersTable.isActive, true)),
     db.select().from(invoicesTable),
     db.select().from(expensesTable),
-  ]);
+  ]) as [ProjectRow[], unknown[], unknown[], InvoiceRow[], ExpenseRow[]];
 
-  const activeProjects = projects.filter((p) => p.status === "active").length;
-  const totalRevenue = invoices.filter((i) => i.status === "PAID").reduce((s, i) => s + Number(i.total), 0);
-  const totalExpenses = expenses.reduce((s, e) => s + Number(e.amount), 0);
-  const pendingInvoices = invoices.filter((i) => i.status === "DRAFT" || i.status === "SENT");
+  const activeProjects = projects.filter((p: ProjectRow) => p.status === "active").length;
+  const totalRevenue = invoices.filter((i: InvoiceRow) => i.status === "PAID").reduce((s: number, i: InvoiceRow) => s + Number(i.total), 0);
+  const totalExpenses = expenses.reduce((s: number, e: ExpenseRow) => s + Number(e.amount), 0);
+  const pendingInvoices = invoices.filter((i: InvoiceRow) => i.status === "DRAFT" || i.status === "SENT");
   const now = new Date();
-  const overdueInvoices = invoices.filter((i) => i.status !== "PAID" && i.dueDate && new Date(i.dueDate) < now).length;
+  const overdueInvoices = invoices.filter((i: InvoiceRow) => i.status !== "PAID" && i.dueDate && new Date(i.dueDate) < now).length;
 
   res.json({
     totalProjects: projects.length,
@@ -30,7 +58,7 @@ router.get("/dashboard/stats", async (_req, res): Promise<void> => {
     netProfit: totalRevenue - totalExpenses,
     pendingInvoices: pendingInvoices.length,
     overdueInvoices,
-    pendingInvoiceAmount: pendingInvoices.reduce((s, i) => s + Number(i.total), 0),
+    pendingInvoiceAmount: pendingInvoices.reduce((s: number, i: InvoiceRow) => s + Number(i.total), 0),
   });
 });
 
@@ -45,10 +73,11 @@ router.get("/dashboard/recent-activity", async (req, res): Promise<void> => {
   const activities = await db
     .select()
     .from(activityLogsTable)
-    .orderBy(sql`${activityLogsTable.createdAt} DESC`)
-    .limit(limit);
+    .orderBy(desc(activityLogsTable.createdAt))
+    .limit(limit) as ActivityRow[];
+
   res.json(
-    activities.map((a) => ({
+    activities.map((a: ActivityRow) => ({
       id: a.id,
       userId: a.userId,
       projectId: a.projectId,
@@ -66,16 +95,14 @@ router.get("/finance/summary", async (req, res): Promise<void> => {
 
   const [invoices, expenses] = await Promise.all([
     db.select().from(invoicesTable),
-    db.select().from(expensesTable).where(
-      sql`${expensesTable.date} >= ${startDate} AND ${expensesTable.date} < ${endDate}`
-    ),
-  ]);
+    db.select().from(expensesTable),
+  ]) as [InvoiceRow[], ExpenseRow[]];
 
-  const paidInvoices = invoices.filter((i) => i.status === "PAID");
-  const totalIncome = paidInvoices.reduce((s, i) => s + Number(i.paidAmount || i.total), 0);
-  const totalExpenses = expenses.reduce((s, e) => s + Number(e.amount), 0);
-  const invoicedAmount = invoices.reduce((s, i) => s + Number(i.total), 0);
-  const paidAmount = invoices.reduce((s, i) => s + Number(i.paidAmount), 0);
+  const paidInvoices = invoices.filter((i: InvoiceRow) => i.status === "PAID");
+  const totalIncome = paidInvoices.reduce((s: number, i: InvoiceRow) => s + Number(i.paidAmount || i.total), 0);
+  const totalExpenses = expenses.reduce((s: number, e: ExpenseRow) => s + Number(e.amount), 0);
+  const invoicedAmount = invoices.reduce((s: number, i: InvoiceRow) => s + Number(i.total), 0);
+  const paidAmount = invoices.reduce((s: number, i: InvoiceRow) => s + Number(i.paidAmount), 0);
 
   const expenseByCategory: Record<string, number> = {};
   for (const e of expenses) {
@@ -111,16 +138,16 @@ router.get("/activity", async (req, res): Promise<void> => {
   let activities = await db
     .select()
     .from(activityLogsTable)
-    .orderBy(sql`${activityLogsTable.createdAt} DESC`)
+    .orderBy(desc(activityLogsTable.createdAt))
     .limit(limit)
-    .offset(offset);
+    .offset(offset) as ActivityRow[];
 
   if (projectId) {
-    activities = activities.filter((a) => a.projectId === projectId);
+    activities = activities.filter((a: ActivityRow) => String(a.projectId) === projectId);
   }
 
   res.json(
-    activities.map((a) => ({
+    activities.map((a: ActivityRow) => ({
       id: a.id,
       userId: a.userId,
       projectId: a.projectId,
@@ -135,7 +162,7 @@ async function getCashFlowData(months: number) {
   const [invoices, expenses] = await Promise.all([
     db.select().from(invoicesTable),
     db.select().from(expensesTable),
-  ]);
+  ]) as [InvoiceRow[], ExpenseRow[]];
 
   const result: { month: string; income: number; expenses: number; net: number; profit: number }[] = [];
   const now = new Date();
@@ -146,16 +173,16 @@ async function getCashFlowData(months: number) {
     const monthLabel = date.toLocaleString("default", { month: "short", year: "numeric" });
 
     const income = invoices
-      .filter((inv) => {
+      .filter((inv: InvoiceRow) => {
         if (inv.status !== "PAID") return false;
         const ref = inv.paidAt ? new Date(inv.paidAt) : inv.updatedAt ? new Date(inv.updatedAt) : null;
-        return ref && ref >= date && ref < nextDate;
+        return !!ref && ref >= date && ref < nextDate;
       })
-      .reduce((s, inv) => s + Number(inv.paidAmount || inv.total), 0);
+      .reduce((s: number, inv: InvoiceRow) => s + Number(inv.paidAmount || inv.total), 0);
 
     const expense = expenses
-      .filter((e) => e.date && new Date(e.date) >= date && new Date(e.date) < nextDate)
-      .reduce((s, e) => s + Number(e.amount), 0);
+      .filter((e: ExpenseRow) => e.date && new Date(e.date) >= date && new Date(e.date) < nextDate)
+      .reduce((s: number, e: ExpenseRow) => s + Number(e.amount), 0);
 
     result.push({ month: monthLabel, income, expenses: expense, net: income - expense, profit: income - expense });
   }
