@@ -9,6 +9,7 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     autoRefreshToken: false,
     persistSession: false,
+    detectSessionInUrl: false,
   },
 });
 
@@ -16,6 +17,7 @@ const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
   auth: {
     autoRefreshToken: false,
     persistSession: false,
+    detectSessionInUrl: false,
   },
 });
 
@@ -138,6 +140,6 @@ export async function requireAdmin(
   }
 }
 
-export function getTokenUserId(req: Request): string | null {
+export function getTokenUserId(_req: Request): string | null {
   return null;
 }
