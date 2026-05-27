@@ -1,46 +1,59 @@
+// src/routes/index.ts
 import { Router, type IRouter } from "express";
-import healthRouter from "./health";
 import authRouter from "./auth";
-import projectsRouter from "./projects";
-import teamRouter from "./team";
+import artsRouter from "./arts";
+import calendarRouter from "./calendar";
+import chatRouter from "./chat";
 import clientsRouter from "./clients";
-import invoicesRouter from "./invoices";
-import expensesRouter from "./expenses";
-import dashboardRouter from "./dashboard";
 import cmsRouter from "./cms";
 import coursesRouter from "./courses";
 import crewRouter from "./crew";
-import calendarRouter from "./calendar";
-import paymentSettingsRouter from "./payment-settings";
-import aiRouter from "./ai";
-import uploadsRouter from "./uploads";
-import siteVideosRouter from "./site-videos";
-import siteLogosRouter from "./site-logos";
+import dashboardRouter from "./dashboard";
 import digitalAssetsRouter from "./digital-assets";
+import expensesRouter from "./expenses";
+import healthRouter from "./health";
+import invoicesRouter from "./invoices";
+import paymentSettingsRouter from "./payment-settings";
 import paymentsRouter from "./payments";
-import chatRouter from "./chat";
+import projectsRouter from "./projects";
+import siteLogosRouter from "./site-logos";
+import siteVideosRouter from "./site-videos";
+import teamRouter from "./team";
+import uploadsRouter from "./uploads";
 
 const router: IRouter = Router();
 
-router.use(healthRouter);
+// Auth routes (PENTING - ini yang kamu butuh!)
 router.use(authRouter);
-router.use(projectsRouter);
-router.use(teamRouter);
+
+// Semua routes lainnya
+router.use(artsRouter);
+router.use(calendarRouter);
+router.use(chatRouter);
 router.use(clientsRouter);
-router.use(invoicesRouter);
-router.use(expensesRouter);
-router.use(dashboardRouter);
 router.use(cmsRouter);
 router.use(coursesRouter);
 router.use(crewRouter);
-router.use(calendarRouter);
-router.use(paymentSettingsRouter);
-router.use(aiRouter);
-router.use(uploadsRouter);
-router.use(siteVideosRouter);
-router.use(siteLogosRouter);
+router.use(dashboardRouter);
 router.use(digitalAssetsRouter);
+router.use(expensesRouter);
+router.use(healthRouter);
+router.use(invoicesRouter);
+router.use(paymentSettingsRouter);
 router.use(paymentsRouter);
-router.use("/", chatRouter);
+router.use(projectsRouter);
+router.use(siteLogosRouter);
+router.use(siteVideosRouter);
+router.use(teamRouter);
+router.use(uploadsRouter);
+
+// 404 fallback
+router.use((req, res) => {
+  res.status(404).json({
+    error: "Route tidak ditemukan",
+    path: req.path,
+    method: req.method,
+  });
+});
 
 export default router;
