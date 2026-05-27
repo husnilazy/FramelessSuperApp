@@ -1,49 +1,135 @@
-# See https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files for more about ignoring files.
+# ==========================================
+# .gitignore - Root Project
+# ==========================================
 
-# compiled output
-dist
-tmp
-out-tsc
-*.tsbuildinfo
-.expo
-.expo-shared
+# ========== ENVIRONMENT VARIABLES (SENSITIVE!) ==========
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.*.local
 
-# dependencies
-node_modules
+# ========== DEPENDENCIES ==========
+node_modules/
+.pnpm-store/
+*.pnpm-lock.yaml
+pnpm-lock.yaml
+yarn.lock
+package-lock.json
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
 
-# IDEs and editors
-/.idea
+# ========== BUILD OUTPUTS ==========
+dist/
+build/
+.next/
+out/
+.nuxt/
+.cache/
+.turbo/
+.vercel/
+.vercel-build-env.json
+
+# ========== IDE & EDITOR ==========
+.vscode/
+.vscode-workspace
+!.vscode/extensions.json
+.idea/
 .project
 .classpath
-.c9/
-*.launch
-.settings/
+*.c9/
 *.sublime-workspace
-
-# IDE - VSCode
-.vscode/*
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
-
-# misc
-/.sass-cache
-/connect.lock
-/coverage
-/libpeerconnection.log
-npm-debug.log
-yarn-error.log
-testem.log
-/typings
-
-# System Files
+*.sublime-project
+.iml
+*.swp
+*.swo
+*~
 .DS_Store
 Thumbs.db
 
-.cursor/rules/nx-rules.mdc
-.github/instructions/nx.instructions.md
+# ========== TESTING ==========
+coverage/
+.nyc_output/
+.jest/
+.mocha/
 
-# Replit
-.cache/
+# ========== LOGS ==========
+logs/
+*.log
+lerna-debug.log*
+.pino-pretty
+server.log
+api-server.log
+
+# ========== TEMPORARY ==========
+tmp/
+temp/
+*.tmp
+*.bak
+*.swp
+*~
+
+# ========== UPLOADS ==========
+uploads/
+/tmp/uploads/
+
+# ========== OS SPECIFIC ==========
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+desktop.ini
+
+# ========== SPECIFIC TO PROJECT ==========
+
+# Don't commit sensitive data
+.vercel
+.env.*.local
+
+# API Server specific
+artifacts/api-server/.env
+artifacts/api-server/.env.local
+artifacts/api-server/.env.production
+artifacts/api-server/uploads/
+
+# Generated build artifacts (IMPORTANT)
+artifacts/api-server/.vercel/
+artifacts/api-server/dist/
+
+# Frontend specific
+artifacts/frameless/.env.local
+artifacts/frameless/.env.development.local
+artifacts/frameless/.env.production.local
+artifacts/frameless/dist/
+artifacts/frameless/.next/
+
+# Root
+.vercel/
+dist/
+
+# PNPM cache
 .local/
+.pnpm-store/
+node_modules/
+
+# Vercel
+.vercel/
+artifacts/api-server/.vercel/
+
+# Build
+dist/
+build/
+
+# Uploads
+uploads/
+tmp/
+
+# Env
+.env
+.env.local
+.env.*

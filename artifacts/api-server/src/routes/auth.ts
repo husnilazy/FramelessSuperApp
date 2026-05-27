@@ -38,11 +38,10 @@ router.post("/auth/login", async (req, res): Promise<void> => {
 
     const normalizedEmail = String(email).trim().toLowerCase();
 
-    const { data: authData, error: authError } =
-      await supabase.auth.signInWithPassword({
-        email: normalizedEmail,
-        password,
-      });
+    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+      email: normalizedEmail,
+      password,
+    });
 
     if (authError || !authData.user) {
       console.error("[auth/login] Auth error:", authError?.message);
@@ -123,7 +122,6 @@ router.get("/auth/me", async (req, res): Promise<void> => {
     }
 
     const token = authHeader.slice(7).trim();
-
     const { data, error } = await supabase.auth.getUser(token);
 
     if (error || !data.user) {
