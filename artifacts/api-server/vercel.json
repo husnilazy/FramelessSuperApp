@@ -3,20 +3,14 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "framework": "vite",
-  "env": [
-    "SUPABASE_URL",
-    "SUPABASE_ANON_KEY",
-    "SUPABASE_SERVICE_ROLE_KEY",
-    "NODE_ENV",
-    "JWT_SECRET",
-    "SESSION_SECRET"
-  ],
+
   "functions": {
     "api/**/*.ts": {
       "memory": 512,
       "maxDuration": 30
     }
   },
+
   "routes": [
     {
       "src": "/api/(.*)",

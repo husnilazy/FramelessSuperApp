@@ -2,14 +2,15 @@
   "buildCommand": "pnpm --filter frameless run build",
   "outputDirectory": "dist",
   "installCommand": "pnpm install --frozen-lockfile",
+
   "rewrites": [
-    { 
-      "source": "/api/:path*", 
-      "destination": "https://frameless-super-app-api-server.vercel.app/api/:path*" 
+    {
+      "source": "/api/:path*",
+      "destination": "https://frameless-super-app-api-server-husnilazys-projects.vercel.app/api/:path*"
     },
-    { 
-      "source": "/(.*)", 
-      "destination": "/index.html" 
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ]
 }
