@@ -84,10 +84,11 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const baseUrl = import.meta.env.VITE_API_BASE_URL || "";
+      const baseUrl = "";
 
 console.log("API BASE:", baseUrl);
 console.log("LOGIN URL:", `${baseUrl}/api/auth/login`);
+
 
       const res = await fetch(`${baseUrl}/api/auth/login`, {
         method: "POST",

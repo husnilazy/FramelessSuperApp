@@ -30,16 +30,34 @@ app.use(
 
 app.use(
   cors({
-    origin: [
-      "https://www.framelesscreative.com",
-      "https://framelesscreative.com",
-      "https://frameless-super-app-frameless.vercel.app",
+    origin: (origin, callback) => {
+      const allowedOrigins = [
+        "http://localhost:5173",
+        "https://www.framelesscreative.com",
+        "https://framelesscreative.com",
+        "https://frameless-super-app-frameless.vercel.app"
+      ];
+
+      // izinkan request non-browser (Postman/server)
+      if (!origin) return callback(null, true);
+
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      return callback(new Error(`CORS blocked: ${origin}`));
+    },
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization"
     ],
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-    credentials: true,
+    credentials: true
   })
 );
+
+// penting untuk preflight request
+app.options("*", cors());
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
