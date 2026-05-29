@@ -1,4 +1,10 @@
-import { Router, type IRouter, type Request, type Response } from "express";
+import {
+  Router,
+  type IRouter,
+  type Request,
+  type Response,
+  type NextFunction,
+} from "express";
 import multer from "multer";
 import path from "path";
 import { requireAuth } from "./middleware";
@@ -8,73 +14,134 @@ import { supabase } from "../lib/supabase";
 
 const router: IRouter = Router();
 
-// Memory storage → file masuk RAM lalu dikirim ke Supabase
+const storage = multer.memoryStorage();
+
+const allowedExtensions = [
+  ".jpeg",
+  ".jpg",
+  ".png",
+  ".gif",
+  ".webp",
+  ".svg",
+  ".pdf",
+  ".mp4",
+  ".webm",
+  ".mov",
+  ".m4v",
+  ".doc",
+  ".docx",
+  ".xls",
+  ".xlsx",
+  ".ppt",
+  ".pptx",
+];
+
 const upload = multer({
-  storage: multer.memoryStorage(),
+  storage,
   limits: {
     fileSize: 50 * 1024 * 1024,
   },
   fileFilter: (_req, file, cb) => {
-    const ext = path.extname(file.originalname).toLowerCase();
+    try {
+      const ext = path.extname(file.originalname).toLowerCase();
 
-    const allowed =
-      /\.(jpeg|jpg|png|gif|webp|svg|pdf|mp4|webm|mov|m4v|doc|docx|xls|xlsx|ppt|pptx)$/i.test(
-        ext
-      );
+      const isAllowed = allowedExtensions.includes(ext);
 
-    if (allowed) {
+      if (!isAllowed) {
+        cb(
+          new Error(
+            `File type ${ext || "unknown"} is not allowed`
+          )
+        );
+        return;
+      }
+
       cb(null, true);
-    } else {
-      cb(
-        new Error(
-          `File type .${ext.slice(
-            1
-          )} not allowed`
-        )
-      );
+    } catch (error) {
+      cb(error as Error);
     }
   },
 });
 
-const uploadHandler =
-  (
-    callback: (
-      req: Request,
-      res: Response
-    ) => Promise<void> | void
-  ) =>
-  (
+type UploadCallback = (
+  req: Request,
+  res: Response
+) => Promise<void> | void;
+
+function uploadHandler(callback: UploadCallback) {
+  return (
     req: Request,
     res: Response,
-    next: any
-  ) => {
+    _next: NextFunction
+  ): void => {
     upload.single("file")(
       req,
       res,
-      (err) => {
-        if (err instanceof multer.MulterError) {
-          return res.status(400).json({
-            error: err.message,
-          });
-        }
+      async (err: unknown) => {
+        try {
+          if (err instanceof multer.MulterError) {
+            res.status(400).json({
+              error: err.message,
+            });
+            return;
+          }
 
-        if (err) {
+          if (err instanceof Error) {
+            logger.error(
+              { err },
+              "upload.validation.error"
+            );
+
+            res.status(400).json({
+              error:
+                err.message ||
+                "File validation failed",
+            });
+            return;
+          }
+
+          await callback(req, res);
+        } catch (callbackError) {
           logger.error(
-            { err },
-            "upload_error"
+            { err: callbackError },
+            "upload.callback.error"
           );
 
-          return res.status(400).json({
-            error:
-              err.message ||
-              "File validation failed",
+          res.status(500).json({
+            error: "Upload handler failed",
           });
         }
-
-        callback(req, res);
       }
     );
   };
+}
+
+async function uploadToSupabase(
+  file: Express.Multer.File,
+  fileName: string
+) {
+  const bucket = supabase.storage.from(
+    "site-assets"
+  );
+
+  const { error } = await bucket.upload(
+    fileName,
+    file.buffer,
+    {
+      contentType: file.mimetype,
+      upsert: true,
+    }
+  );
+
+  if (error) {
+    throw error;
+  }
+
+  const { data } =
+    bucket.getPublicUrl(fileName);
+
+  return data.publicUrl;
+}
 
 // =============================
 // Admin Upload
@@ -87,7 +154,7 @@ router.post(
     async (
       req: Request,
       res: Response
-    ) => {
+    ): Promise<void> => {
       try {
         if (!req.file) {
           res.status(400).json({
@@ -100,56 +167,36 @@ router.post(
           req.file.originalname
         );
 
-        const fileName =
-          `${Date.now()}-${Math.random()
-            .toString(36)
-            .slice(2)}${ext}`;
+        const fileName = `${Date.now()}-${Math.random()
+          .toString(36)
+          .slice(2)}${ext}`;
 
-        const { error } =
-          await supabase.storage
-            .from("site-assets")
-            .upload(
-              fileName,
-              req.file.buffer,
-              {
-                contentType:
-                  req.file.mimetype,
-                upsert: true,
-              }
-            );
-
-        if (error) {
-          throw error;
-        }
-
-        const { data } =
-          supabase.storage
-            .from("site-assets")
-            .getPublicUrl(fileName);
+        const publicUrl =
+          await uploadToSupabase(
+            req.file,
+            fileName
+          );
 
         logger.info(
           {
             fileName,
-            publicUrl:
-              data.publicUrl,
+            publicUrl,
           },
-          "upload_success"
+          "admin.upload.success"
         );
 
         res.json({
-          url: data.publicUrl,
+          url: publicUrl,
           filename: fileName,
         });
-
-      } catch (err) {
+      } catch (error) {
         logger.error(
-          { err },
-          "supabase_upload_error"
+          { err: error },
+          "admin.upload.failed"
         );
 
         res.status(500).json({
-          error:
-            "Failed to upload file",
+          error: "Failed to upload file",
         });
       }
     }
@@ -166,19 +213,19 @@ router.post(
     async (
       req: Request,
       res: Response
-    ) => {
+    ): Promise<void> => {
       try {
         const authHeader =
           req.headers.authorization;
 
         if (
-          !authHeader?.startsWith(
+          !authHeader ||
+          !authHeader.startsWith(
             "Bearer "
           )
         ) {
           res.status(401).json({
-            error:
-              "Unauthorized",
+            error: "Unauthorized",
           });
           return;
         }
@@ -187,70 +234,55 @@ router.post(
           authHeader.slice(7);
 
         const memberId =
-          crewTokenStore.get(
-            token
-          );
+          crewTokenStore.get(token);
 
         if (!memberId) {
           res.status(401).json({
-            error:
-              "Invalid token",
+            error: "Invalid token",
           });
           return;
         }
 
         if (!req.file) {
           res.status(400).json({
-            error:
-              "No file uploaded",
+            error: "No file uploaded",
           });
           return;
         }
 
-        const ext =
-          path.extname(
-            req.file.originalname
+        const ext = path.extname(
+          req.file.originalname
+        );
+
+        const fileName = `crew-${memberId}-${Date.now()}${ext}`;
+
+        const publicUrl =
+          await uploadToSupabase(
+            req.file,
+            fileName
           );
 
-        const fileName =
-          `crew-${memberId}-${Date.now()}${ext}`;
-
-        const { error } =
-          await supabase.storage
-            .from("site-assets")
-            .upload(
-              fileName,
-              req.file.buffer,
-              {
-                contentType:
-                  req.file.mimetype,
-                upsert: true,
-              }
-            );
-
-        if (error) {
-          throw error;
-        }
-
-        const { data } =
-          supabase.storage
-            .from("site-assets")
-            .getPublicUrl(fileName);
+        logger.info(
+          {
+            memberId,
+            fileName,
+            publicUrl,
+          },
+          "crew.upload.success"
+        );
 
         res.json({
-          url: data.publicUrl,
+          url: publicUrl,
           filename: fileName,
         });
-
-      } catch (err) {
+      } catch (error) {
         logger.error(
-          { err },
-          "crew_upload_error"
+          { err: error },
+          "crew.upload.failed"
         );
 
         res.status(500).json({
-          error:
-            "Upload failed",
+          error: "Upload failed",
         });
       }
     }
