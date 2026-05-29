@@ -56,9 +56,6 @@ app.use(
   })
 );
 
-// penting untuk preflight request
-app.options("*", cors());
-
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 

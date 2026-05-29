@@ -32,9 +32,7 @@ const AuthContext = createContext<AuthContextType>({
   refetch: async () => {},
 });
 
-const API_BASE_URL = import.meta.env.PROD
-  ? "https://frameless-super-app-api-server.vercel.app"
-  : "";
+const API_BASE_URL = "";
 
 export function getToken(): string | null {
   return localStorage.getItem("token");
