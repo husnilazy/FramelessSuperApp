@@ -1,7 +1,7 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { db, paymentSettingsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
-import { requireAuth } from "./middleware";
+import { requireAuth } from "./middleware.js";
 import { insertPaymentSettingSchema } from "@workspace/db";
 
 const router: IRouter = Router();

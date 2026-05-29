@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
-import { requireAuth } from "./middleware";
-import { crewTokenStore } from "./crew";
+import { requireAuth } from "./middleware.js";
+import { crewTokenStore } from "./crew.js";
 
 const router: IRouter = Router();
 

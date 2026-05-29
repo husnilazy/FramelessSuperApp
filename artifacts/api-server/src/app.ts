@@ -2,8 +2,8 @@ import express, { type Express } from "express";
 import cors from "cors";
 import pinoHttpModule from "pino-http";
 import path from "path";
-import router from "./routes";
-import { logger } from "./lib/logger";
+import router from "./routes/index.js";
+import { logger } from "./lib/logger.js";
 
 const pinoHttp = (pinoHttpModule as any).default || pinoHttpModule;
 const app: Express = express();

@@ -2,8 +2,8 @@ import { Router, type IRouter } from "express";
 import { db, projectsTable, projectTasksTable } from "@workspace/db";
 import { eq, ilike, or } from "drizzle-orm";
 import crypto from "crypto";
-import { logger } from "../lib/logger";
-import { chatCompletion, ADMIN_SYSTEM } from "./ai";
+import { logger } from "../lib/logger.js";
+import { chatCompletion, ADMIN_SYSTEM } from "./ai.js";
 
 const router: IRouter = Router();
 

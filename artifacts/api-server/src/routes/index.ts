@@ -1,25 +1,25 @@
 // src/routes/index.ts
 import { Router, type IRouter } from "express";
-import authRouter from "./auth";
-import artsRouter from "./arts";
-import calendarRouter from "./calendar";
-import chatRouter from "./chat";
-import clientsRouter from "./clients";
-import cmsRouter from "./cms";
-import coursesRouter from "./courses";
-import crewRouter from "./crew";
-import dashboardRouter from "./dashboard";
-import digitalAssetsRouter from "./digital-assets";
-import expensesRouter from "./expenses";
-import healthRouter from "./health";
-import invoicesRouter from "./invoices";
-import paymentSettingsRouter from "./payment-settings";
-import paymentsRouter from "./payments";
-import projectsRouter from "./projects";
-import siteLogosRouter from "./site-logos";
-import siteVideosRouter from "./site-videos";
-import teamRouter from "./team";
-import uploadsRouter from "./uploads";
+import authRouter from "./auth.js";
+import artsRouter from "./arts.js";
+import calendarRouter from "./calendar.js";
+import chatRouter from "./chat.js";
+import clientsRouter from "./clients.js";
+import cmsRouter from "./cms.js";
+import coursesRouter from "./courses.js";
+import crewRouter from "./crew.js";
+import dashboardRouter from "./dashboard.js";
+import digitalAssetsRouter from "./digital-assets.js";
+import expensesRouter from "./expenses.js";
+import healthRouter from "./health.js";
+import invoicesRouter from "./invoices.js";
+import paymentSettingsRouter from "./payment-settings.js";
+import paymentsRouter from "./payments.js";
+import projectsRouter from "./projects.js";
+import siteLogosRouter from "./site-logos.js";
+import siteVideosRouter from "./site-videos.js";
+import teamRouter from "./team.js";
+import uploadsRouter from "./uploads.js";
 
 const router: IRouter = Router();
 

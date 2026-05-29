@@ -13,7 +13,7 @@ import {
   type InferSelectModel,
 } from "drizzle-orm";
 
-import { requireAuth } from "./middleware";
+import { requireAuth } from "./middleware.js";
 
 const router: IRouter = Router();
 

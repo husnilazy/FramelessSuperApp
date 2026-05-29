@@ -1,6 +1,6 @@
 // artifacts/api-server/src/index.ts
-import app from "./app";
-import { logger } from "./lib/logger";
+import app from "./app.js";
+import { logger } from "./lib/logger.js";
 import { fileURLToPath } from "url";
 import path from "path";
 

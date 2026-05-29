@@ -2,7 +2,7 @@ import { Router, type IRouter } from "express";
 import { db } from "@workspace/db";
 import { chatMessagesTable } from "@workspace/db";
 import { desc, eq } from "drizzle-orm";
-import { requireAuth } from "./middleware";
+import { requireAuth } from "./middleware.js";
 
 const router: IRouter = Router();
 

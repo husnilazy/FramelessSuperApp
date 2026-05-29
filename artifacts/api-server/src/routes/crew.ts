@@ -2,7 +2,7 @@ import { Router, type IRouter } from "express";
 import { db } from "@workspace/db";
 import { teamMembersTable, projectsTable, projectTasksTable, chatMessagesTable, calendarEventsTable } from "@workspace/db";
 import { eq, and, or, desc } from "drizzle-orm";
-import { requireAuth } from "./middleware";
+import { requireAuth } from "./middleware.js";
 import crypto from "crypto";
 
 const router: IRouter = Router();

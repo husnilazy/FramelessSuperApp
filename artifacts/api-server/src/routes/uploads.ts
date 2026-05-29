@@ -7,10 +7,10 @@ import {
 } from "express";
 import multer from "multer";
 import path from "path";
-import { requireAuth } from "./middleware";
-import { crewTokenStore } from "./crew";
-import { logger } from "../lib/logger";
-import { supabase } from "../lib/supabase";
+import { requireAuth } from "./middleware.js";
+import { crewTokenStore } from "./crew.js";
+import { logger } from "../lib/logger.js";
+import { supabase } from "../lib/supabase.js";
 
 const router: IRouter = Router();
 
