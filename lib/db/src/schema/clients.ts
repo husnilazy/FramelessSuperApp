@@ -10,6 +10,9 @@ export const clientsTable = pgTable("clients", {
   company: text("company"),
   address: text("address"),
   notes: text("notes"),
+  website: text("website"),
+  status: text("status").default("prospect"),
+  tier: text("tier").default("new"),
   createdAt: timestamp("createdAt").notNull().defaultNow(),
   updatedAt: timestamp("updatedAt").notNull().defaultNow(),
 });

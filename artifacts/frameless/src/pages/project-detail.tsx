@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRoute } from "wouter";
 import { useGetProject, useListProjectTasks, useCreateProjectTask, useDeleteTask, useUpdateProject, useListTeamMembers, useUpdateTask, type CreateTaskBody } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -11,7 +11,7 @@ import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Plus, Trash2, CheckSquare, Clock, Film, TrendingUp } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, CheckSquare, Clock, Film, TrendingUp, RefreshCw, Edit3, Star } from "lucide-react";
 
 const STATUS_COLORS: Record<string, string> = {
   active: "bg-green-500/20 text-green-400 border-green-500/30",
@@ -31,11 +31,40 @@ export default function ProjectDetailPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [taskOpen, setTaskOpen] = useState(false);
+  const [editingTask, setEditingTask] = useState<any | null>(null);
+  const [projectFiles, setProjectFiles] = useState<any[]>([]);
+  const [loadingFiles, setLoadingFiles] = useState(false);
 
   const { data: project, isLoading } = useGetProject(id);
   const { data: tasks } = useListProjectTasks(id);
   const { data: members } = useListTeamMembers();
-  const [editingTask, setEditingTask] = useState<any | null>(null);
+
+  // Fetch project files (internal crew uploads)
+  const fetchProjectFiles = async () => {
+    if (!id) return;
+    setLoadingFiles(true);
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`/api/admin/projects/${id}/files`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setProjectFiles(data);
+      }
+    } catch (e) {
+      console.error("Failed to load project files");
+    } finally {
+      setLoadingFiles(false);
+    }
+  };
+
+  useEffect(() => {
+    if (id) {
+      fetchProjectFiles();
+    }
+  }, [id]);
+
   const updateTaskMutation = useUpdateTask({ mutation: { onSuccess: () => { queryClient.invalidateQueries({ queryKey: [`/api/projects/${id}/tasks`] }); setEditingTask(null); toast({ title: "Task updated" }); } } });
 
   const createTask = useCreateProjectTask({
@@ -61,7 +90,8 @@ export default function ProjectDetailPage() {
     mutation: {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: [`/api/projects/${id}`] });
-        toast({ title: "Progress updated" });
+        queryClient.invalidateQueries({ queryKey: ["admin", "project-pipeline"] });
+        toast({ title: "Project updated" });
       },
     },
   });
@@ -173,6 +203,7 @@ export default function ProjectDetailPage() {
               </DialogHeader>
                 <NewTaskForm
                   members={members}
+                  defaultMemberId={project.assignedMemberId || undefined}
                   onSubmit={(data) => createTask.mutate({ id, data })}
                   isPending={createTask.isPending}
                 />
@@ -271,12 +302,57 @@ export default function ProjectDetailPage() {
               </div>
               <div className="flex gap-3 justify-end pt-2">
                 <Button variant="ghost" onClick={() => setEditingTask(null)}>Cancel</Button>
-                <Button onClick={() => updateTaskMutation.mutate({ id: editingTask.id, data: { title: editingTask.title, status: editingTask.status, memberId: editingTask.memberId } })} className="bg-primary">Save</Button>
+                <Button onClick={() => updateTaskMutation.mutate({ id: editingTask.id, data: { title: editingTask.title, status: editingTask.status, memberId: editingTask.memberId || null } })} className="bg-primary">Save</Button>
               </div>
             </div>
           </div>
         </div>
       )}
+
+      {/* Project Files (Internal Crew Work) */}
+      <Card className="glass-panel border-white/10 mt-6">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <Film className="w-5 h-5" /> Project Files (Internal)
+            </CardTitle>
+            <Button size="sm" variant="outline" onClick={fetchProjectFiles} disabled={loadingFiles}>
+              {loadingFiles ? "Loading..." : "Refresh"}
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground mt-1">
+            Files uploaded by crew for this project (not visible publicly)
+          </p>
+        </CardHeader>
+        <CardContent>
+          {projectFiles.length > 0 ? (
+            <div className="space-y-3">
+              {projectFiles.map((file: any) => (
+                <div key={file.id} className="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/10">
+                  <div>
+                    <div className="font-semibold text-sm">{file.title}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {file.category} • Uploaded {formatDate(file.createdAt)} • by {file.uploadedBy || "crew"}
+                    </div>
+                  </div>
+                  <a 
+                    href={file.fileUrl} 
+                    target="_blank" 
+                    rel="noreferrer"
+                    className="px-3 py-1.5 text-xs bg-primary/90 hover:bg-primary text-white rounded-lg"
+                  >
+                    View / Download
+                  </a>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground text-sm">
+              No internal files uploaded to this project yet.
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
@@ -295,8 +371,17 @@ function StatCard({ icon: Icon, label, value }: { icon: any; label: string; valu
   );
 }
 
-function NewTaskForm({ onSubmit, isPending, members }: { onSubmit: (data: CreateTaskBody) => void; isPending: boolean; members?: any[] }) {
-  const [form, setForm] = useState<CreateTaskBody>({ title: "", status: "TODO", priority: "medium", memberId: undefined as any });
+function NewTaskForm({ onSubmit, isPending, members, defaultMemberId }: { onSubmit: (data: CreateTaskBody) => void; isPending: boolean; members?: any[]; defaultMemberId?: string }) {
+  const [form, setForm] = useState<CreateTaskBody>({ title: "", status: "TODO", priority: "medium", memberId: defaultMemberId });
+
+  // Prefill (or refill on reopen) with project's assigned crew if nothing chosen yet
+  useEffect(() => {
+    if (!defaultMemberId) return;
+    setForm((f: CreateTaskBody) => {
+      if (!f.memberId) return { ...f, memberId: defaultMemberId };
+      return f;
+    });
+  }, [defaultMemberId]);
 
   return (
     <form onSubmit={(e) => { e.preventDefault(); onSubmit(form); }} className="space-y-4">
@@ -340,7 +425,7 @@ function NewTaskForm({ onSubmit, isPending, members }: { onSubmit: (data: Create
       </div>
       <div className="space-y-1">
         <label className="text-xs uppercase tracking-wider text-muted-foreground">Assign To</label>
-        <select value={form.memberId || ""} onChange={(e) => setForm({ ...form, memberId: e.target.value || undefined })} className="bg-white/5 border-white/10 text-white">
+        <select value={form.memberId || ""} onChange={(e) => setForm({ ...form, memberId: e.target.value || undefined } as CreateTaskBody)} className="bg-white/5 border-white/10 text-white">
           <option value="">Unassigned</option>
           {members?.map(m => (
             <option key={m.id} value={m.id}>{m.name} — {m.role}</option>

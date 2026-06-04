@@ -1,6 +1,7 @@
 // artifacts/frameless/src/pages/dashboard.tsx
 import { useQuery } from "@tanstack/react-query";
 import { formatCurrency } from "@/lib/formatters";
+import { getToken } from "@/lib/auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   AreaChart,
@@ -37,6 +38,7 @@ interface DashboardStats {
   totalTeam?: number;
   totalRevenue?: number;
   totalExpenses?: number;
+  leads?: number;
 }
 
 interface CashFlowItem {
@@ -57,11 +59,14 @@ interface ActivityItem {
 function useStats() {
   return useQuery<DashboardStats>({
     queryKey: ["dashboard-stats"],
-    queryFn: () =>
-      fetch("/api/dashboard/stats").then((r) => {
-        if (!r.ok) throw new Error("stats failed");
-        return r.json();
-      }),
+    queryFn: async () => {
+      const token = await getToken();
+      const res = await fetch("/api/dashboard/stats", {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!res.ok) throw new Error("stats failed");
+      return res.json();
+    },
     staleTime: 60_000,
     retry: 2,
   });
@@ -84,11 +89,12 @@ function useActivity() {
   return useQuery<ActivityItem[]>({
     queryKey: ["dashboard-activity"],
     queryFn: () =>
-      fetch("/api/dashboard/recent-activity?limit=8").then((r) => {
+      fetch("/api/dashboard/recent-activity?limit=10").then((r) => {
         if (!r.ok) throw new Error("activity failed");
         return r.json();
       }),
-    staleTime: 30_000,
+    staleTime: 10_000,
+    refetchInterval: 15000, // live updates every 15s
     retry: 2,
   });
 }
@@ -317,6 +323,15 @@ export default function Dashboard() {
               <div>
                 <p className="text-white font-bold text-lg">{formatCurrency(s.totalExpenses)}</p>
                 <p className="text-[11px] text-muted-foreground uppercase tracking-wider">Total Expenses</p>
+              </div>
+            </div>
+          )}
+          {s.leads !== undefined && (
+            <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/3 border border-white/5">
+              <Users className="w-4 h-4 text-violet-400 flex-shrink-0" />
+              <div>
+                <p className="text-white font-bold text-lg">{s.leads}</p>
+                <p className="text-[11px] text-muted-foreground uppercase tracking-wider">Leads / Prospects</p>
               </div>
             </div>
           )}

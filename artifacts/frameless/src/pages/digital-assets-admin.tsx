@@ -254,8 +254,11 @@ export default function DigitalAssetsAdminPage() {
                         <Badge className="bg-primary/90 text-white text-[10px] border-0 gap-1"><Star className="w-2.5 h-2.5" />Featured</Badge>
                       </div>
                     )}
-                    <div className="absolute top-2 right-2">
+                    <div className="absolute top-2 right-2 flex flex-col gap-1 items-end">
                       <Badge className={`text-[10px] border ${CATEGORY_COLORS[asset.category] || CATEGORY_COLORS.other}`}>{asset.category}</Badge>
+                      {asset.description?.toLowerCase().includes("crew") && (
+                        <Badge className="text-[9px] bg-orange-500/90 text-white border-0">Crew Upload</Badge>
+                      )}
                     </div>
                   </div>
                 ) : (

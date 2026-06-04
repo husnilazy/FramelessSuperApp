@@ -1,12 +1,12 @@
 // artifacts/frameless/src/components/layout.tsx
-import { useState, type ReactNode } from "react";
+import { useState, useEffect, type ReactNode } from "react";
 import { Link, useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutDashboard, Film, Users, UsersRound, Receipt, PieChart,
   CreditCard, Settings, LogOut, Globe, BookOpen, Banknote,
   Users2, Sun, Moon, Package, ExternalLink, Menu, X,
-  MessageSquare, ChevronRight, Paintbrush,
+  MessageSquare, ChevronRight, Paintbrush, Activity
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { useTheme } from "@/lib/theme";
@@ -15,6 +15,7 @@ import { AIChat } from "./ai-chat";
 // ── Nav items ─────────────────────────────────────────────────────────────────
 const NAV = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, group: "Operations" },
+  { href: "/command-center", label: "Command Center", icon: Activity, group: "Operations" },
   { href: "/projects", label: "Projects", icon: Film, group: "Operations" },
   { href: "/team", label: "Crew", icon: Users, group: "Operations" },
   { href: "/clients", label: "Clients", icon: UsersRound, group: "Operations" },
@@ -78,27 +79,55 @@ function SidebarContent({ pathname, onNav, c, user, logout }: {
   c: ReturnType<typeof useColors>;
   user: any; logout: () => void;
 }) {
-  const { theme, toggleTheme, appearance } = useTheme();
+  const { theme, toggleTheme, appearance, updateAppearance } = useTheme();
   const groups = Array.from(new Set(NAV.map(n => n.group)));
   const isActive = (href: string) =>
     pathname === href || (href !== "/dashboard" && pathname.startsWith(href));
 
+  // Load logo from CMS (same as crew) so admin dashboard uses uploaded logo from CMS editor
+  // Always fetch latest on mount to pick up size changes etc.
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      fetch("/api/cms", { headers: { Authorization: `Bearer ${token}` } })
+        .then(r => r.ok ? r.json() : {})
+        .then((data: any) => {
+          const b = data?.branding || data || {};
+          const updates: any = {};
+          if (b.logoUrl) updates.logoUrl = b.logoUrl;
+          if (b.logoSize) updates.logoSize = Number(b.logoSize) || 26;
+          if (Object.keys(updates).length) {
+            updateAppearance(updates);
+          }
+        })
+        .catch(() => {});
+    }
+  }, []);
+
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%", fontFamily: "'Plus Jakarta Sans',sans-serif" }}>
       {/* Logo */}
-      <div style={{ padding: "20px 16px 14px" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+      <div style={{ padding: "8px 16px 6px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           {appearance?.logoUrl ? (
-            <img src={appearance.logoUrl} alt="Logo" style={{ width: 30, height: 30, borderRadius: 9, objectFit: "cover", flexShrink: 0 }} />
+            <img 
+              src={appearance.logoUrl} 
+              alt="Logo" 
+              style={{ 
+                height: appearance.logoSize || 28, 
+                width: 'auto',
+                maxWidth: 90,
+                objectFit: "contain", 
+                flexShrink: 0,
+                borderRadius: 3
+              }} 
+            />
           ) : (
-            <div style={{ width: 30, height: 30, borderRadius: 9, background: c.OR, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-              <span style={{ color: "#fff", fontWeight: 900, fontSize: 14 }}>F</span>
+            <div style={{ width: 26, height: 26, borderRadius: 5, background: c.OR, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <span style={{ color: "#fff", fontWeight: 900, fontSize: 12 }}>F</span>
             </div>
           )}
-          <div>
-            <div style={{ fontSize: 14, fontWeight: 900, color: c.text, letterSpacing: "-.02em", lineHeight: 1 }}>{appearance?.companyName || "Frameless"}</div>
-            <div style={{ fontSize: 10, color: c.muted, letterSpacing: ".05em", marginTop: 1 }}>Creative Studio</div>
-          </div>
+          <span style={{ fontSize: 12, fontWeight: 700, color: c.text, letterSpacing: "-.02em" }}>Admin</span>
         </div>
       </div>
 
@@ -232,15 +261,26 @@ export function AppLayout({ children }: { children: ReactNode }) {
         }}
           className="show-mobile"
         >
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             {appearance?.logoUrl ? (
-              <img src={appearance.logoUrl} alt="Logo" style={{ width: 28, height: 28, borderRadius: 8, objectFit: "cover", flexShrink: 0 }} />
+              <img 
+                src={appearance.logoUrl} 
+                alt="Logo" 
+                style={{ 
+                  height: appearance.logoSize || 24, 
+                  width: 'auto',
+                  maxWidth: 70,
+                  objectFit: "contain", 
+                  flexShrink: 0,
+                  borderRadius: 3
+                }} 
+              />
             ) : (
-              <div style={{ width: 28, height: 28, borderRadius: 8, background: c.OR, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <span style={{ color: "#fff", fontWeight: 900, fontSize: 13 }}>F</span>
+              <div style={{ width: 26, height: 26, borderRadius: 6, background: c.OR, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <span style={{ color: "#fff", fontWeight: 900, fontSize: 12 }}>F</span>
               </div>
             )}
-            <span style={{ fontWeight: 800, fontSize: 14, color: c.text, letterSpacing: "-.01em" }}>{appearance?.companyName || "Frameless"}</span>
+            <span style={{ fontWeight: 700, fontSize: 12, color: c.text }}>Admin</span>
           </div>
           <button onClick={() => setMobileOpen(true)}
             style={{ width: 36, height: 36, borderRadius: 10, background: c.hover, border: `1px solid ${c.border}`, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: c.text }}>

@@ -1,11 +1,13 @@
 // artifacts/frameless/src/pages/landing.tsx
 import { useState, useRef, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { motion } from "framer-motion";
 import {
   Play, X, ArrowRight, ChevronRight, Menu,
   Users, Award, Film, BookOpen, Shield, Zap, Mail,
   MessageCircle, MapPin, Phone, Instagram, Youtube,
   Star, Clock, TrendingUp, Volume2, VolumeX,
+  Linkedin, Twitter, Globe,
 } from "lucide-react";
 import { formatCurrency } from "@/lib/formatters";
 
@@ -321,6 +323,10 @@ export default function LandingPage() {
   const { data: logos = [] } = useQuery<SiteLogo[]>({ queryKey: ["/api/site-logos"], queryFn: () => fetch("/api/site-logos").then(r => r.json()).then((a: SiteLogo[]) => a.filter(l => l.isActive).sort((a, b) => a.orderIndex - b.orderIndex)) });
   const { data: courses = [] } = useQuery<Course[]>({ queryKey: ["/api/courses"], queryFn: () => fetch("/api/courses").then(r => r.json()) });
   const { data: assets = [] } = useQuery<DigitalAsset[]>({ queryKey: ["/api/digital-assets"], queryFn: () => fetch("/api/digital-assets?isActive=true").then(r => r.ok ? r.json() : []).catch(() => []) });
+  const { data: teamMembers = [] } = useQuery<any[]>({ 
+    queryKey: ["/api/team"], 
+    queryFn: () => fetch("/api/team").then(r => r.ok ? r.json() : []).then((a: any[]) => a.filter((m: any) => (m.isActive !== false) && m.name).sort((a: any, b: any) => (a.orderIndex||0) - (b.orderIndex||0))).catch(() => []) 
+  });
 
   // ── CMS fields ────────────────────────────────────────────────────────────
   const hero = cms?.hero || {};
@@ -332,6 +338,7 @@ export default function LandingPage() {
   const c1 = thm.meshColor1 || OR, c2 = thm.meshColor2 || "#7c3aed", c3 = thm.meshColor3 || "#2563eb";
   const logoUrl = brand.logoUrl || "";
   const brandName = brand.name || "Frameless Creative";
+  const activeTeam = teamMembers.filter((m: any) => m.isActive !== false);
   const hl1 = hero.headline1 || "Crafting Stories";
   const hl2 = hero.headline2 || "Through the Lens.";
   const hl3 = hero.headline3 || "";
@@ -790,6 +797,95 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+
+      {/* ══════ CREW PROFILES (modern glow animated cards) ══════ */}
+      {activeTeam.length > 0 && (
+        <section id="crew" className="pxs" style={{ padding: "80px 28px 100px", background: "rgba(0,0,0,.2)", position: "relative", overflow: "hidden" }}>
+          <div style={{ maxWidth: 1280, margin: "0 auto" }}>
+            <div style={{ textAlign: "center", marginBottom: 48 }}>
+              <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: ".2em", color: OR, textTransform: "uppercase", marginBottom: 8 }}>THE TEAM</div>
+              <h2 style={{ fontSize: "clamp(32px, 5vw, 48px)", fontWeight: 900, letterSpacing: "-.03em", color: "#fff", margin: 0, lineHeight: 1.05 }}>
+                Meet the <span style={{ color: OR }}>Frameless Crew</span>
+              </h2>
+              <p style={{ color: "rgba(255,255,255,.5)", marginTop: 12, fontSize: 15 }}>Para kreator di balik setiap frame yang tak terlupakan.</p>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 18 }}>
+              {activeTeam.map((member: any, idx: number) => {
+                const socials = [
+                  member.instagram && { icon: Instagram, label: "Instagram", url: member.instagram.startsWith("http") ? member.instagram : `https://instagram.com/${member.instagram.replace("@","")}` },
+                  member.linkedin && { icon: Linkedin, label: "LinkedIn", url: member.linkedin.startsWith("http") ? member.linkedin : `https://linkedin.com/in/${member.linkedin}` },
+                  member.twitter && { icon: Twitter, label: "Twitter/X", url: member.twitter.startsWith("http") ? member.twitter : `https://x.com/${member.twitter.replace("@","")}` },
+                  member.website && { icon: Globe, label: "Website", url: member.website.startsWith("http") ? member.website : `https://${member.website}` },
+                ].filter(Boolean) as any[];
+
+                return (
+                  <motion.div
+                    key={member.id || idx}
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: Math.min(idx * 0.03, 0.3) }}
+                    whileHover={{ scale: 1.02, y: -4 }}
+                    style={{
+                      background: "rgba(255,255,255,0.04)",
+                      border: "1px solid rgba(255,255,255,0.08)",
+                      borderRadius: 16,
+                      padding: 18,
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      textAlign: "center",
+                      position: "relative",
+                      overflow: "hidden",
+                      boxShadow: "0 10px 30px rgba(0,0,0,0.3)",
+                      transition: "box-shadow .3s, border-color .3s"
+                    }}
+                    className="crew-card"
+                  >
+                    {/* Glow effect */}
+                    <div style={{ position: "absolute", inset: -1, background: `radial-gradient(circle at 50% 20%, ${OR}15, transparent 60%)`, pointerEvents: "none", zIndex: 0 }} />
+
+                    <div style={{ position: "relative", zIndex: 1, width: 92, height: 92, borderRadius: "50%", overflow: "hidden", border: `2px solid ${OR}33`, marginBottom: 14, boxShadow: `0 0 0 6px ${OR}08` }}>
+                      {member.avatarUrl ? (
+                        <img src={member.avatarUrl} alt={member.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                      ) : (
+                        <div style={{ width: "100%", height: "100%", background: OR, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28, fontWeight: 900, color: "#fff" }}>
+                          {member.name?.[0] || "F"}
+                        </div>
+                      )}
+                    </div>
+
+                    <div style={{ position: "relative", zIndex: 1 }}>
+                      <div style={{ fontSize: 17, fontWeight: 800, color: "#fff", lineHeight: 1.1 }}>{member.name}</div>
+                      <div style={{ fontSize: 12, color: OR, fontWeight: 700, marginTop: 3, letterSpacing: ".05em" }}>{member.role || "Crew"}</div>
+                      {member.department && <div style={{ fontSize: 11, color: "rgba(255,255,255,.45)", marginTop: 2 }}>{member.department}</div>}
+
+                      {socials.length > 0 && (
+                        <div style={{ display: "flex", gap: 10, justifyContent: "center", marginTop: 14 }}>
+                          {socials.map((s: any, i: number) => {
+                            const Icon = s.icon;
+                            return (
+                              <a key={i} href={s.url} target="_blank" rel="noopener noreferrer" title={s.label} style={{ color: "rgba(255,255,255,.6)", transition: "color .2s, transform .2s" }}
+                                onMouseEnter={e => (e.currentTarget.style.color = OR)} onMouseLeave={e => (e.currentTarget.style.color = "rgba(255,255,255,.6)")}>
+                                <Icon size={16} />
+                              </a>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
+
+            <div style={{ textAlign: "center", marginTop: 24 }}>
+              <a href="#crew" style={{ fontSize: 13, color: OR, textDecoration: "none", fontWeight: 600 }}>Scroll to crew section</a>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* ══════ FOOTER ══════ */}
       <footer style={{ borderTop: "1px solid rgba(255,255,255,.07)", background: "rgba(0,0,0,.45)", backdropFilter: "blur(24px)" }}>

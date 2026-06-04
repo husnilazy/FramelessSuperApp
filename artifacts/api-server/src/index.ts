@@ -8,10 +8,14 @@ import path from "path";
 try {
   const { config } = await import("dotenv");
   const __dirname = path.dirname(fileURLToPath(import.meta.url));
-  const envPath = path.resolve(__dirname, "../../../.env");
+  const envPath = path.resolve(__dirname, "../.env");
   config({ path: envPath });
+  
+  // Tambah ini sementara untuk debug
+  console.log("🔍 ENV PATH:", envPath);
+  console.log("🔍 DATABASE_URL:", process.env.DATABASE_URL?.substring(0, 40) + "...");
 } catch {
-  // dotenv not installed — env vars must be set externally
+  // dotenv not installed
 }
 
 // ── Export app untuk Vercel serverless ─────────────────────────────────────

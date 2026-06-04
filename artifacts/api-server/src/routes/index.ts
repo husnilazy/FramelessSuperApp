@@ -2,8 +2,11 @@
 import { Router, type IRouter } from "express";
 import authRouter from "./auth.js";
 import artsRouter from "./arts.js";
+import availabilityRouter from "./availability.js";
 import calendarRouter from "./calendar.js";
 import chatRouter from "./chat.js";
+import commandCenterRouter from "./command-center.js";
+import timeTrackingRouter from "./time-tracking.js";
 import clientsRouter from "./clients.js";
 import cmsRouter from "./cms.js";
 import coursesRouter from "./courses.js";
@@ -20,6 +23,13 @@ import siteLogosRouter from "./site-logos.js";
 import siteVideosRouter from "./site-videos.js";
 import teamRouter from "./team.js";
 import uploadsRouter from "./uploads.js";
+import aiRouter from "./ai.js";
+import projectFilesRouter from "./project-files.js";
+import filmmakingDocumentsRouter from "./filmmaking-documents.js";
+import filmmakingCollaboratorsRouter from "./filmmaking-collaborators.js";
+import filmmakingSubmissionsRouter from "./filmmaking-submissions.js";
+import filmmakingCollaborationRouter from "./filmmaking-collaboration.js";
+import filmmakingExportRouter from "./filmmaking-export.js";
 
 const router: IRouter = Router();
 
@@ -28,8 +38,11 @@ router.use(authRouter);
 
 // Semua routes lainnya
 router.use(artsRouter);
+router.use(availabilityRouter);
 router.use(calendarRouter);
 router.use(chatRouter);
+router.use(commandCenterRouter);
+router.use(timeTrackingRouter);
 router.use(clientsRouter);
 router.use(cmsRouter);
 router.use(coursesRouter);
@@ -46,6 +59,13 @@ router.use(siteLogosRouter);
 router.use(siteVideosRouter);
 router.use(teamRouter);
 router.use(uploadsRouter);
+router.use(aiRouter);
+router.use(projectFilesRouter);
+router.use(filmmakingDocumentsRouter);
+router.use(filmmakingCollaboratorsRouter);
+router.use(filmmakingSubmissionsRouter);
+router.use(filmmakingCollaborationRouter);
+router.use(filmmakingExportRouter);
 
 // 404 fallback
 router.use((req, res) => {
@@ -55,5 +75,7 @@ router.use((req, res) => {
     method: req.method,
   });
 });
+
+
 
 export default router;

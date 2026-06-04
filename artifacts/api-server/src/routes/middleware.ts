@@ -1,5 +1,6 @@
 import { type Request, type Response, type NextFunction } from "express";
 import { createClient } from "@supabase/supabase-js";
+import { getCrewMemberIdFromToken } from "./crew.js";
 
 const supabaseUrl = process.env.SUPABASE_URL || "";
 const supabaseKey = process.env.SUPABASE_ANON_KEY || "";
@@ -160,5 +161,68 @@ export async function getUserProfile(userId: string): Promise<any> {
   } catch (err) {
     console.error("[getUserProfile]", err);
     return null;
+  }
+}
+
+// Middleware: Require Universal Auth (Admin or Crew)
+export async function requireUniversalAuth(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader?.startsWith("Bearer ")) {
+      res.status(401).json({
+        error: "Unauthorized",
+      });
+      return;
+    }
+
+    const token = authHeader.slice(7).trim();
+
+    // 1. Check if it is a Crew Token
+    const crewMemberId = getCrewMemberIdFromToken(token);
+    if (crewMemberId) {
+      (req as any).userId = crewMemberId;
+      (req as any).user = {
+        id: crewMemberId,
+        role: "crew",
+      };
+      return next();
+    }
+
+    // 2. Fallback to Supabase token
+    const { data, error } = await supabase.auth.getUser(token);
+
+    if (error || !data.user) {
+      res.status(401).json({
+        error: "Invalid or expired token",
+      });
+      return;
+    }
+
+    const { data: userProfile } = await supabase
+      .from("users")
+      .select("*")
+      .eq("id", data.user.id)
+      .single();
+
+    (req as any).userId = data.user.id;
+    (req as any).user = {
+      id: data.user.id,
+      email: data.user.email,
+      role: userProfile?.role?.toLowerCase() || "user",
+      isActive: userProfile?.is_active || false,
+    };
+
+    next();
+
+  } catch (err) {
+    console.error("[requireUniversalAuth]", err);
+    res.status(401).json({
+      error: "Invalid or expired token",
+    });
   }
 }

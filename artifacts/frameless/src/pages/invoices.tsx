@@ -23,9 +23,17 @@ export default function InvoicesPage() {
     status: statusFilter !== "ALL" ? statusFilter : undefined,
   });
 
-  const totalPaid = invoices?.filter((i) => i.status === "PAID").reduce((s, i) => s + Number(i.total), 0) || 0;
-  const totalPending = invoices?.filter((i) => i.status === "SENT").reduce((s, i) => s + Number(i.total), 0) || 0;
-  const totalOverdue = invoices?.filter((i) => i.status === "OVERDUE").reduce((s, i) => s + Number(i.total), 0) || 0;
+  // Use actual paidAmount for collected (supports DP / partial payments correctly)
+  // instead of only full total of fully PAID invoices (which was wrongly using project total price)
+  const totalCollected = invoices?.reduce((s, i) => s + Number(i.paidAmount || 0), 0) || 0;
+  const totalPending = invoices?.reduce((s, i) => {
+    const remaining = Math.max(0, Number(i.total || 0) - Number(i.paidAmount || 0));
+    return s + (i.status === "PAID" ? 0 : remaining);
+  }, 0) || 0;
+  const totalOverdue = invoices?.reduce((s, i) => {
+    const remaining = Math.max(0, Number(i.total || 0) - Number(i.paidAmount || 0));
+    return s + (i.status === "OVERDUE" ? remaining : 0);
+  }, 0) || 0;
 
   return (
     <div className="space-y-8 pb-8">
@@ -47,7 +55,7 @@ export default function InvoicesPage() {
         <Card className="glass-panel border-green-500/20">
           <CardContent className="p-4 text-center">
             <p className="text-xs uppercase tracking-widest text-green-400 mb-1">Collected</p>
-            <p className="text-xl font-heading text-green-400">{formatCurrency(totalPaid)}</p>
+            <p className="text-xl font-heading text-green-400">{formatCurrency(totalCollected)}</p>
           </CardContent>
         </Card>
         <Card className="glass-panel border-blue-500/20">

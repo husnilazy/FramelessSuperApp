@@ -4,12 +4,14 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import { Save, Upload, Play, Trash2, Plus, X, Image, Video, Globe, Settings2, Tag, Palette } from "lucide-react";
+import { Save, Upload, Play, Trash2, Plus, X, Image, Video, Globe, Settings2, Tag, Palette, Users2 } from "lucide-react";
 
 function authHeader() {
   const t = localStorage.getItem("token");
   return t ? { Authorization: `Bearer ${t}` } : {};
 }
+
+type CmsValue = string | boolean;
 
 /* ─── UPLOAD BUTTON ─── */
 function UploadBtn({ value, onChange, label, accept }: { value: string; onChange: (url: string) => void; label?: string; accept?: string }) {
@@ -83,6 +85,16 @@ const CMS_SECTIONS = [
       { key: "whatsapp", label: "WhatsApp (tanpa +)", type: "text" as const },
       { key: "email", label: "Email", type: "text" as const },
       { key: "desc", label: "Call to Action Text", type: "textarea" as const },
+    ],
+  },
+  {
+    id: "crew", label: "Crew Portal", icon: Users2,
+    fields: [
+      { key: "logoUrl", label: "Custom Logo untuk Crew Dashboard (opsional, pakai site-logos jika kosong)", type: "upload" as const },
+      { key: "welcomeMessage", label: "Pesan Sambutan (muncul di bawah nama crew)", type: "text" as const },
+      { key: "footerNote", label: "Footer Note (opsional)", type: "text" as const },
+      { key: "allowCrewPhotoUpload", label: "Izinkan crew upload foto profil sendiri", type: "boolean" as const },
+      { key: "showProfileInfo", label: "Tampilkan info profil lengkap (email, dept, dll)", type: "boolean" as const },
     ],
   },
 ];
@@ -324,18 +336,28 @@ function LogosTab() {
 function ContentTab() {
   const { toast } = useToast();
   const [activeSec, setActiveSec] = useState("branding");
-  const [vals, setVals] = useState<Record<string, Record<string, string>>>({});
+  const [vals, setVals] = useState<Record<string, Record<string, CmsValue>>>({});
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/cms").then(r => r.json()).then((data: Record<string, Record<string, string>>) => {
+    fetch("/api/cms").then(r => r.json()).then((data: Record<string, Record<string, CmsValue>>) => {
       setVals(data || {});
     }).catch(() => { }).finally(() => setLoading(false));
   }, []);
 
-  function set(section: string, key: string, value: string) {
+  function set(section: string, key: string, value: CmsValue) {
     setVals(prev => ({ ...prev, [section]: { ...(prev[section] || {}), [key]: value } }));
+  }
+
+  function valueAsString(value: CmsValue | undefined) {
+    return typeof value === "string" ? value : value == null ? "" : String(value);
+  }
+
+  function valueAsBoolean(value: CmsValue | undefined) {
+    if (typeof value === "boolean") return value;
+    if (typeof value === "string") return value.toLowerCase() !== "false";
+    return true;
   }
 
   async function save() {
@@ -344,7 +366,7 @@ function ContentTab() {
       const updates: { section: string; key: string; value: string }[] = [];
       for (const [section, fields] of Object.entries(vals)) {
         for (const [key, value] of Object.entries(fields)) {
-          updates.push({ section, key, value });
+          updates.push({ section, key, value: String(value) });
         }
       }
       const res = await fetch("/api/cms", { method: "PUT", headers: { "Content-Type": "application/json", ...authHeader() } as any, body: JSON.stringify(updates) });
@@ -383,25 +405,32 @@ function ContentTab() {
                   <label className="text-[11px] uppercase tracking-widest text-muted-foreground font-semibold">{f.label}</label>
                   {f.type === "color" ? (
                     <div className="flex items-center gap-3">
-                      <input type="color" value={vals[sec.id]?.[f.key] || "#ff6b35"} onChange={e => set(sec.id, f.key, e.target.value)}
+                      <input type="color" value={valueAsString(vals[sec.id]?.[f.key]) || "#ff6b35"} onChange={e => set(sec.id, f.key, e.target.value)}
                         className="w-12 h-10 rounded-lg border border-border cursor-pointer bg-muted/30" />
-                      <Input value={vals[sec.id]?.[f.key] || ""} onChange={e => set(sec.id, f.key, e.target.value)} className="bg-muted/30 border-border flex-1" placeholder="#ff6b35" />
-                      <div style={{ width: 40, height: 40, borderRadius: 10, background: vals[sec.id]?.[f.key] || "transparent", border: "1px solid rgba(255,255,255,0.15)", flexShrink: 0 }} />
+                      <Input value={valueAsString(vals[sec.id]?.[f.key])} onChange={e => set(sec.id, f.key, e.target.value)} className="bg-muted/30 border-border flex-1" placeholder="#ff6b35" />
+                      <div style={{ width: 40, height: 40, borderRadius: 10, background: valueAsString(vals[sec.id]?.[f.key]) || "transparent", border: "1px solid rgba(255,255,255,0.15)", flexShrink: 0 }} />
                     </div>
                   ) : f.type === "upload" ? (
                     <>
-                      <UploadBtn value={vals[sec.id]?.[f.key] || ""} onChange={url => set(sec.id, f.key, url)} label="Upload File" />
-                      {vals[sec.id]?.[f.key] && sec.id === "branding" && f.key === "logoUrl" && (
-                        <div className="mt-2 p-4 bg-black rounded-xl flex items-center justify-center h-16 border border-border">
-                          <img src={vals[sec.id]?.[f.key]} alt="logo preview" style={{ maxHeight: "100%", maxWidth: "100%", filter: "brightness(0) invert(1)", objectFit: "contain" }} />
+                      <UploadBtn value={valueAsString(vals[sec.id]?.[f.key])} onChange={url => set(sec.id, f.key, url)} label="Upload File" />
+                      {vals[sec.id]?.[f.key] && f.key === "logoUrl" && (
+                        <div className="mt-2 p-4 bg-black/70 rounded-xl flex items-center justify-center h-16 border border-border">
+                          <img src={valueAsString(vals[sec.id]?.[f.key])} alt="logo preview" style={{ maxHeight: "100%", maxWidth: "100%", objectFit: "contain" }} />
                         </div>
                       )}
                     </>
                   ) : f.type === "textarea" ? (
-                    <textarea value={vals[sec.id]?.[f.key] || ""} onChange={e => set(sec.id, f.key, e.target.value)}
+                    <textarea value={valueAsString(vals[sec.id]?.[f.key])} onChange={e => set(sec.id, f.key, e.target.value)}
                       className="w-full bg-muted/30 border border-border rounded-lg px-3 py-2 text-sm text-foreground resize-none h-20" />
+                  ) : f.type === "boolean" ? (
+                    <input 
+                      type="checkbox" 
+                      checked={valueAsBoolean(vals[sec.id]?.[f.key])} 
+                      onChange={e => set(sec.id, f.key, e.target.checked)} 
+                      className="w-4 h-4 accent-primary rounded" 
+                    />
                   ) : (
-                    <Input type={f.type === "number" ? "number" : "text"} value={vals[sec.id]?.[f.key] || ""} onChange={e => set(sec.id, f.key, e.target.value)} className="bg-muted/30 border-border" />
+                    <Input type={f.type === "number" ? "number" : "text"} value={valueAsString(vals[sec.id]?.[f.key])} onChange={e => set(sec.id, f.key, e.target.value)} className="bg-muted/30 border-border" />
                   )}
                 </div>
               ))}

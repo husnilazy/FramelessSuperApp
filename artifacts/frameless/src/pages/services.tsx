@@ -95,7 +95,16 @@ export default function ServicesPage() {
     const [modal, setModal] = useState<string | null>(null);
     const [formOpen, setFormOpen] = useState(false);
     const [selService, setSelService] = useState<ServiceItem | null>(null);
-    const [form, setForm] = useState({ name: "", email: "", phone: "", message: "" });
+    const [form, setForm] = useState({ 
+      name: "", 
+      email: "", 
+      phone: "", 
+      company: "",
+      message: "",
+      budget: "",
+      timeline: "",
+      preferred: "WA"
+    });
     const [submitting, setSubmitting] = useState(false);
 
     const { data: cms } = useQuery<CmsData>({ queryKey: ["/api/cms"], queryFn: () => fetch("/api/cms").then(r => r.json()), staleTime: 60_000 });
@@ -115,7 +124,7 @@ export default function ServicesPage() {
 
     function openInquiry(svc: ServiceItem) {
         setSelService(svc);
-        setForm(p => ({ ...p, message: `Halo, saya tertarik dengan layanan ${svc.title}.` }));
+        setForm({ name: "", email: "", phone: "", company: "", message: `Halo, saya tertarik dengan layanan ${svc.title}.`, budget: "", timeline: "", preferred: "WA" });
         setFormOpen(true);
     }
 
@@ -127,7 +136,7 @@ export default function ServicesPage() {
             await fetch("/api/cms/inquiry", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...form, service: selService?.title }) });
             toast({ title: "Pesan terkirim!", description: "Tim kami akan menghubungi kamu segera." });
             setFormOpen(false);
-            setForm({ name: "", email: "", phone: "", message: "" });
+            setForm({ name: "", email: "", phone: "", company: "", message: "", budget: "", timeline: "", preferred: "WA" });
         } catch {
             toast({ variant: "destructive", title: "Gagal kirim", description: "Coba hubungi langsung via WhatsApp." });
         } finally { setSubmitting(false); }
@@ -291,21 +300,56 @@ export default function ServicesPage() {
                         <h3 style={{ fontSize: 20, fontWeight: 800, color: "#fff", marginBottom: 6 }}>Kirim Inquiry</h3>
                         {selService && <p style={{ fontSize: 13, color: OR, marginBottom: 20, fontWeight: 600 }}>{selService.icon} {selService.title}</p>}
                         <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                            {[{ k: "name", l: "Nama Lengkap *", ph: "Nama kamu" }, { k: "email", l: "Email *", t: "email", ph: "email@kamu.com" }, { k: "phone", l: "No. WhatsApp", t: "tel", ph: "+62 8xx-xxxx-xxxx" }].map((f: any) => (
+                            {[
+                              { k: "name", l: "Nama Lengkap *", ph: "Nama kamu" }, 
+                              { k: "email", l: "Email *", t: "email", ph: "email@kamu.com" }, 
+                              { k: "phone", l: "No. WhatsApp *", t: "tel", ph: "+62 8xx-xxxx-xxxx" },
+                              { k: "company", l: "Perusahaan / Brand", ph: "Nama perusahaan kamu" }
+                            ].map((f: any) => (
                                 <div key={f.k}>
                                     <label style={{ display: "block", fontSize: 10, fontWeight: 700, letterSpacing: ".14em", textTransform: "uppercase", color: "rgba(255,255,255,.35)", marginBottom: 6 }}>{f.l}</label>
                                     <input type={f.t || "text"} value={(form as any)[f.k]} onChange={e => setForm(p => ({ ...p, [f.k]: e.target.value }))} placeholder={f.ph} required={f.l.includes("*")} style={{ ...ipt }} />
                                 </div>
                             ))}
+                            
                             <div>
-                                <label style={{ display: "block", fontSize: 10, fontWeight: 700, letterSpacing: ".14em", textTransform: "uppercase", color: "rgba(255,255,255,.35)", marginBottom: 6 }}>Pesan</label>
-                                <textarea value={form.message} onChange={e => setForm(p => ({ ...p, message: e.target.value }))} rows={3} style={{ ...ipt, resize: "vertical" }} />
+                                <label style={{ display: "block", fontSize: 10, fontWeight: 700, letterSpacing: ".14em", textTransform: "uppercase", color: "rgba(255,255,255,.35)", marginBottom: 6 }}>Estimasi Budget</label>
+                                <select value={form.budget} onChange={e => setForm(p => ({ ...p, budget: e.target.value }))} style={{ ...ipt, cursor: "pointer" }}>
+                                    <option value="">Pilih range</option>
+                                    <option value="< 5jt">&lt; Rp 5 Juta</option>
+                                    <option value="5-15jt">Rp 5 - 15 Juta</option>
+                                    <option value="15-50jt">Rp 15 - 50 Juta</option>
+                                    <option value="50jt+">Rp 50 Juta+</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label style={{ display: "block", fontSize: 10, fontWeight: 700, letterSpacing: ".14em", textTransform: "uppercase", color: "rgba(255,255,255,.35)", marginBottom: 6 }}>Timeline / Deadline</label>
+                                <select value={form.timeline} onChange={e => setForm(p => ({ ...p, timeline: e.target.value }))} style={{ ...ipt, cursor: "pointer" }}>
+                                    <option value="">Pilih timeline</option>
+                                    <option value="ASAP (1 bulan)">ASAP (dalam 1 bulan)</option>
+                                    <option value="2-3 bulan">2-3 bulan</option>
+                                    <option value="4+ bulan">4+ bulan</option>
+                                    <option value="Flexible">Flexible</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label style={{ display: "block", fontSize: 10, fontWeight: 700, letterSpacing: ".14em", textTransform: "uppercase", color: "rgba(255,255,255,.35)", marginBottom: 6 }}>Preferensi Kontak</label>
+                                <select value={form.preferred} onChange={e => setForm(p => ({ ...p, preferred: e.target.value }))} style={{ ...ipt, cursor: "pointer" }}>
+                                    <option value="WA">WhatsApp</option>
+                                    <option value="Email">Email</option>
+                                    <option value="Call">Telepon</option>
+                                </select>
+                            </div>
+                            
+                            <div>
+                                <label style={{ display: "block", fontSize: 10, fontWeight: 700, letterSpacing: ".14em", textTransform: "uppercase", color: "rgba(255,255,255,.35)", marginBottom: 6 }}>Deskripsi Project / Pesan *</label>
+                                <textarea value={form.message} onChange={e => setForm(p => ({ ...p, message: e.target.value }))} rows={4} placeholder="Ceritakan singkat project kamu, tujuan, target audience, dll..." style={{ ...ipt, resize: "vertical" }} required />
                             </div>
                             <div style={{ display: "flex", gap: 10, marginTop: 6 }}>
                                 {cont.whatsapp && (
                                     <a href={wa} target="_blank" rel="noopener noreferrer" style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 7, padding: "12px", borderRadius: 12, background: "#25D366", color: "#fff", textDecoration: "none", fontSize: 13, fontWeight: 700 }}><MessageCircle size={14} /> WhatsApp</a>
                                 )}
-                                <button type="submit" disabled={submitting || !form.name || !form.email} style={{ flex: 1, padding: "12px", borderRadius: 12, background: OR, border: "none", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: FONT, opacity: submitting ? 0.7 : 1 }}>{submitting ? "Mengirim..." : "Kirim Pesan"}</button>
+                                <button type="submit" disabled={submitting || !form.name || !form.email || !form.message} style={{ flex: 1, padding: "12px", borderRadius: 12, background: OR, border: "none", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: FONT, opacity: submitting ? 0.7 : 1 }}>{submitting ? "Mengirim..." : "Kirim Inquiry"}</button>
                             </div>
                         </form>
                     </div>

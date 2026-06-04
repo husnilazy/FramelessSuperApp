@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
-import { db, projectsTable, clientsTable, teamMembersTable, invoicesTable, expensesTable, activityLogsTable } from "@workspace/db";
+import { db, pool, projectsTable, clientsTable, teamMembersTable, invoicesTable, expensesTable, activityLogsTable } from "@workspace/db";
 import { eq, desc } from "drizzle-orm";
+import { logger } from "../lib/logger.js";
 
 const router: IRouter = Router();
 
@@ -33,33 +34,100 @@ type ActivityRow = {
 };
 
 router.get("/dashboard/stats", async (_req, res): Promise<void> => {
-  const [projects, clients, team, invoices, expenses] = await Promise.all([
-    db.select().from(projectsTable),
-    db.select().from(clientsTable),
-    db.select().from(teamMembersTable).where(eq(teamMembersTable.isActive, true)),
-    db.select().from(invoicesTable),
-    db.select().from(expensesTable),
-  ]) as [ProjectRow[], unknown[], unknown[], InvoiceRow[], ExpenseRow[]];
+  try {
+    let projects: any[] = [];
+    let clients: any[] = [];
+    let team: any[] = [];
+    let invoices: any[] = [];
+    let expenses: any[] = [];
 
-  const activeProjects = projects.filter((p: ProjectRow) => p.status === "active").length;
-  const totalRevenue = invoices.filter((i: InvoiceRow) => i.status === "PAID").reduce((s: number, i: InvoiceRow) => s + Number(i.total), 0);
-  const totalExpenses = expenses.reduce((s: number, e: ExpenseRow) => s + Number(e.amount), 0);
-  const pendingInvoices = invoices.filter((i: InvoiceRow) => i.status === "DRAFT" || i.status === "SENT");
-  const now = new Date();
-  const overdueInvoices = invoices.filter((i: InvoiceRow) => i.status !== "PAID" && i.dueDate && new Date(i.dueDate) < now).length;
+    if (pool) {
+      // Safe raw queries using only guaranteed columns to survive schema drift
+      try {
+        const p = await pool.query('SELECT status, client FROM projects');
+        projects = p.rows;
+      } catch (e) { logger.error({ err: e }, 'dashboard.projects.raw.fail'); }
 
-  res.json({
-    totalProjects: projects.length,
-    activeProjects,
-    totalClients: clients.length,
-    totalTeamMembers: team.length,
-    totalRevenue,
-    totalExpenses,
-    netProfit: totalRevenue - totalExpenses,
-    pendingInvoices: pendingInvoices.length,
-    overdueInvoices,
-    pendingInvoiceAmount: pendingInvoices.reduce((s: number, i: InvoiceRow) => s + Number(i.total), 0),
-  });
+      try {
+        const c = await pool.query('SELECT id, name, status, notes FROM clients');
+        clients = c.rows;
+      } catch (e) {
+        // fallback core only
+        try {
+          const c = await pool.query('SELECT id, name, notes FROM clients');
+          clients = c.rows.map((r: any) => ({ ...r, status: null }));
+        } catch (e2) { logger.error({ err: e2 }, 'dashboard.clients.raw.fail'); }
+      }
+
+      try {
+        const t = await pool.query(`SELECT id FROM team_members WHERE "isActive" = true OR is_active = true`);
+        team = t.rows;
+      } catch (e) {
+        try {
+          const t = await pool.query('SELECT id FROM team_members WHERE is_active = true');
+          team = t.rows;
+        } catch (e2) { logger.error({ err: e2 }, 'dashboard.team.raw.fail'); }
+      }
+
+      try {
+        const i = await pool.query('SELECT status, total, "paidAmount", "dueDate", "paidAt", "updatedAt" FROM invoices');
+        invoices = i.rows;
+      } catch (e) { logger.error({ err: e }, 'dashboard.invoices.raw.fail'); }
+
+      try {
+        const e = await pool.query('SELECT amount, date FROM expenses');
+        expenses = e.rows;
+      } catch (e) { logger.error({ err: e }, 'dashboard.expenses.raw.fail'); }
+    } else {
+      // Fallback to drizzle (may fail on drift)
+      try {
+        projects = await db.select({ status: projectsTable.status, client: projectsTable.client }).from(projectsTable);
+        clients = await db.select({ id: clientsTable.id, name: clientsTable.name, status: clientsTable.status, notes: clientsTable.notes }).from(clientsTable);
+        team = await db.select({ id: teamMembersTable.id }).from(teamMembersTable).where(eq(teamMembersTable.isActive, true));
+        invoices = await db.select().from(invoicesTable);
+        expenses = await db.select().from(expensesTable);
+      } catch (e) { logger.error({ err: e }, 'dashboard.drizzle.fallback.fail'); }
+    }
+
+    // Active / ongoing projects (match the kanban "sedang berjalan")
+    const completed = ['completed', 'done', 'delivered', 'cancelled'];
+    const activeProjects = projects.filter((p: any) => {
+      const st = String(p.status || '').toLowerCase();
+      return !completed.includes(st);
+    }).length;
+
+    // Use actual collected (paidAmount) for revenue/net profit.
+    // This way only real payments count (including partial/DP), not full invoice totals 
+    // or "total semua project" budgets. Unpaid invoices don't inflate the profit.
+    const totalRevenue = invoices.reduce((s: number, i: any) => s + Number(i.paidAmount || 0), 0);
+    const totalExpenses = expenses.reduce((s: number, e: any) => s + Number(e.amount || 0), 0);
+
+    const pendingInvoices = invoices.filter((i: any) => i.status === "DRAFT" || i.status === "SENT" || (i.status !== "PAID" && Number(i.paidAmount || 0) < Number(i.total || 0)));
+    const now = new Date();
+    const overdueInvoices = invoices.filter((i: any) => i.status !== "PAID" && i.dueDate && new Date(i.dueDate) < now).length;
+
+    // Leads from clients (prospect or inquiry notes) - for dashboard info
+    const leads = clients.filter((c: any) =>
+      c.status === 'prospect' || (c.notes && /Inquiry/i.test(String(c.notes || '')))
+    ).length;
+
+    res.json({
+      totalProjects: projects.length,
+      activeProjects,
+      totalClients: clients.length,
+      totalTeam: team.length,
+      totalRevenue,
+      totalExpenses,
+      netProfit: totalRevenue - totalExpenses,
+      pendingInvoices: pendingInvoices.length,
+      overdueInvoices,
+      pendingInvoiceAmount: pendingInvoices.reduce((s: number, i: any) => s + Number(i.total || 0), 0),
+      leads,
+    });
+  } catch (err) {
+    logger.error({ err }, "dashboard.stats.error");
+    res.status(500).json({ error: "Failed to fetch dashboard stats" });
+  }
 });
 
 router.get("/dashboard/cash-flow", async (req, res): Promise<void> => {
@@ -98,8 +166,8 @@ router.get("/finance/summary", async (req, res): Promise<void> => {
     db.select().from(expensesTable),
   ]) as [InvoiceRow[], ExpenseRow[]];
 
-  const paidInvoices = invoices.filter((i: InvoiceRow) => i.status === "PAID");
-  const totalIncome = paidInvoices.reduce((s: number, i: InvoiceRow) => s + Number(i.paidAmount || i.total), 0);
+  // Use actual paidAmount for totalIncome (consistent with dashboard net profit)
+  const totalIncome = invoices.reduce((s: number, i: InvoiceRow) => s + Number(i.paidAmount || 0), 0);
   const totalExpenses = expenses.reduce((s: number, e: ExpenseRow) => s + Number(e.amount), 0);
   const invoicedAmount = invoices.reduce((s: number, i: InvoiceRow) => s + Number(i.total), 0);
   const paidAmount = invoices.reduce((s: number, i: InvoiceRow) => s + Number(i.paidAmount), 0);

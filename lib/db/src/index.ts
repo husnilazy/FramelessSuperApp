@@ -15,8 +15,11 @@ if (!connectionString) {
   console.warn("⚠️ WARNING: DATABASE_URL belum terdeteksi saat inisialisasi modul.");
 }
 
-// Inisialisasi pool secara aman tanpa langsung throw error
-export const pool = connectionString ? new Pool({ connectionString }) : null;
+// Inisialisasi pool dengan SSL untuk Supabase
+export const pool = connectionString ? new Pool({ 
+  connectionString,
+  ssl: { rejectUnauthorized: false }
+}) : null;
 
 // Gunakan Proxy Fallback agar tidak memicu Fatal Crash 500 jika DB belum siap dibaca Vercel
 export const db = pool

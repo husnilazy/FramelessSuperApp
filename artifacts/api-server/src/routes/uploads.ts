@@ -8,9 +8,10 @@ import {
 import multer from "multer";
 import path from "path";
 import { requireAuth } from "./middleware.js";
-import { crewTokenStore } from "./crew.js";
+import { crewTokenStore, getCrewMemberIdFromToken } from "./crew.js";
 import { logger } from "../lib/logger.js";
 import { supabase } from "../lib/supabase.js";
+import { db, digitalAssetsTable, projectFilesTable } from "@workspace/db";
 
 const router: IRouter = Router();
 
@@ -233,8 +234,7 @@ router.post(
         const token =
           authHeader.slice(7);
 
-        const memberId =
-          crewTokenStore.get(token);
+        const memberId = getCrewMemberIdFromToken(token);
 
         if (!memberId) {
           res.status(401).json({
@@ -262,6 +262,61 @@ router.post(
             fileName
           );
 
+        let asset = null;
+        let projectFile = null;
+
+        const label =
+          typeof req.body.label === "string" && req.body.label.trim()
+            ? req.body.label.trim()
+            : req.file.originalname;
+
+        const projectId =
+          typeof req.body.projectId === "string" && req.body.projectId.trim()
+            ? req.body.projectId.trim()
+            : "";
+
+        try {
+          if (projectId) {
+            // === NEW: Attach to specific project (recommended for crew work) ===
+            const [createdFile] = await db
+              .insert(projectFilesTable)
+              .values({
+                projectId,
+                uploadedBy: memberId,
+                title: label,
+                fileUrl: publicUrl,
+                fileType: req.file.mimetype,
+                fileSize: req.file.size,
+                category: req.body.assetStatus || "work-file",
+                description: `Uploaded by crew. Original: ${req.file.originalname}`,
+              })
+              .returning();
+
+            projectFile = createdFile;
+          } else {
+            // Legacy behavior: goes to digital assets as draft (not recommended for work files)
+            const assetStatus = req.body.assetStatus || "raw-footage";
+            const [createdAsset] = await db
+              .insert(digitalAssetsTable)
+              .values({
+                title: label,
+                description: `Uploaded by crew ${memberId} | Original: ${req.file.originalname}`,
+                category: assetStatus,
+                price: 0,
+                fileUrl: publicUrl,
+                thumbnailUrl: null,
+                previewImages: "[]",
+                isActive: false,
+                isFeatured: false,
+              })
+              .returning();
+
+            asset = createdAsset;
+          }
+        } catch (assetError) {
+          logger.error({ err: assetError, memberId, fileName }, "crew.upload.tracking_failed");
+        }
+
         logger.info(
           {
             memberId,
@@ -274,6 +329,9 @@ router.post(
         res.json({
           url: publicUrl,
           filename: fileName,
+          asset,
+          projectFile,
+          projectId: projectId || null,
         });
       } catch (error) {
         logger.error(

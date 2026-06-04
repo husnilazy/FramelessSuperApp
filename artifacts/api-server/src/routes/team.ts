@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { db, teamMembersTable, pool } from "@workspace/db";
+import { db, teamMembersTable, projectTasksTable, teamAvailabilityTable, projectsTable, pool } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import crypto from "crypto";
 import { logger } from "../lib/logger.js";
@@ -27,6 +27,10 @@ function mapMember(m: any) {
     avatarUrl: m.avatarUrl ?? m.avatar_url,
     username: m.username ?? null,
     whatsapp: m.whatsapp ?? null,
+    instagram: m.instagram ?? null,
+    linkedin: m.linkedin ?? null,
+    twitter: m.twitter ?? null,
+    website: m.website ?? null,
     isActive: m.isActive ?? m.is_active,
     joinedDate: m.joinedDate ?? m.joined_date,
     orderIndex: m.orderIndex ?? m.order_index,
@@ -47,6 +51,10 @@ const columnMap: Record<string, string> = {
   avatar_url: "avatar_url",
   username: "username",
   whatsapp: "whatsapp",
+  instagram: "instagram",
+  linkedin: "linkedin",
+  twitter: "twitter",
+  website: "website",
   isActive: "is_active",
   is_active: "is_active",
   joinedDate: "joined_date",
@@ -282,6 +290,17 @@ router.delete("/team/:id", async (req, res): Promise<void> => {
 
     const id = String(req.params.id);
 
+    // Clean up related data first (for test members created during development)
+    await db.delete(projectTasksTable).where(eq(projectTasksTable.memberId, id));
+    await db.delete(teamAvailabilityTable).where(eq(teamAvailabilityTable.memberId, id));
+
+    // Null out assignments in projects (to avoid FK blocking)
+    await db
+      .update(projectsTable)
+      .set({ assignedMemberId: null })
+      .where(eq(projectsTable.assignedMemberId, id));
+
+    // Delete the member
     await db
       .delete(teamMembersTable)
       .where(eq(teamMembersTable.id, id));

@@ -33,13 +33,19 @@ app.use(
     origin: (origin, callback) => {
       const allowedOrigins = [
         "http://localhost:5173",
+        "http://localhost:5174",
+        "http://127.0.0.1:5173",
+        "http://127.0.0.1:5174",
         "https://www.framelesscreative.com",
         "https://framelesscreative.com",
         "https://frameless-super-app-frameless.vercel.app"
       ];
 
-      // izinkan request non-browser (Postman/server)
       if (!origin) return callback(null, true);
+
+      if (origin.startsWith("http://localhost:") || origin.startsWith("http://127.0.0.1:")) {
+        return callback(null, true);
+      }
 
       if (allowedOrigins.includes(origin)) {
         return callback(null, true);
@@ -64,5 +70,15 @@ const uploadDir = process.env.NODE_ENV === "production"
   : path.resolve(__dirname, "../../../uploads");
 app.use("/api/uploads", express.static(uploadDir));
 app.use("/api", router);
+
+// Global error handler — expose detail error di response dan console
+app.use((err: any, req: any, res: any, next: any) => {
+  console.error("❌ GLOBAL ERROR:", err?.message || err);
+  console.error("❌ STACK:", err?.stack);
+  res.status(500).json({
+    error: err?.message || "Internal Server Error",
+    detail: process.env.NODE_ENV !== "production" ? err?.stack : undefined,
+  });
+});
 
 export default app;

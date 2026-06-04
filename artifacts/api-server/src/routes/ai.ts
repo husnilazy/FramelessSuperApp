@@ -1,6 +1,8 @@
 import { Router, type IRouter } from "express";
 import { requireAuth } from "./middleware.js";
-import { crewTokenStore } from "./crew.js";
+import { getCrewMemberIdFromToken } from "./crew.js";
+import { db, teamMembersTable, projectsTable, projectTasksTable } from "@workspace/db";
+import { eq, or } from "drizzle-orm";
 
 const router: IRouter = Router();
 
@@ -54,14 +56,59 @@ router.post("/ai/chat", async (req, res): Promise<void> => {
     const { messages, role } = req.body;
     if (!messages || !Array.isArray(messages)) { res.status(400).json({ error: "Messages required" }); return; }
 
-    const isCrewToken = req.headers.authorization?.startsWith("Bearer ")
-      ? crewTokenStore.has(req.headers.authorization.slice(7))
-      : false;
+    const authHeader = req.headers.authorization;
+    const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
+    const crewMemberId = token ? getCrewMemberIdFromToken(token) : null;
+    const isCrew = role === "crew" || !!crewMemberId;
 
-    const systemPrompt = (role === "crew" || isCrewToken) ? CREW_SYSTEM : ADMIN_SYSTEM;
+    let systemPrompt = isCrew ? CREW_SYSTEM : ADMIN_SYSTEM;
+
+    // === CREW CONTEXT INJECTION (makes AI truly know the project) ===
+    if (crewMemberId) {
+      try {
+        // Get member info
+        const [member] = await db.select().from(teamMembersTable).where(eq(teamMembersTable.id, crewMemberId)).limit(1);
+
+        // Get projects this crew is involved in
+        const projects = await db.select().from(projectsTable)
+          .where(or(
+            eq(projectsTable.assignedMemberId, crewMemberId),
+            // Note: for simplicity we also fetch active projects
+          ))
+          .limit(5);
+
+        // Get their active tasks
+        const tasks = await db.select().from(projectTasksTable)
+          .where(eq(projectTasksTable.memberId, crewMemberId))
+          .limit(8);
+
+        const context = {
+          currentUser: member ? { name: member.name, role: member.role, department: member.department } : null,
+          myActiveProjects: projects.map((p: any) => ({ id: p.id, title: p.title, client: p.client, status: p.status, deadline: p.deadline })),
+          myCurrentTasks: tasks.map((t: any) => ({ title: t.title, status: t.status, dueDate: t.dueDate, priority: t.priority }))
+        };
+
+        systemPrompt = `${CREW_SYSTEM}
+
+=== KONTEKS PROJECT SAAT INI ===
+Kamu sedang membantu ${member?.name || 'crew'} (${member?.role || ''}).
+
+Proyek aktif yang sedang dikerjakan:
+${JSON.stringify(context.myActiveProjects, null, 2)}
+
+Tugas yang sedang ditugaskan kepadanya:
+${JSON.stringify(context.myCurrentTasks, null, 2)}
+
+Gunakan konteks di atas untuk memberikan jawaban yang relevan dan membantu pekerjaan sehari-hari.`;
+      } catch (ctxErr) {
+        console.warn("[AI] Failed to load crew context:", ctxErr);
+      }
+    }
+
     const reply = await chatCompletion(messages, systemPrompt);
     res.json({ reply });
   } catch (e) {
+    console.error("[AI Chat] Error:", e);
     res.status(500).json({ error: "AI service error" });
   }
 });

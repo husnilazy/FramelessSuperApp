@@ -27,6 +27,16 @@ tags:
     description: Financial reports
   - name: activity
     description: Activity logs
+  - name: filmmaking-documents
+    description: Filmmaking documents (concepts, scripts, shotlists)
+  - name: filmmaking-collaborators
+    description: Filmmaking document collaborators
+  - name: filmmaking-submissions
+    description: Filmmaking document submissions to admin
+  - name: filmmaking-collaboration
+    description: Real-time collaboration and presence for filmmaking documents
+  - name: filmmaking-export
+    description: Export filmmaking documents to PDF
 
 paths:
   /healthz:
@@ -814,6 +824,506 @@ paths:
                 items:
                   $ref: "#/components/schemas/ActivityLog"
 
+  /filmmaking-documents:
+    get:
+      operationId: listFilmmakingDocuments
+      tags: [filmmaking-documents]
+      summary: List crew's filmmaking documents
+      parameters:
+        - in: query
+          name: projectId
+          schema:
+            type: string
+          description: Optional project ID filter
+      responses:
+        "200":
+          description: List of documents
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/FilmmakingDocument"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      operationId: createFilmmakingDocument
+      tags: [filmmaking-documents]
+      summary: Create new filmmaking document
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateFilmmakingDocumentBody"
+      responses:
+        "201":
+          description: Document created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FilmmakingDocument"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /filmmaking-documents/{id}:
+    get:
+      operationId: getFilmmakingDocument
+      tags: [filmmaking-documents]
+      summary: Get filmmaking document by ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Document details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FilmmakingDocumentDetail"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    put:
+      operationId: updateFilmmakingDocument
+      tags: [filmmaking-documents]
+      summary: Update filmmaking document
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateFilmmakingDocumentBody"
+      responses:
+        "200":
+          description: Document updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FilmmakingDocument"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteFilmmakingDocument
+      tags: [filmmaking-documents]
+      summary: Delete filmmaking document
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Document deleted
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /filmmaking-documents/{id}/duplicate:
+    post:
+      operationId: duplicateFilmmakingDocument
+      tags: [filmmaking-documents]
+      summary: Clone/duplicate document
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "201":
+          description: Document duplicated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FilmmakingDocument"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /filmmaking-documents/{id}/collaborators:
+    get:
+      operationId: listDocumentCollaborators
+      tags: [filmmaking-collaborators]
+      summary: List document collaborators
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of collaborators
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/FilmmakingCollaboratorDetail"
+    post:
+      operationId: addDocumentCollaborator
+      tags: [filmmaking-collaborators]
+      summary: Add collaborator to document
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddCollaboratorBody"
+      responses:
+        "201":
+          description: Collaborator added
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FilmmakingCollaborator"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /filmmaking-documents/{id}/collaborators/{collaboratorId}:
+    patch:
+      operationId: updateDocumentCollaborator
+      tags: [filmmaking-collaborators]
+      summary: Update collaborator role
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: collaboratorId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateCollaboratorBody"
+      responses:
+        "200":
+          description: Collaborator updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FilmmakingCollaborator"
+    delete:
+      operationId: removeDocumentCollaborator
+      tags: [filmmaking-collaborators]
+      summary: Remove collaborator
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: collaboratorId
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Collaborator removed
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /filmmaking-documents/{id}/submit:
+    post:
+      operationId: submitDocumentToAdmin
+      tags: [filmmaking-submissions]
+      summary: Submit document to admin for review
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "201":
+          description: Document submitted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FilmmakingSubmission"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /filmmaking-submissions:
+    get:
+      operationId: listFilmmakingSubmissions
+      tags: [filmmaking-submissions]
+      summary: List all submissions (admin only)
+      parameters:
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [pending, approved, revision_requested]
+          description: Filter by submission status
+      responses:
+        "200":
+          description: List of submissions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/FilmmakingSubmissionDetail"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /filmmaking-submissions/{id}:
+    get:
+      operationId: getFilmmakingSubmission
+      tags: [filmmaking-submissions]
+      summary: Get submission details
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Submission details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FilmmakingSubmissionFull"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /filmmaking-submissions/{id}/approve:
+    post:
+      operationId: approveFilmmakingSubmission
+      tags: [filmmaking-submissions]
+      summary: Approve submission (admin only)
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Submission approved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FilmmakingSubmission"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /filmmaking-submissions/{id}/request-revision:
+    post:
+      operationId: requestFilmmakingRevision
+      tags: [filmmaking-submissions]
+      summary: Request revision (admin only)
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RequestRevisionBody"
+      responses:
+        "200":
+          description: Revision requested
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FilmmakingSubmission"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /filmmaking-collaboration/active/{documentId}:
+    get:
+      operationId: getActiveCollaborators
+      tags: [filmmaking-collaboration]
+      summary: Get list of active collaborators on a document
+      parameters:
+        - in: path
+          name: documentId
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of active collaborators
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ActiveCollaborator"
+
+  /filmmaking-collaboration/ping/{documentId}:
+    post:
+      operationId: pingCollaborativePresence
+      tags: [filmmaking-collaboration]
+      summary: Update presence - user is actively viewing/editing
+      parameters:
+        - in: path
+          name: documentId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PingPresenceBody"
+      responses:
+        "200":
+          description: Presence updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+
+  /filmmaking-collaboration/leave/{documentId}:
+    post:
+      operationId: leaveCollaborativeDocument
+      tags: [filmmaking-collaboration]
+      summary: Notify server when user leaves document
+      parameters:
+        - in: path
+          name: documentId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LeavePresenceBody"
+      responses:
+        "200":
+          description: Presence removed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+
+  /filmmaking-documents/{documentId}/export-pdf:
+    post:
+      operationId: exportFilmmakingDocumentPdf
+      tags: [filmmaking-export]
+      summary: Export document as PDF (printable HTML)
+      parameters:
+        - in: path
+          name: documentId
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: HTML content ready for printing to PDF
+          content:
+            text/html:
+              schema:
+                type: string
+        "404":
+          description: Document not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 components:
   schemas:
     HealthStatus:
@@ -981,6 +1491,9 @@ components:
         driveUrl:
           type: string
           nullable: true
+        assignedMemberId:
+          type: string
+          nullable: true
         createdAt:
           type: string
         updatedAt:
@@ -1012,6 +1525,8 @@ components:
           type: string
         driveUrl:
           type: string
+        assignedMemberId:
+          type: string
       required: [title]
 
     UpdateProjectBody:
@@ -1041,6 +1556,9 @@ components:
           type: string
         driveUrl:
           type: string
+        assignedMemberId:
+          type: string
+          nullable: true
 
     ProjectTask:
       type: object
@@ -1066,6 +1584,9 @@ components:
           nullable: true
         timeSpent:
           type: integer
+        memberId:
+          type: string
+          nullable: true
         createdAt:
           type: string
         updatedAt:
@@ -1087,6 +1608,10 @@ components:
           type: string
         roleLabel:
           type: string
+        memberId:
+          type: string
+          nullable: true
+          description: ID of assigned team/crew member for this task
       required: [title]
 
     UpdateTaskBody:
@@ -1106,6 +1631,10 @@ components:
           type: string
         timeSpent:
           type: integer
+        memberId:
+          type: string
+          nullable: true
+          description: ID of assigned team/crew member for this task
 
     TeamMember:
       type: object
@@ -1522,3 +2051,239 @@ components:
         - paidAmount
         - unpaidAmount
         - expenseByCategory
+
+    FilmmakingDocument:
+      type: object
+      properties:
+        id:
+          type: string
+        projectId:
+          type: string
+          nullable: true
+        crewId:
+          type: string
+        docType:
+          type: string
+          enum: [concept, script, shotlist]
+        title:
+          type: string
+        content:
+          type: object
+          nullable: true
+        isDraft:
+          type: boolean
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+      required: [id, crewId, docType, title, isDraft, createdAt, updatedAt]
+
+    FilmmakingDocumentDetail:
+      allOf:
+        - $ref: "#/components/schemas/FilmmakingDocument"
+        - type: object
+          properties:
+            collaborators:
+              type: array
+              items:
+                $ref: "#/components/schemas/FilmmakingCollaborator"
+            userAccess:
+              type: string
+              enum: [owner, editor, viewer]
+          required: [collaborators, userAccess]
+
+    CreateFilmmakingDocumentBody:
+      type: object
+      properties:
+        docType:
+          type: string
+          enum: [concept, script, shotlist]
+        title:
+          type: string
+        projectId:
+          type: string
+          nullable: true
+        content:
+          type: object
+          nullable: true
+      required: [docType, title]
+
+    UpdateFilmmakingDocumentBody:
+      type: object
+      properties:
+        content:
+          type: object
+          nullable: true
+        title:
+          type: string
+          nullable: true
+        isDraft:
+          type: boolean
+        changeSummary:
+          type: string
+          nullable: true
+
+    FilmmakingCollaborator:
+      type: object
+      properties:
+        id:
+          type: string
+        documentId:
+          type: string
+        crewMemberId:
+          type: string
+        role:
+          type: string
+          enum: [owner, editor, viewer]
+        addedBy:
+          type: string
+        addedAt:
+          type: string
+      required: [id, documentId, crewMemberId, role, addedBy, addedAt]
+
+    FilmmakingCollaboratorDetail:
+      allOf:
+        - $ref: "#/components/schemas/FilmmakingCollaborator"
+        - type: object
+          properties:
+            memberName:
+              type: string
+              nullable: true
+            memberEmail:
+              type: string
+              nullable: true
+            memberAvatarUrl:
+              type: string
+              nullable: true
+
+    AddCollaboratorBody:
+      type: object
+      properties:
+        crewMemberId:
+          type: string
+        role:
+          type: string
+          enum: [editor, viewer]
+      required: [crewMemberId, role]
+
+    UpdateCollaboratorBody:
+      type: object
+      properties:
+        role:
+          type: string
+          enum: [editor, viewer]
+      required: [role]
+
+    FilmmakingSubmission:
+      type: object
+      properties:
+        id:
+          type: string
+        documentId:
+          type: string
+        submittedBy:
+          type: string
+        submittedAt:
+          type: string
+        status:
+          type: string
+          enum: [pending, approved, revision_requested]
+        adminNotes:
+          type: string
+          nullable: true
+        approvedAt:
+          type: string
+          nullable: true
+        approvedBy:
+          type: string
+          nullable: true
+      required: [id, documentId, submittedBy, submittedAt, status]
+
+    FilmmakingSubmissionDetail:
+      allOf:
+        - $ref: "#/components/schemas/FilmmakingSubmission"
+        - type: object
+          properties:
+            documentTitle:
+              type: string
+              nullable: true
+            documentType:
+              type: string
+              nullable: true
+            crewMemberName:
+              type: string
+              nullable: true
+            crewMemberEmail:
+              type: string
+              nullable: true
+
+    FilmmakingSubmissionFull:
+      allOf:
+        - $ref: "#/components/schemas/FilmmakingSubmission"
+        - type: object
+          properties:
+            document:
+              type: object
+              properties:
+                id:
+                  type: string
+                title:
+                  type: string
+                docType:
+                  type: string
+                content:
+                  type: object
+                projectId:
+                  type: string
+                  nullable: true
+                createdAt:
+                  type: string
+                updatedAt:
+                  type: string
+            crewMember:
+              type: object
+              properties:
+                id:
+                  type: string
+                name:
+                  type: string
+                email:
+                  type: string
+                  nullable: true
+                avatarUrl:
+                  type: string
+                  nullable: true
+
+    RequestRevisionBody:
+      type: object
+      properties:
+        adminNotes:
+          type: string
+          nullable: true
+
+    ActiveCollaborator:
+      type: object
+      properties:
+        userId:
+          type: string
+        userName:
+          type: string
+        lastSeen:
+          type: string
+      required: [userId, userName, lastSeen]
+
+    PingPresenceBody:
+      type: object
+      properties:
+        userId:
+          type: string
+        userName:
+          type: string
+      required: [userId, userName]
+
+    LeavePresenceBody:
+      type: object
+      properties:
+        userId:
+          type: string
+      required: [userId]

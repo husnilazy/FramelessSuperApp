@@ -1,5 +1,6 @@
 export * from "./users";
 export * from "./team_members";
+export * from "./team_availability";
 export * from "./clients";
 export * from "./projects";
 export * from "./project_tasks";
@@ -14,3 +15,7 @@ export * from "./payment_settings";
 export * from "./site_videos";
 export * from "./site_logos";
 export * from "./digital_assets";
+export * from "./time_entries";
+export * from "./notifications";
+export * from "./project_files";
+export * from "./filmmaking";

@@ -66,12 +66,19 @@ function normalizePreviewImages(value: unknown): string {
   return "[]";
 }
 
-router.get("/digital-assets", async (_req: Request, res: Response): Promise<void> => {
+router.get("/digital-assets", async (req: Request, res: Response): Promise<void> => {
   try {
-    const rows = await db
-      .select()
-      .from(digitalAssetsTable)
-      .orderBy(digitalAssetsTable.createdAt);
+    const isActiveParam = (req.query as any)?.isActive;
+
+    let query = db.select().from(digitalAssetsTable);
+
+    if (isActiveParam === "true") {
+      query = query.where(eq(digitalAssetsTable.isActive, true)) as any;
+    } else if (isActiveParam === "false") {
+      query = query.where(eq(digitalAssetsTable.isActive, false)) as any;
+    }
+
+    const rows = await query.orderBy(digitalAssetsTable.createdAt);
 
     res.json(rows);
   } catch (error) {

@@ -442,7 +442,25 @@ export default function InvoiceEditorPage() {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
                 <label className="text-xs uppercase tracking-wider text-muted-foreground">Client *</label>
-                <Select value={inv.clientId} onValueChange={(v) => setInv((p) => ({ ...p, clientId: v }))}>
+                <Select 
+                  value={inv.clientId} 
+                  onValueChange={(v) => {
+                    const selected = clients?.find((c: any) => c.id === v);
+                    let newBillTo = inv.billTo;
+                    if (selected && !inv.billTo?.trim()) {
+                      // Auto-fill Bill To from client data (name, company, address, contact)
+                      const parts = [
+                        selected.name,
+                        selected.company,
+                        selected.address,
+                        selected.email ? `Email: ${selected.email}` : null,
+                        selected.phone ? `WA/Telp: ${selected.phone}` : null,
+                      ].filter(Boolean);
+                      newBillTo = parts.join("\n");
+                    }
+                    setInv((p) => ({ ...p, clientId: v, billTo: newBillTo }));
+                  }}
+                >
                   <SelectTrigger className="bg-white/5 border-white/10 text-white">
                     <SelectValue placeholder={clientsLoading ? "Memuat..." : clientsError ? "Gagal memuat client" : "Pilih client..."} />
                   </SelectTrigger>
@@ -452,14 +470,35 @@ export default function InvoiceEditorPage() {
                     ) : clientsLoading ? (
                       <div className="px-3 py-2 text-xs text-muted-foreground">Memuat...</div>
                     ) : clients && clients.length > 0 ? (
-                      clients.map((c) => (
-                        <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                      clients.map((c: any) => (
+                        <SelectItem key={c.id} value={c.id}>{c.name}{c.company ? ` (${c.company})` : ""}</SelectItem>
                       ))
                     ) : (
                       <div className="px-3 py-2 text-xs text-muted-foreground">Belum ada client</div>
                     )}
                   </SelectContent>
                 </Select>
+                {inv.clientId && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const selected = clients?.find((c: any) => c.id === inv.clientId);
+                      if (selected) {
+                        const parts = [
+                          selected.name,
+                          selected.company,
+                          selected.address,
+                          selected.email ? `Email: ${selected.email}` : null,
+                          selected.phone ? `WA/Telp: ${selected.phone}` : null,
+                        ].filter(Boolean);
+                        setInv((p) => ({ ...p, billTo: parts.join("\n") }));
+                      }
+                    }}
+                    className="text-[10px] text-primary hover:underline mt-1"
+                  >
+                    Isi ulang Bill To dari data client
+                  </button>
+                )}
               </div>
               <div className="space-y-1">
                 <label className="text-xs uppercase tracking-wider text-muted-foreground">Project</label>

@@ -44,6 +44,7 @@ export default function TeamPage() {
   const [disablePendingId, setDisablePendingId] = useState<string | null>(null);
   const [deletePendingId, setDeletePendingId] = useState<string | null>(null);
   const [updatePendingId, setUpdatePendingId] = useState<string | null>(null);
+  const [avatarUploading, setAvatarUploading] = useState(false);
 
   useEffect(() => {
     let interval: any;
@@ -51,7 +52,7 @@ export default function TeamPage() {
       interval = setInterval(async () => {
         const res = await fetch(`/api/admin/chat/${chatModal.id}`, { headers: authHeader() as any });
         if (res.ok) setChatMessages(await res.json());
-      }, 5000);
+      }, 2000); // more realtime polling (2s)
     }
     return () => clearInterval(interval);
   }, [chatModal]);
@@ -191,7 +192,7 @@ export default function TeamPage() {
                 <Plus className="w-4 h-4 mr-2" /> Add Member
               </Button>
             </DialogTrigger>
-                <DialogContent className="bg-card border-white/10 text-white max-w-md">
+                <DialogContent className="bg-card border-white/10 text-white max-w-2xl">
               <DialogHeader>
                 <DialogTitle className="font-heading tracking-wider text-2xl">{editingMember ? "Edit Crew Member" : "Add Crew Member"}</DialogTitle>
               </DialogHeader>
@@ -254,13 +255,22 @@ export default function TeamPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {members?.map((member) => (
-              <Card key={member.id} className="glass-panel border-white/5 group hover:border-primary/20 transition-all duration-300">
+              <Card key={member.id} className="glass-panel border-white/5 group hover:border-primary/30 transition-all duration-300 hover:-translate-y-0.5" style={{ boxShadow: '0 4px 20px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,106,32,0.1)' }}>
                 <CardContent className="p-6">
                   <div className="flex items-start justify-between mb-4">
                     <div className="relative">
-                      <div className="w-12 h-12 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center shrink-0">
-                        <span className="text-primary font-heading text-xl">{member.name.charAt(0)}</span>
-                      </div>
+                      {member.avatarUrl ? (
+                        <img 
+                          src={member.avatarUrl} 
+                          alt={member.name} 
+                          className="w-12 h-12 rounded-full object-cover border border-primary/30 shadow-sm" 
+                          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} 
+                        />
+                      ) : (
+                        <div className="w-12 h-12 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center shrink-0">
+                          <span className="text-primary font-heading text-xl">{member.name.charAt(0)}</span>
+                        </div>
+                      )}
                       {(member as any).canLogin && (
                         <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 rounded-full flex items-center justify-center border-2 border-card">
                           <Shield className="w-2.5 h-2.5 text-white" />
@@ -481,6 +491,7 @@ export default function TeamPage() {
 }
 
 function NewMemberForm({ onSubmit, isPending, initialData }: { onSubmit: (data: any) => void; isPending: boolean; initialData?: any }) {
+  const { toast } = useToast();
   const [form, setForm] = useState<any>({
     name: initialData?.name || "",
     role: initialData?.role || "",
@@ -491,84 +502,165 @@ function NewMemberForm({ onSubmit, isPending, initialData }: { onSubmit: (data: 
     password: "",
     username: initialData?.username || "",
     whatsapp: initialData?.whatsapp || "",
+    instagram: initialData?.instagram || "",
+    linkedin: initialData?.linkedin || "",
+    twitter: initialData?.twitter || "",
+    website: initialData?.website || "",
     avatarUrl: initialData?.avatarUrl || "",
   });
 
+  const [avatarUploading, setAvatarUploading] = useState(false);
+
+  const handleAvatarUpload = () => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "image/*";
+    input.onchange = async (e: any) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      setAvatarUploading(true);
+      const formData = new FormData();
+      formData.append("file", file);
+      try {
+        const res = await fetch("/api/uploads", { method: "POST", headers: authHeader() as any, body: formData });
+        const data = await res.json();
+        if (data.url) {
+          setForm({ ...form, avatarUrl: data.url });
+          toast({ title: "Avatar uploaded" });
+        }
+      } catch (err) {
+        toast({ variant: "destructive", title: "Upload gagal" });
+      } finally {
+        setAvatarUploading(false);
+      }
+    };
+    input.click();
+  };
+
   return (
     <form onSubmit={(e) => { e.preventDefault(); onSubmit(form); }} className="space-y-4">
-      <div className="space-y-1">
-        <label className="text-xs uppercase tracking-wider text-muted-foreground">Full Name *</label>
-        <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })}
-          required className="bg-white/5 border-white/10 text-white" placeholder="Name" />
-      </div>
-      <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-1">
-          <label className="text-xs uppercase tracking-wider text-muted-foreground">Role *</label>
-          <Input value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}
-            required className="bg-white/5 border-white/10 text-white" placeholder="e.g. Videographer" />
-        </div>
-        <div className="space-y-1">
-          <label className="text-xs uppercase tracking-wider text-muted-foreground">Department</label>
-          <Select value={form.department || "Production"} onValueChange={(v) => setForm({ ...form, department: v })}>
-            <SelectTrigger className="bg-white/5 border-white/10 text-white">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent className="bg-card border-white/10">
-              <SelectItem value="Production">Production</SelectItem>
-              <SelectItem value="Post-Production">Post-Production</SelectItem>
-              <SelectItem value="STUDIODO">STUDIODO</SelectItem>
-              <SelectItem value="ZENSVISUAL">ZENSVISUAL</SelectItem>
-              <SelectItem value="Management">Management</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-      <div className="space-y-1">
-        <label className="text-xs uppercase tracking-wider text-muted-foreground">Email</label>
-        <Input type="email" value={form.email || ""} onChange={(e) => setForm({ ...form, email: e.target.value })}
-          className="bg-white/5 border-white/10 text-white" placeholder="email@frameless.com" />
-      </div>
-      <div className="space-y-1">
-        <label className="text-xs uppercase tracking-wider text-muted-foreground">Username</label>
-        <Input value={form.username || ""} onChange={(e) => setForm({ ...form, username: e.target.value })}
-          className="bg-white/5 border-white/10 text-white" placeholder="username (internal)" />
-      </div>
-      <div className="space-y-1">
-        <label className="text-xs uppercase tracking-wider text-muted-foreground">Avatar URL</label>
-        <Input value={form.avatarUrl || ""} onChange={(e) => setForm({ ...form, avatarUrl: e.target.value })}
-          className="bg-white/5 border-white/10 text-white" placeholder="https://..." />
-      </div>
-      <div className="space-y-1">
-        <label className="text-xs uppercase tracking-wider text-muted-foreground">Phone</label>
-        <Input type="text" value={form.phone || ""} onChange={(e) => setForm({ ...form, phone: e.target.value })}
-          className="bg-white/5 border-white/10 text-white" placeholder="+62 8..." />
-      </div>
-      <div className="space-y-1">
-        <label className="text-xs uppercase tracking-wider text-muted-foreground">WhatsApp</label>
-        <Input type="text" value={form.whatsapp || ""} onChange={(e) => setForm({ ...form, whatsapp: e.target.value })}
-          className="bg-white/5 border-white/10 text-white" placeholder="+62 8... (whatsapp)" />
-      </div>
-      
-      <div className="p-3 bg-white/5 border border-white/10 rounded-xl space-y-3 mt-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="text-sm font-semibold text-white">Beri Akses Portal</div>
-            <div className="text-xs text-muted-foreground">Crew dapat login ke dashboard crew</div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Left column: basic info */}
+        <div className="space-y-3">
+          <div className="space-y-1">
+            <label className="text-xs uppercase tracking-wider text-muted-foreground">Full Name *</label>
+            <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })}
+              required className="bg-white/5 border-white/10 text-white" placeholder="Name" />
           </div>
-          <button type="button" onClick={() => setForm({...form, canLogin: !form.canLogin})} className={`w-10 h-5 rounded-full relative transition-colors ${form.canLogin ? "bg-green-500" : "bg-white/10"}`}>
-            <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all ${form.canLogin ? "left-[22px]" : "left-0.5"}`} />
-          </button>
-        </div>
-        {form.canLogin && (
-          <div className="space-y-1 pt-2 border-t border-white/10">
-            <label className="text-xs uppercase tracking-wider text-muted-foreground">Password Login *</label>
-            <Input type="text" value={form.password || ""} onChange={(e) => setForm({ ...form, password: e.target.value })}
-              required={form.canLogin} className="bg-white/5 border-white/10 text-white" placeholder="Set password awal" minLength={6} />
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <label className="text-xs uppercase tracking-wider text-muted-foreground">Role *</label>
+              <Input value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}
+                required className="bg-white/5 border-white/10 text-white" placeholder="e.g. Videographer" />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs uppercase tracking-wider text-muted-foreground">Department</label>
+              <Select value={form.department || "Production"} onValueChange={(v) => setForm({ ...form, department: v })}>
+                <SelectTrigger className="bg-white/5 border-white/10 text-white">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-card border-white/10">
+                  <SelectItem value="Production">Production</SelectItem>
+                  <SelectItem value="Post-Production">Post-Production</SelectItem>
+                  <SelectItem value="STUDIODO">STUDIODO</SelectItem>
+                  <SelectItem value="ZENSVISUAL">ZENSVISUAL</SelectItem>
+                  <SelectItem value="Management">Management</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
-        )}
+          <div className="space-y-1">
+            <label className="text-xs uppercase tracking-wider text-muted-foreground">Email</label>
+            <Input type="email" value={form.email || ""} onChange={(e) => setForm({ ...form, email: e.target.value })}
+              className="bg-white/5 border-white/10 text-white" placeholder="email@frameless.com" />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs uppercase tracking-wider text-muted-foreground">Username</label>
+            <Input value={form.username || ""} onChange={(e) => setForm({ ...form, username: e.target.value })}
+              className="bg-white/5 border-white/10 text-white" placeholder="username (internal)" />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs uppercase tracking-wider text-muted-foreground">Phone / WA</label>
+            <div className="grid grid-cols-2 gap-2">
+              <Input type="text" value={form.phone || ""} onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                className="bg-white/5 border-white/10 text-white" placeholder="+62 8..." />
+              <Input type="text" value={form.whatsapp || ""} onChange={(e) => setForm({ ...form, whatsapp: e.target.value })}
+                className="bg-white/5 border-white/10 text-white" placeholder="WA number" />
+            </div>
+          </div>
+        </div>
+
+        {/* Right column: avatar + social + portal */}
+        <div className="space-y-3">
+          <div className="space-y-1">
+            <label className="text-xs uppercase tracking-wider text-muted-foreground">Avatar (upload or URL)</label>
+            <div className="flex gap-2">
+              <Input value={form.avatarUrl || ""} onChange={(e) => setForm({ ...form, avatarUrl: e.target.value })}
+                className="bg-white/5 border-white/10 text-white flex-1 text-xs" placeholder="https://... or upload" />
+              <button
+                type="button"
+                disabled={avatarUploading}
+                onClick={handleAvatarUpload}
+                className="px-3 py-2 rounded-lg bg-primary/20 hover:bg-primary/30 text-primary text-xs font-semibold border border-primary/30 disabled:opacity-50 whitespace-nowrap"
+              >
+                {avatarUploading ? "..." : "Upload"}
+              </button>
+            </div>
+            {form.avatarUrl && (
+              <div className="mt-1 flex items-center gap-2">
+                <img src={form.avatarUrl} alt="preview" className="w-8 h-8 rounded-full object-cover border border-white/20" />
+                <span className="text-[10px] text-muted-foreground truncate max-w-[120px]">{form.avatarUrl}</span>
+              </div>
+            )}
+          </div>
+
+          <div className="pt-2 border-t border-white/10">
+            <div className="text-xs uppercase tracking-wider text-muted-foreground font-semibold mb-1">Social (for public crew profile)</div>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <label className="text-[10px] text-muted-foreground">Instagram</label>
+                <Input type="text" value={form.instagram || ""} onChange={(e) => setForm({ ...form, instagram: e.target.value })}
+                  className="bg-white/5 border-white/10 text-white text-xs h-8" placeholder="@user or url" />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] text-muted-foreground">LinkedIn</label>
+                <Input type="text" value={form.linkedin || ""} onChange={(e) => setForm({ ...form, linkedin: e.target.value })}
+                  className="bg-white/5 border-white/10 text-white text-xs h-8" placeholder="url" />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] text-muted-foreground">Twitter/X</label>
+                <Input type="text" value={form.twitter || ""} onChange={(e) => setForm({ ...form, twitter: e.target.value })}
+                  className="bg-white/5 border-white/10 text-white text-xs h-8" placeholder="url" />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] text-muted-foreground">Website</label>
+                <Input type="text" value={form.website || ""} onChange={(e) => setForm({ ...form, website: e.target.value })}
+                  className="bg-white/5 border-white/10 text-white text-xs h-8" placeholder="url" />
+              </div>
+            </div>
+          </div>
+
+          <div className="p-2 bg-white/5 border border-white/10 rounded-lg flex items-center justify-between">
+            <div>
+              <div className="text-xs font-semibold text-white">Beri Akses Portal Crew</div>
+              <div className="text-[10px] text-muted-foreground">Bisa login ke crew dashboard</div>
+            </div>
+            <button type="button" onClick={() => setForm({...form, canLogin: !form.canLogin})} className={`w-9 h-4 rounded-full relative transition-colors ${form.canLogin ? "bg-green-500" : "bg-white/10"}`}>
+              <span className={`absolute top-0.5 w-3.5 h-3.5 rounded-full bg-white transition-all ${form.canLogin ? "left-[18px]" : "left-0.5"}`} />
+            </button>
+          </div>
+        </div>
       </div>
 
-      <Button type="submit" disabled={isPending || (form.canLogin && (!form.email || form.password.length < 6))} className="w-full bg-primary hover:bg-primary/90 text-white font-heading tracking-wider mt-2">
+      {form.canLogin && (
+        <div className="space-y-1 pt-2 border-t border-white/10">
+          <label className="text-xs uppercase tracking-wider text-muted-foreground">Password Login (untuk crew portal) *</label>
+          <Input type="text" value={form.password || ""} onChange={(e) => setForm({ ...form, password: e.target.value })}
+            required={form.canLogin} className="bg-white/5 border-white/10 text-white" placeholder="Minimal 6 karakter" minLength={6} />
+        </div>
+      )}
+
+      <Button type="submit" disabled={isPending || (form.canLogin && (!form.email || !form.password || form.password.length < 6))} className="w-full bg-primary hover:bg-primary/90 text-white font-heading tracking-wider mt-2">
         {isPending ? (initialData ? "Saving..." : "Adding...") : (initialData ? "Save Changes" : "Add Member")}
       </Button>
     </form>

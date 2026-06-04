@@ -8,6 +8,7 @@ interface Appearance {
   meshGradients: boolean;
   logoUrl?: string;
   companyName?: string;
+  logoSize?: number;
 }
 
 interface ThemeContextValue {
@@ -24,6 +25,7 @@ const defaultAppearance: Appearance = {
   meshGradients: true,
   logoUrl: "",
   companyName: "Frameless",
+  logoSize: 30,
 };
 
 const ThemeContext = createContext<ThemeContextValue>({

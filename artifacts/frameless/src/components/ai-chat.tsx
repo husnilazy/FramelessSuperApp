@@ -11,6 +11,11 @@ interface Message {
     ts: number;
 }
 
+type ChatHistoryMessage = {
+    role: "system" | Message["role"];
+    content: string;
+};
+
 const OR = "#FF6A20";
 const FONT = "'Plus Jakarta Sans',sans-serif";
 
@@ -99,7 +104,7 @@ function Typing() {
 }
 
 // ── Main Component ─────────────────────────────────────────────────────────────
-export function AIChat({ dark = true }: { dark?: boolean }) {
+export function AIChat({ dark = true, contextData }: { dark?: boolean; contextData?: any }) {
     const [open, setOpen] = useState(false);
     const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState("");
@@ -122,7 +127,16 @@ export function AIChat({ dark = true }: { dark?: boolean }) {
         setLoading(true);
 
         try {
-            const history = [...messages, userMsg].map(m => ({ role: m.role, content: m.content }));
+            let history: ChatHistoryMessage[] = [...messages, userMsg].map(m => ({ role: m.role, content: m.content }));
+
+            // Inject context jika ada (khusus crew dashboard)
+            if (contextData) {
+                const contextStr = JSON.stringify(contextData, null, 2);
+                history = [
+                    { role: "system", content: `Konteks saat ini dari project Frameless:\n${contextStr}` },
+                    ...history
+                ];
+            }
 
             const token = localStorage.getItem("token") || localStorage.getItem("crew_token");
             const headers: any = { "Content-Type": "application/json" };

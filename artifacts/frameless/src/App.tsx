@@ -26,6 +26,7 @@ import CrewDashboard     from "@/pages/crew-dashboard";
 
 // Admin pages
 import Dashboard           from "@/pages/dashboard";
+import CommandCenterPage   from "@/pages/command-center";
 import ProjectsPage        from "@/pages/projects";
 import ProjectDetailPage   from "@/pages/project-detail";
 import TeamPage            from "@/pages/team";
@@ -39,6 +40,9 @@ import CmsEditorPage       from "@/pages/cms-editor";
 import PaymentSettingsPage from "@/pages/payment-settings";
 import CoursesAdminPage    from "@/pages/courses-admin";
 import DigitalAssetsAdminPage from "@/pages/digital-assets-admin";
+import AppearancePage from "@/pages/appearance";
+import { FilmmakingTools } from "@/pages/FilmmakingTools";
+import FilmmakingSubmissionsAdmin from "@/pages/FilmmakingSubmissionsAdmin";
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 30_000 } },
@@ -51,6 +55,7 @@ function ProtectedRoutes() {
         <Switch>
           <Route path="/"                         component={Dashboard} />
           <Route path="/dashboard"                component={Dashboard} />
+          <Route path="/command-center"           component={CommandCenterPage} />
           <Route path="/projects/:id"             component={ProjectDetailPage} />
           <Route path="/projects"                 component={ProjectsPage} />
           <Route path="/team"                     component={TeamPage} />
@@ -65,6 +70,10 @@ function ProtectedRoutes() {
           <Route path="/payment-settings"         component={PaymentSettingsPage} />
           <Route path="/courses-admin"            component={CoursesAdminPage} />
           <Route path="/digital-assets-admin"     component={DigitalAssetsAdminPage} />
+          <Route path="/appearance"               component={AppearancePage} />
+          <Route path="/filmmaking-tools"         component={FilmmakingTools} />
+          <Route path="/filmmaking-tools/documents/:id" component={FilmmakingTools} />
+          <Route path="/admin/filmmaking-submissions" component={FilmmakingSubmissionsAdmin} />
           <Route                                  component={NotFound} />
         </Switch>
       </AppLayout>
@@ -94,6 +103,7 @@ function Router() {
       {/* Admin (protected) */}
       <Route path="/admin"               component={ProtectedRoutes} />
       <Route path="/dashboard"           component={ProtectedRoutes} />
+      <Route path="/command-center"      component={ProtectedRoutes} />
       <Route path="/projects"            component={ProtectedRoutes} />
       <Route path="/projects/:id"        component={ProtectedRoutes} />
       <Route path="/team"                component={ProtectedRoutes} />
@@ -108,6 +118,10 @@ function Router() {
       <Route path="/payment-settings"    component={ProtectedRoutes} />
       <Route path="/courses-admin"       component={ProtectedRoutes} />
       <Route path="/digital-assets-admin" component={ProtectedRoutes} />
+      <Route path="/appearance"           component={ProtectedRoutes} />
+      <Route path="/filmmaking-tools"     component={ProtectedRoutes} />
+      <Route path="/filmmaking-tools/documents/:id" component={ProtectedRoutes} />
+      <Route path="/admin/filmmaking-submissions" component={ProtectedRoutes} />
 
       <Route component={NotFound} />
     </Switch>

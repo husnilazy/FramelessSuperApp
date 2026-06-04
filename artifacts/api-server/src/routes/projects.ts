@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { db, projectsTable, projectTasksTable } from "@workspace/db";
+import { db, pool, projectsTable, projectTasksTable, projectFilesTable, notificationsTable } from "@workspace/db";
 import { eq, ilike, or } from "drizzle-orm";
 import crypto from "crypto";
 import { logger } from "../lib/logger.js";
@@ -157,33 +157,17 @@ router.get("/projects/:id", async (req, res): Promise<void> => {
   }
 });
 
-router.put("/projects/:id", async (req, res): Promise<void> => {
+// Project update handler (supports both PUT and PATCH for partial updates)
+async function updateProjectHandler(req: any, res: any) {
   try {
-    const id = Array.isArray(req.params.id)
-      ? req.params.id[0]
-      : req.params.id;
+    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
 
     const {
-      title,
-      client,
-      status,
-      priority,
-      progress,
-      description,
-      projectType,
-      budget,
-      deadline,
-      startDate,
-      notes,
-      driveUrl,
-      assignedMemberId,
+      title, client, status, priority, progress, description,
+      projectType, budget, deadline, startDate, notes, driveUrl, assignedMemberId,
     } = req.body;
 
-    const [prevProject] = await db
-      .select()
-      .from(projectsTable)
-      .where(eq(projectsTable.id, id))
-      .limit(1);
+    const [prevProject] = await db.select().from(projectsTable).where(eq(projectsTable.id, id)).limit(1);
 
     const [project] = await db
       .update(projectsTable)
@@ -195,22 +179,12 @@ router.put("/projects/:id", async (req, res): Promise<void> => {
         ...(progress !== undefined && { progress }),
         ...(description !== undefined && { description }),
         ...(projectType !== undefined && { projectType }),
-        ...(budget !== undefined && {
-          budget: budget ? String(budget) : null,
-        }),
-        ...(deadline !== undefined && {
-          deadline: deadline ? new Date(deadline) : null,
-        }),
-        ...(startDate !== undefined && {
-          startDate: startDate ? new Date(startDate) : null,
-        }),
+        ...(budget !== undefined && { budget: budget ? String(budget) : null }),
+        ...(deadline !== undefined && { deadline: deadline ? new Date(deadline) : null }),
+        ...(startDate !== undefined && { startDate: startDate ? new Date(startDate) : null }),
         ...(notes !== undefined && { notes }),
-        ...(driveUrl !== undefined && {
-          driveFolderUrl: driveUrl,
-        }),
-        ...(assignedMemberId !== undefined && {
-          assignedMemberId,
-        }),
+        ...(driveUrl !== undefined && { driveFolderUrl: driveUrl }),
+        ...(assignedMemberId !== undefined && { assignedMemberId }),
         updatedAt: new Date(),
       })
       .where(eq(projectsTable.id, id))
@@ -221,53 +195,35 @@ router.put("/projects/:id", async (req, res): Promise<void> => {
       return;
     }
 
+    // AI suggestion on reassignment (best effort)
     try {
       const prevAssigned = prevProject?.assignedMemberId;
-
-      if (
-        assignedMemberId &&
-        assignedMemberId !== prevAssigned
-      ) {
-        logger.info(
-          { projectId: id, assignedMemberId },
-          "Project reassigned - generating AI suggestion"
-        );
-
+      if (assignedMemberId && assignedMemberId !== prevAssigned) {
+        logger.info({ projectId: id, assignedMemberId }, "Project reassigned - generating AI suggestion");
         try {
-          const prompt = `You are asked to suggest onboarding steps and first tasks for a crew member assigned to project: ${project.title}. Provide concise actionable steps.`;
-
-          const reply = await chatCompletion(
-            [{ role: "user", content: prompt }],
-            ADMIN_SYSTEM
-          );
-
+          const prompt = `Suggest concise onboarding steps and first tasks for a crew member newly assigned to project: ${project.title}.`;
+          const reply = await chatCompletion([{ role: "user", content: prompt }], ADMIN_SYSTEM);
           if (reply) {
             const { chatMessagesTable } = await import("@workspace/db");
-
             await db.insert(chatMessagesTable).values({
               crewId: assignedMemberId,
               senderRole: "system",
               senderName: "AI Assistant",
               message: reply,
             });
-
-            logger.info(
-              { projectId: id, assignedMemberId },
-              "AI suggestion stored in chat_messages"
-            );
           }
         } catch (aiErr) {
-          logger.error(
-            { err: aiErr, projectId: id },
-            "AI suggestion failed"
-          );
+          logger.error({ err: aiErr, projectId: id }, "AI suggestion failed");
         }
       }
-    } catch (flowErr) {
-      logger.error(
-        { err: flowErr, projectId: id },
-        "Error handling assignment AI flow"
-      );
+    } catch {}
+
+    await logActivity(
+      "project.updated",
+      `Project "${project.title || title || prevProject?.title || 'unknown'}" updated`
+    );
+    if (status && prevProject && status !== prevProject.status) {
+      await logActivity("project.status_changed", `Project status changed to ${status}`);
     }
 
     res.json(mapProject(project as ProjectRecord));
@@ -275,7 +231,10 @@ router.put("/projects/:id", async (req, res): Promise<void> => {
     logger.error({ err }, "projects.update.error");
     res.status(500).json({ error: "Failed to update project" });
   }
-});
+}
+
+router.put("/projects/:id", updateProjectHandler);
+router.patch("/projects/:id", updateProjectHandler);
 
 router.delete("/projects/:id", async (req, res): Promise<void> => {
   try {
@@ -283,15 +242,20 @@ router.delete("/projects/:id", async (req, res): Promise<void> => {
       ? req.params.id[0]
       : req.params.id;
 
+    // Clean up related data first to avoid FK constraint errors
+    await db.delete(projectTasksTable).where(eq(projectTasksTable.projectId, id));
+    await db.delete(projectFilesTable).where(eq(projectFilesTable.projectId, id));
+
+    // Delete the project itself
     await db.delete(projectsTable).where(eq(projectsTable.id, id));
 
     res.json({
       success: true,
-      message: "Project deleted",
+      message: "Project deleted successfully",
     });
   } catch (err) {
     logger.error({ err }, "projects.delete.error");
-    res.status(500).json({ error: "Failed to delete project" });
+    res.status(500).json({ error: "Failed to delete project. It may have related data." });
   }
 });
 
@@ -352,6 +316,55 @@ router.post("/projects/:id/tasks", async (req, res): Promise<void> => {
         memberId,
       })
       .returning();
+
+    // Create notification if assigned to a crew member (robust: try drizzle, fallback raw full/minimal to tolerate schema drift)
+    if (memberId) {
+      const notifId = crypto.randomUUID();
+      let notifMessage = `Task baru "${title}" ditugaskan ke kamu di project ini.`;
+      try {
+        const [proj] = await db
+          .select({ title: projectsTable.title })
+          .from(projectsTable)
+          .where(eq(projectsTable.id as any, projectId))
+          .limit(1);
+        if (proj?.title) {
+          notifMessage = `Task baru "${title}" ditugaskan ke kamu di project "${proj.title}".`;
+        }
+      } catch {}
+      try {
+        await db.insert(notificationsTable).values({
+          recipientType: "crew",
+          recipientId: memberId,
+          title: "Task Baru Ditugaskan",
+          message: notifMessage,
+          type: "info",
+          category: "task",
+          referenceId: taskId,
+          referenceType: "task",
+        });
+      } catch (notifErr) {
+        logger.warn({ notifErr }, "tasks.post.notification.drizzle-failed, trying raw fallback");
+        try {
+          // full columns
+          await pool!.query(
+            `INSERT INTO notifications (id, recipient_type, recipient_id, title, message, type, category, reference_id, reference_type, is_read, created_at)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, false, now())`,
+            [notifId, "crew", memberId, "Task Baru Ditugaskan", notifMessage, "info", "task", taskId, "task"]
+          );
+        } catch (rawErr) {
+          try {
+            // minimal columns only (core fields guaranteed to exist)
+            await pool!.query(
+              `INSERT INTO notifications (id, recipient_type, recipient_id, title, message, type, is_read, created_at)
+               VALUES ($1, $2, $3, $4, $5, $6, false, now())`,
+              [notifId, "crew", memberId, "Task Baru Ditugaskan", notifMessage, "info"]
+            );
+          } catch (minErr) {
+            logger.error({ minErr, rawErr, notifErr, memberId, taskId }, "tasks.post.notification.failed-all");
+          }
+        }
+      }
+    }
 
     res.status(201).json(mapTask(task as TaskRecord));
   } catch (err) {

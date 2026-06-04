@@ -1,5 +1,6 @@
 // artifacts/frameless/src/pages/projects.tsx
 import { useState, useEffect, useCallback } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency, formatDate } from "@/lib/formatters";
 import { getToken } from "@/lib/auth";
@@ -25,11 +26,13 @@ const OR = "#FF6A20";
 const FONT = "'Plus Jakarta Sans',sans-serif";
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; dot: string }> = {
-  active: { label: "Active", color: "#4ade80", bg: "rgba(74,222,128,.1)", dot: "#4ade80" },
-  completed: { label: "Completed", color: "#60a5fa", bg: "rgba(96,165,250,.1)", dot: "#60a5fa" },
-  on_hold: { label: "On Hold", color: "#fbbf24", bg: "rgba(251,191,36,.1)", dot: "#fbbf24" },
-  cancelled: { label: "Cancelled", color: "#f87171", bg: "rgba(248,113,113,.1)", dot: "#f87171" },
-  planning: { label: "Planning", color: "#a78bfa", bg: "rgba(167,139,250,.1)", dot: "#a78bfa" },
+  planning:        { label: "Planning",        color: "#a78bfa", bg: "rgba(167,139,250,.1)", dot: "#a78bfa" },
+  active:          { label: "Active",          color: "#4ade80", bg: "rgba(74,222,128,.1)", dot: "#4ade80" },
+  shooting:        { label: "Shooting",        color: "#fb923c", bg: "rgba(251,146,60,.1)", dot: "#fb923c" },
+  post_production: { label: "Post Production", color: "#facc15", bg: "rgba(250,204,21,.1)", dot: "#facc15" },
+  client_review:   { label: "Client Review",   color: "#6366f1", bg: "rgba(99,102,241,.1)", dot: "#6366f1" },
+  final:           { label: "Final",           color: "#22c55e", bg: "rgba(34,197,94,.1)", dot: "#22c55e" },
+  completed:       { label: "Completed",       color: "#60a5fa", bg: "rgba(96,165,250,.1)", dot: "#60a5fa" },
 };
 
 const PRIORITY_CONFIG: Record<string, { label: string; color: string }> = {
@@ -133,7 +136,7 @@ function KanbanCard({ project, onEdit, onDelete }: { project: Project; onEdit: (
 }
 
 // ── Project Modal ──────────────────────────────────────────────────────────────
-function ProjectModal({ project, onClose, onSave, members }: { project: Project | null; onClose: () => void; onSave: (data: Partial<Project>) => void; members?: any[] }) {
+function ProjectModal({ project, onClose, onSave, members, clients = [] }: { project: Project | null; onClose: () => void; onSave: (data: Partial<Project>) => void; members?: any[]; clients?: any[] }) {
   const isEdit = !!project?.id;
   const [form, setForm] = useState<Partial<Project>>(project || { status: "active", priority: "medium", progress: 0 });
   const [saving, setSaving] = useState(false);
@@ -154,7 +157,7 @@ function ProjectModal({ project, onClose, onSave, members }: { project: Project 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
           {[
             { k: "title", l: "Project Title *", full: true, ph: "e.g. Brand Video — PT ABC" },
-            { k: "client", l: "Client", ph: "Nama klien" },
+            { k: "client", l: "Client", ph: "Pilih dari daftar client atau ketik manual" },
             { k: "projectType", l: "Project Type", type: "select", opts: PROJECT_TYPES },
             { k: "status", l: "Status", type: "select", opts: STATUSES.map(s => s.value) },
             { k: "priority", l: "Priority", type: "select", opts: PRIORITIES },
@@ -181,6 +184,40 @@ function ProjectModal({ project, onClose, onSave, members }: { project: Project 
                   <option value="">— Unassigned —</option>
                   {members?.map(m => <option key={m.id} value={m.id}>{m.name} — {m.role}</option>)}
                 </select>
+              ) : field.k === "client" ? (
+                // Auto client list from registered clients + manual fallback
+                <div>
+                  <select 
+                    value={clients.some((c: any) => c.name === (form as any).client) ? (form as any).client : "__custom__"} 
+                    onChange={e => {
+                      if (e.target.value === "__custom__") {
+                        f("client", "");
+                      } else {
+                        f("client", e.target.value);
+                      }
+                    }}
+                    style={{ width: "100%", background: "rgba(255,255,255,.05)", border: "1px solid rgba(255,255,255,.1)", borderRadius: 10, padding: "10px 12px", color: "#fff", fontSize: 13, outline: "none", fontFamily: FONT, cursor: "pointer" }}>
+                    <option value="">— Pilih client terdaftar —</option>
+                    {clients.map((c: any) => (
+                      <option key={c.id} value={c.name} style={{ background: "#111318" }}>
+                        {c.name}{c.company ? ` — ${c.company}` : ""}
+                      </option>
+                    ))}
+                    <option value="__custom__" style={{ background: "#111318" }}>— Lainnya (ketik manual) —</option>
+                  </select>
+                  {(! (form as any).client || !clients.some((c: any) => c.name === (form as any).client)) && (
+                    <input 
+                      type="text" 
+                      value={(form as any).client || ""} 
+                      onChange={e => f("client", e.target.value)} 
+                      placeholder="Nama client manual (akan match otomatis jika sama dengan daftar client)"
+                      style={{ width: "100%", marginTop: 6, background: "rgba(255,255,255,.05)", border: "1px solid rgba(255,255,255,.1)", borderRadius: 10, padding: "10px 12px", color: "#fff", fontSize: 13, outline: "none", boxSizing: "border-box" as any, fontFamily: FONT }} 
+                    />
+                  )}
+                  <div style={{ fontSize: 10, color: "rgba(255,255,255,.35)", marginTop: 4 }}>
+                    Pilih dari daftar agar otomatis terhitung di halaman Clients (project count, running, repeat, dll)
+                  </div>
+                </div>
               ) : field.type === "textarea" ? (
                 <textarea value={(form as any)[field.k] || ""} onChange={e => f(field.k as any, e.target.value)} placeholder={field.ph} rows={3}
                   style={{ width: "100%", background: "rgba(255,255,255,.05)", border: "1px solid rgba(255,255,255,.1)", borderRadius: 10, padding: "10px 12px", color: "#fff", fontSize: 13, outline: "none", resize: "vertical", fontFamily: FONT }} />
@@ -207,8 +244,10 @@ function ProjectModal({ project, onClose, onSave, members }: { project: Project 
 // ── MAIN ──────────────────────────────────────────────────────────────────────
 export default function ProjectsPage() {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [projects, setProjects] = useState<Project[]>([]);
   const [members, setMembers] = useState<any[]>([]);
+  const [clients, setClients] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
@@ -221,8 +260,10 @@ export default function ProjectsPage() {
       setLoading(true);
       const data = await apiFetch(`/api/projects${search ? `?search=${encodeURIComponent(search)}` : ""}`);
       const team = await apiFetch(`/api/team`).catch(() => []);
+      const cl = await apiFetch(`/api/clients`).catch(() => []);
       setProjects(Array.isArray(data) ? data : []);
       setMembers(Array.isArray(team) ? team : []);
+      setClients(Array.isArray(cl) ? cl : []);
     } catch (e: any) { toast({ variant: "destructive", title: "Failed to load projects", description: e.message }); }
     finally { setLoading(false); }
   }, [search, toast]);
@@ -233,22 +274,29 @@ export default function ProjectsPage() {
     try {
       if ((modal as Project)?.id) {
         await apiFetch(`/api/projects/${(modal as Project).id}`, { method: "PATCH", body: JSON.stringify(data) });
-        toast({ title: "Project updated" });
+        toast({ 
+          title: "Project berhasil diperbarui", 
+          description: "Perubahan status akan langsung terlihat di Command Center → Project Pipeline." 
+        });
       } else {
         await apiFetch("/api/projects", { method: "POST", body: JSON.stringify(data) });
-        toast({ title: "Project created" });
+        toast({ title: "Project baru berhasil dibuat", description: "Project muncul di pipeline Command Center." });
       }
-      setModal(null); load();
+      setModal(null);
+      load();
+      // Auto-refresh Command Center Project Pipeline
+      queryClient.invalidateQueries({ queryKey: ["admin", "project-pipeline"] });
     } catch (e: any) { toast({ variant: "destructive", title: "Error", description: e.message }); }
   }
 
   async function handleDelete(id: string) {
-    if (!confirm("Hapus project ini?")) return;
+    if (!confirm("Yakin hapus project ini? Semua task & file internal akan ikut terhapus.")) return;
     try {
       await apiFetch(`/api/projects/${id}`, { method: "DELETE" });
-      toast({ title: "Project deleted" });
+      toast({ title: "Project berhasil dihapus", description: "Data terkait sudah dibersihkan." });
       load();
-    } catch (e: any) { toast({ variant: "destructive", title: "Error", description: e.message }); }
+      queryClient.invalidateQueries({ queryKey: ["admin", "project-pipeline"] });
+    } catch (e: any) { toast({ variant: "destructive", title: "Gagal menghapus", description: e.message }); }
   }
 
   const filtered = projects.filter(p => {
@@ -259,10 +307,12 @@ export default function ProjectsPage() {
 
   // Group by status for kanban
   const kanbanCols = [
-    { key: "planning", label: "Planning", projects: filtered.filter(p => p.status === "planning") },
+    { key: "planning", label: "Planning", projects: filtered.filter(p => ["planning", "proposed", "draft"].includes(p.status || "")) },
     { key: "active", label: "Active", projects: filtered.filter(p => p.status === "active") },
-    { key: "on_hold", label: "On Hold", projects: filtered.filter(p => p.status === "on_hold") },
-    { key: "completed", label: "Completed", projects: filtered.filter(p => p.status === "completed") },
+    { key: "shooting", label: "Shooting", projects: filtered.filter(p => ["shooting", "on_shoot", "on-shoot"].includes(p.status || "")) },
+    { key: "post_production", label: "Post Production", projects: filtered.filter(p => ["post_production", "editing", "post-production"].includes(p.status || "")) },
+    { key: "client_review", label: "Client Review", projects: filtered.filter(p => ["client_review", "review", "final"].includes(p.status || "")) },
+    { key: "completed", label: "Completed", projects: filtered.filter(p => ["completed", "done", "delivered"].includes(p.status || "")) },
   ];
 
   // Stats
@@ -456,6 +506,7 @@ export default function ProjectsPage() {
           onClose={() => setModal(null)}
           onSave={handleSave}
           members={members}
+          clients={clients}
         />
       )}
     </div>
