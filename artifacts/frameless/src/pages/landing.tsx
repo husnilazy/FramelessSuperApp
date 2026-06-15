@@ -105,6 +105,20 @@ body{overflow-x:hidden;}
 @keyframes float{0%,100%{transform:translateY(0);}50%{transform:translateY(-8px);}}
 @keyframes glow{0%,100%{box-shadow:0 0 20px ${OR}44;}50%{box-shadow:0 0 40px ${OR}88;}}
 @keyframes spin{to{transform:rotate(360deg);}}
+@keyframes pf-pulse-glow{0%,100%{box-shadow:0 32px 96px rgba(0,0,0,.75),0 0 60px ${OR}22,0 0 120px ${OR}08;}50%{box-shadow:0 32px 96px rgba(0,0,0,.75),0 0 100px ${OR}40,0 0 200px ${OR}14;}}
+@keyframes pf-progress{from{width:0%;}to{width:100%;}}
+
+.pf-3d-card{transition:all .58s cubic-bezier(.16,1,.3,1);}
+.pf-3d-card:hover img{transform:scale(1.06);}
+.pf-center-card{animation:pf-pulse-glow 3.5s ease-in-out infinite;}
+.pf-arrow{transition:background .2s,border-color .2s,box-shadow .2s!important;}
+.pf-arrow:hover{background:${OR}22!important;border-color:${OR}55!important;box-shadow:0 0 20px ${OR}33!important;}
+.pf-dot{transition:all .35s cubic-bezier(.16,1,.3,1);}
+.pf-thumb{transition:opacity .25s,border-color .25s,box-shadow .25s,transform .22s;}
+.pf-thumb:hover{opacity:.9!important;transform:scale(1.06) translateY(-2px)!important;}
+.pf-progress-bar{animation:pf-progress 4.5s linear forwards;}
+.no-scrollbar::-webkit-scrollbar{display:none;}
+.no-scrollbar{scrollbar-width:none;}
 
 .mq-inner{animation:marquee 40s linear infinite;}
 .mq-inner:hover{animation-play-state:paused;}
@@ -307,14 +321,6 @@ export default function LandingPage() {
     };
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => { window.removeEventListener("scroll", onScroll); cancelAnimationFrame(raf); };
-  // Autoplay slider for portfolio
-  useEffect(() => {
-    if (pfShown.length === 0) return;
-    const interval = setInterval(() => {
-      setSlideIndex(prev => (prev + 1) % pfShown.length);
-    }, 5000);
-    return () => clearInterval(interval);
-  }, [pfShown]);
   }, []);
 
   // ── Queries ───────────────────────────────────────────────────────────────
@@ -364,6 +370,14 @@ export default function LandingPage() {
 
   const allTags = Array.from(new Set(pfVids.flatMap(v => { try { return JSON.parse(v.tags || "[]"); } catch { return []; } })));
   const pfShown = pfTag === "All" ? pfVids : pfVids.filter(v => { try { return JSON.parse(v.tags || "[]").includes(pfTag); } catch { return false; } });
+
+  // ── Autoplay portfolio slider (SETELAH pfShown dideklarasikan) ─────────────
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (pfShown.length <= 1) return;
+    const id = setInterval(() => setSlideIndex(prev => (prev + 1) % pfShown.length), 4500);
+    return () => clearInterval(id);
+  }, [pfShown.length]); // reset interval ketika category filter berubah
 
   const pubCourses = courses.filter(c => c.isPublished !== false && c.packages?.length > 0);
   const pubAssets = assets.filter(a => a.isActive).slice(0, 6);
@@ -554,50 +568,216 @@ export default function LandingPage() {
         </section>
       )}
 
-      {/* ══════ PORTFOLIO ══════ */}
+      {/* ══════ PORTFOLIO — Cinematic 3D Carousel ══════ */}
       {pfVids.length > 0 && (
-        <section id="portfolio" className="pxs" style={{ padding: "110px 28px", position: "relative", overflow: "hidden" }}>
-          <div data-px="0.12" style={{ position: "absolute", bottom: 0, left: "8%", width: "65%", height: "55%", background: `radial-gradient(ellipse at center,${OR}08,transparent 70%)`, filter: "blur(70px)", willChange: "transform" }} />
-          <div style={{ maxWidth: 1280, margin: "0 auto", position: "relative" }}>
-            <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginBottom: 44, gap: 20, flexWrap: "wrap" }}>
+        <section id="portfolio" style={{ padding: "110px 0", position: "relative", overflow: "hidden" }}>
+          {/* Background atmosphere */}
+          <div style={{ position: "absolute", inset: 0, background: `radial-gradient(ellipse 130% 65% at 50% 100%,${OR}0c,transparent 65%)`, pointerEvents: "none" }} />
+          <div data-px="0.12" style={{ position: "absolute", bottom: "-10%", left: "5%", width: "70%", height: "60%", background: `radial-gradient(ellipse at center,${OR}08,transparent 68%)`, filter: "blur(80px)", willChange: "transform", pointerEvents: "none" }} />
+          <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 1, background: `linear-gradient(to right,transparent,${OR}20,transparent)` }} />
+          <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 1, background: `linear-gradient(to right,transparent,rgba(255,255,255,.05),transparent)` }} />
+
+          {/* ── Header + Category Pills ── */}
+          <div style={{ maxWidth: 1280, margin: "0 auto", padding: "0 28px 52px", position: "relative", zIndex: 2 }}>
+            <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", flexWrap: "wrap", gap: 20 }}>
               <div>
                 <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: ".24em", color: OR, textTransform: "uppercase", marginBottom: 12 }}>PORTFOLIO</p>
                 <h2 style={{ fontSize: "clamp(28px,4.5vw,52px)", fontWeight: 900, letterSpacing: "-.04em", color: "#fff", lineHeight: 1.0 }}>Karya Terbaik Kami</h2>
               </div>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                 {["All", ...allTags].map(cat => (
-                  <button key={cat} onClick={() => setPfTag(cat)} style={{ padding: "7px 18px", borderRadius: 100, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: FONT, transition: "all .2s", background: pfTag === cat ? OR : "rgba(255,255,255,.06)", border: pfTag === cat ? "none" : "1px solid rgba(255,255,255,.1)", color: pfTag === cat ? "#fff" : "rgba(255,255,255,.47)" }}>{cat}</button>
+                  <button key={cat} onClick={() => { setPfTag(cat); setSlideIndex(0); }}
+                    style={{ padding: "7px 18px", borderRadius: 100, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: FONT, transition: "all .22s", background: pfTag === cat ? OR : "rgba(255,255,255,.06)", border: pfTag === cat ? "none" : "1px solid rgba(255,255,255,.1)", color: pfTag === cat ? "#fff" : "rgba(255,255,255,.47)" }}>
+                    {cat}
+                  </button>
                 ))}
               </div>
             </div>
-          {/* Portfolio Slider with Autoplay */}
-          {pfShown.length > 0 && (
-            <div className="g3" style={{ display: "grid", gridTemplateColumns: "1fr", gap: 18 }}>
-              {/* Autoplay effect */}
-              {/* Initialize slide index state */}
-              {(() => {
-                const v = pfShown[slideIndex];
-                const t = getThumbnail(v.embedUrl, v.thumbnailUrl);
-                return (
-                  <div key={v.id} className="pf-card" onClick={() => setModal(v.embedUrl)}
-                    style={{ position: "relative", borderRadius: 18, overflow: "hidden", cursor: "pointer", aspectRatio: "16/9", border: "1px solid rgba(255,255,255,.07)" }}>
-                    {t ? <img src={t} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} alt={v.title} /> : <div style={{ width: "100%", height: "100%", minHeight: 200, background: "rgba(255,255,255,.04)" }} />}
-                    <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top,rgba(0,0,0,.85) 0%,transparent 55%)" }} />
-                    <div className="overlay" style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,.22)" }}>
-                      <div style={{ width: 58, height: 58, borderRadius: "50%", background: OR, display: "flex", alignItems: "center", justifyContent: "center" }}><Play size={20} style={{ fill: "#fff", color: "#fff", marginLeft: 2 }} /></div>
-                    </div>
-                    <div style={{ position: "absolute", bottom: 18, left: 22, right: 22 }}>
-                      <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: ".15em", color: OR, textTransform: "uppercase", marginBottom: 5 }}>FEATURED</div>
-                      <div style={{ fontSize: 20, fontWeight: 700, color: "#fff" }}>{v.title}</div>
-                      {v.description && <div style={{ fontSize: 12, color: "rgba(255,255,255,.44)", marginTop: 3 }}>{v.description}</div>}
+          </div>
+
+          {/* ── Carousel ── */}
+          {pfShown.length > 0 && (() => {
+            const total = pfShown.length;
+            const goTo = (i: number) => setSlideIndex(((i % total) + total) % total);
+            const goPrev = (e: { stopPropagation(): void }) => { e.stopPropagation(); goTo(slideIndex - 1); };
+            const goNext = (e: { stopPropagation(): void }) => { e.stopPropagation(); goTo(slideIndex + 1); };
+
+            return (
+              <>
+                {/* 3D Stage */}
+                <div style={{ position: "relative", height: "clamp(200px,38vw,500px)", zIndex: 2 }}>
+                  {/* Side fade masks */}
+                  <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: "min(20%,220px)", background: "linear-gradient(to right,#0a0a0c 30%,transparent)", zIndex: 25, pointerEvents: "none" }} />
+                  <div style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: "min(20%,220px)", background: "linear-gradient(to left,#0a0a0c 30%,transparent)", zIndex: 25, pointerEvents: "none" }} />
+
+                  {pfShown.map((v, idx) => {
+                    let rel = ((idx - slideIndex) % total + total) % total;
+                    if (rel > total / 2) rel -= total;
+                    if (Math.abs(rel) > 2) return null;
+
+                    const isC = rel === 0;
+                    const ab = Math.abs(rel);
+                    const scale = [1, 0.80, 0.62][ab];
+                    const opac  = [1, 0.68, 0.36][ab];
+                    const zIdx  = [20, 12, 6][ab];
+                    const blur  = [0, 0, 1.5][ab];
+                    const th = getThumbnail(v.embedUrl, v.thumbnailUrl);
+
+                    return (
+                      <div
+                        key={v.id}
+                        className={`pf-3d-card${isC ? " pf-center-card" : ""}`}
+                        onClick={() => isC ? setModal(v.embedUrl) : goTo(idx)}
+                        style={{
+                          position: "absolute",
+                          top: "50%", left: "50%",
+                          width: isC ? "min(60vw,760px)" : "min(44vw,560px)",
+                          aspectRatio: "16/9",
+                          borderRadius: isC ? 22 : 15,
+                          overflow: "hidden",
+                          cursor: "pointer",
+                          transform: `translate(-50%,-50%) translateX(${rel * 49}vw) scale(${scale})`,
+                          zIndex: zIdx,
+                          opacity: opac,
+                          filter: blur > 0 ? `blur(${blur}px)` : "none",
+                          boxShadow: isC
+                            ? `0 0 0 1.5px rgba(255,255,255,.13), 0 32px 96px rgba(0,0,0,.8), 0 0 80px ${OR}2a, 0 0 180px ${OR}0e`
+                            : "0 16px 48px rgba(0,0,0,.55)",
+                        }}
+                      >
+                        {/* Thumbnail */}
+                        {th
+                          ? <img src={th} alt={v.title} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", transition: "transform .65s cubic-bezier(.16,1,.3,1)" }} />
+                          : <div style={{ width: "100%", height: "100%", background: "#111", display: "flex", alignItems: "center", justifyContent: "center" }}><Film size={36} color="rgba(255,255,255,.15)" /></div>
+                        }
+
+                        {/* Gradient overlay */}
+                        <div style={{ position: "absolute", inset: 0, background: isC ? "linear-gradient(to top,rgba(0,0,0,.94) 0%,rgba(0,0,0,.22) 48%,transparent 100%)" : "rgba(0,0,0,.28)" }} />
+
+                        {/* Glow border (center only) */}
+                        {isC && <div style={{ position: "absolute", inset: 0, borderRadius: 22, boxShadow: `inset 0 0 0 1.5px rgba(255,255,255,.16), inset 0 0 50px ${OR}14`, pointerEvents: "none" }} />}
+
+                        {/* Play button (center only) */}
+                        {isC && (
+                          <motion.div
+                            whileHover={{ scale: 1.14 }}
+                            transition={{ type: "spring", stiffness: 380, damping: 18 }}
+                            style={{
+                              position: "absolute", top: "50%", left: "50%",
+                              transform: "translate(-50%,-50%)",
+                              width: 68, height: 68, borderRadius: "50%",
+                              background: OR, cursor: "pointer",
+                              display: "flex", alignItems: "center", justifyContent: "center",
+                              boxShadow: `0 0 0 14px ${OR}1c, 0 0 0 28px ${OR}0a, 0 12px 40px ${OR}55`,
+                              zIndex: 5,
+                            }}
+                          >
+                            <Play size={24} style={{ fill: "#fff", color: "#fff", marginLeft: 4 }} />
+                          </motion.div>
+                        )}
+
+                        {/* Info overlay (center only) */}
+                        {isC && (
+                          <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "clamp(14px,3vw,32px)" }}>
+                            <motion.div key={`info-${v.id}`} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .42, delay: .1 }}>
+                              <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 10 }}>
+                                {(() => { try { return (JSON.parse(v.tags || "[]") as string[]).slice(0, 3).map((t: string) => (
+                                  <span key={t} style={{ fontSize: 9, fontWeight: 700, padding: "3px 10px", borderRadius: 100, background: `${OR}22`, border: `1px solid ${OR}44`, color: OR, letterSpacing: ".1em", textTransform: "uppercase", backdropFilter: "blur(8px)" }}>{t}</span>
+                                )); } catch { return null; } })()}
+                              </div>
+                              <h3 style={{ fontSize: "clamp(15px,2.6vw,34px)", fontWeight: 900, color: "#fff", letterSpacing: "-.03em", lineHeight: 1.1, marginBottom: 6, textShadow: "0 2px 20px rgba(0,0,0,.5)" }}>{v.title}</h3>
+                              {v.description && <p style={{ fontSize: "clamp(11px,1vw,13px)", color: "rgba(255,255,255,.48)", lineHeight: 1.5, maxWidth: 500 }}>{v.description}</p>}
+                            </motion.div>
+                          </div>
+                        )}
+
+                        {/* Slide counter badge (center only) */}
+                        {isC && total > 1 && (
+                          <div style={{ position: "absolute", top: 16, right: 18, padding: "4px 12px", borderRadius: 100, background: "rgba(0,0,0,.65)", border: "1px solid rgba(255,255,255,.12)", backdropFilter: "blur(12px)", fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,.65)", letterSpacing: ".08em" }}>
+                            {String(slideIndex + 1).padStart(2, "0")} / {String(total).padStart(2, "0")}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+
+                  {/* Nav arrows */}
+                  {total > 1 && (
+                    <>
+                      <button className="pf-arrow" onClick={goPrev} style={{
+                        position: "absolute", left: "min(6%,72px)", top: "50%", transform: "translateY(-50%)",
+                        width: 50, height: 50, borderRadius: "50%",
+                        background: "rgba(10,10,12,.72)", border: "1px solid rgba(255,255,255,.14)",
+                        color: "#fff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+                        backdropFilter: "blur(20px)", zIndex: 30, fontSize: 26, fontWeight: 200, lineHeight: 1, fontFamily: "sans-serif"
+                      }}>‹</button>
+                      <button className="pf-arrow" onClick={goNext} style={{
+                        position: "absolute", right: "min(6%,72px)", top: "50%", transform: "translateY(-50%)",
+                        width: 50, height: 50, borderRadius: "50%",
+                        background: "rgba(10,10,12,.72)", border: "1px solid rgba(255,255,255,.14)",
+                        color: "#fff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+                        backdropFilter: "blur(20px)", zIndex: 30, fontSize: 26, fontWeight: 200, lineHeight: 1, fontFamily: "sans-serif"
+                      }}>›</button>
+                    </>
+                  )}
+                </div>
+
+                {/* Autoplay progress bar */}
+                {total > 1 && (
+                  <div style={{ height: 2, background: "rgba(255,255,255,.06)", margin: "0 0", position: "relative", zIndex: 2 }}>
+                    <div key={`prog-${slideIndex}`} className="pf-progress-bar" style={{ height: "100%", background: `linear-gradient(to right, ${OR}, ${OR}88)`, width: 0, borderRadius: 2 }} />
+                  </div>
+                )}
+
+                {/* Dot indicators */}
+                {total > 1 && (
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "22px 28px 0", position: "relative", zIndex: 2 }}>
+                    {pfShown.map((_, i) => (
+                      <button key={i} className="pf-dot" onClick={() => goTo(i)} style={{
+                        width: i === slideIndex ? 30 : 7, height: 7, borderRadius: 100, padding: 0,
+                        background: i === slideIndex ? OR : "rgba(255,255,255,.18)",
+                        border: "none", cursor: "pointer",
+                        boxShadow: i === slideIndex ? `0 0 12px ${OR}66` : "none",
+                      }} />
+                    ))}
+                  </div>
+                )}
+
+                {/* Thumbnail strip */}
+                {total > 1 && (
+                  <div style={{ maxWidth: 1280, margin: "20px auto 0", padding: "0 28px", position: "relative", zIndex: 2 }}>
+                    <div className="no-scrollbar" style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4 }}>
+                      {pfShown.map((vid, i) => {
+                        const tn = getThumbnail(vid.embedUrl, vid.thumbnailUrl);
+                        const isA = i === slideIndex;
+                        return (
+                          <div key={vid.id} className="pf-thumb" onClick={() => goTo(i)} style={{
+                            flexShrink: 0,
+                            width: "clamp(72px,10vw,130px)", aspectRatio: "16/9",
+                            borderRadius: 8, overflow: "hidden", cursor: "pointer", position: "relative",
+                            border: isA ? `2px solid ${OR}` : "2px solid rgba(255,255,255,.07)",
+                            boxShadow: isA ? `0 0 16px ${OR}55, 0 4px 20px rgba(0,0,0,.4)` : "0 4px 12px rgba(0,0,0,.3)",
+                            opacity: isA ? 1 : 0.42,
+                          }}>
+                            {tn
+                              ? <img src={tn} alt={vid.title} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                              : <div style={{ width: "100%", height: "100%", background: "#111", display: "flex", alignItems: "center", justifyContent: "center" }}><Film size={12} color="rgba(255,255,255,.2)" /></div>
+                            }
+                            {isA && (
+                              <>
+                                <div style={{ position: "absolute", inset: 0, background: `${OR}18` }} />
+                                <div style={{ position: "absolute", inset: 0, borderRadius: 6, boxShadow: `inset 0 0 0 1.5px ${OR}66` }} />
+                              </>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
-                );
-              })()}
-            </div>
-          )}
-
-          </div>
+                )}
+              </>
+            );
+          })()}
         </section>
       )}
 
