@@ -20,7 +20,7 @@ interface Course { id: string; title: string; slug: string; level: string; subti
 interface DigitalAsset { id: string; title: string; description?: string; price: string; thumbnailUrl?: string; category?: string; fileType?: string; isActive: boolean; }
 interface Service { icon: string; title: string; description: string; tags: string[]; slug: string; price?: string; }
 
-const OR = "#FF6A20";
+const OR = "#F03820";   // Red-orange (warmer, more vibrant red)
 const FONT = "'Plus Jakarta Sans',sans-serif";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -99,7 +99,7 @@ body{overflow-x:hidden;}
 @keyframes b2{0%,100%{transform:translate(0,0) scale(1);}33%{transform:translate(-100px,70px) scale(0.85);}66%{transform:translate(70px,-100px) scale(1.22);}}
 @keyframes b3{0%,100%{transform:translate(0,0) scale(1);}50%{transform:translate(60px,80px) scale(1.12);}}
 @keyframes marquee{0%{transform:translateX(0);}100%{transform:translateX(-25%);}}
-@keyframes fadeUp{from{opacity:0;transform:translateY(22px);}to{opacity:1;transform:translateY(0);}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:translateY(0);}}
 @keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
 @keyframes pulse{0%,100%{opacity:.6;}50%{opacity:1;}}
 @keyframes float{0%,100%{transform:translateY(0);}50%{transform:translateY(-8px);}}
@@ -107,12 +107,14 @@ body{overflow-x:hidden;}
 @keyframes spin{to{transform:rotate(360deg);}}
 @keyframes pf-pulse-glow{0%,100%{box-shadow:0 32px 96px rgba(0,0,0,.75),0 0 60px ${OR}22,0 0 120px ${OR}08;}50%{box-shadow:0 32px 96px rgba(0,0,0,.75),0 0 100px ${OR}40,0 0 200px ${OR}14;}}
 @keyframes pf-progress{from{width:0%;}to{width:100%;}}
+@keyframes click-glow{0%{box-shadow:0 0 0 0 ${OR}66;}100%{box-shadow:0 0 0 10px ${OR}00;}}
 
 .pf-3d-card{transition:all .58s cubic-bezier(.16,1,.3,1);}
 .pf-3d-card:hover img{transform:scale(1.06);}
 .pf-center-card{animation:pf-pulse-glow 3.5s ease-in-out infinite;}
 .pf-arrow{transition:background .2s,border-color .2s,box-shadow .2s!important;}
 .pf-arrow:hover{background:${OR}22!important;border-color:${OR}55!important;box-shadow:0 0 20px ${OR}33!important;}
+.pf-arrow:active{animation:click-glow .4s ease-out;}
 .pf-dot{transition:all .35s cubic-bezier(.16,1,.3,1);}
 .pf-thumb{transition:opacity .25s,border-color .25s,box-shadow .25s,transform .22s;}
 .pf-thumb:hover{opacity:.9!important;transform:scale(1.06) translateY(-2px)!important;}
@@ -120,11 +122,105 @@ body{overflow-x:hidden;}
 .no-scrollbar::-webkit-scrollbar{display:none;}
 .no-scrollbar{scrollbar-width:none;}
 
-.mq-inner{animation:marquee 40s linear infinite;}
-.mq-inner:hover{animation-play-state:paused;}
+/* ── Spring-physics button animations ─────────────────────────────────── */
 
-.fu{opacity:0;animation:fadeUp .7s ease forwards;}
-.d1{animation-delay:.08s;}.d2{animation-delay:.22s;}.d3{animation-delay:.38s;}.d4{animation-delay:.56s;}
+/* Orange primary buttons */
+.og-btn {
+  transition: transform .24s cubic-bezier(.34,1.56,.64,1), box-shadow .22s ease, opacity .15s !important;
+  will-change: transform;
+}
+.og-btn:hover {
+  transform: translateY(-2px) scale(1.05) !important;
+  box-shadow: 0 10px 36px ${OR}55, 0 0 0 1px ${OR}38, 0 0 24px ${OR}35 !important;
+  opacity: 1 !important;
+}
+.og-btn:active {
+  transform: scale(0.91) !important;
+  box-shadow: 0 0 0 5px ${OR}44, 0 0 28px ${OR}66 !important;
+  transition: transform .07s ease, box-shadow .07s ease !important;
+}
+
+/* Outline / ghost buttons */
+.outline-btn {
+  transition: transform .24s cubic-bezier(.34,1.56,.64,1), border-color .18s, background .18s, box-shadow .18s !important;
+  will-change: transform;
+}
+.outline-btn:hover {
+  transform: translateY(-1px) scale(1.03) !important;
+  border-color: rgba(255,255,255,.32) !important;
+  background: rgba(255,255,255,.06) !important;
+}
+.outline-btn:active {
+  transform: scale(0.94) !important;
+  box-shadow: 0 0 0 3px rgba(255,255,255,.22) !important;
+  transition: transform .07s ease, box-shadow .07s ease !important;
+}
+
+/* Category / pill buttons */
+.pill-btn {
+  transition: transform .2s cubic-bezier(.34,1.56,.64,1), background .18s, border-color .18s, color .18s, box-shadow .18s !important;
+  will-change: transform;
+}
+.pill-btn:hover {
+  transform: translateY(-1px) scale(1.06) !important;
+}
+.pill-btn:active {
+  transform: scale(0.91) !important;
+  transition: transform .07s ease !important;
+}
+.pill-btn.pill-active:active {
+  box-shadow: 0 0 0 4px ${OR}44, 0 0 18px ${OR}55 !important;
+}
+
+/* Nav links */
+.nav-link {
+  transition: color .18s, transform .2s cubic-bezier(.34,1.56,.64,1) !important;
+}
+.nav-link:hover {
+  color: #fff !important;
+  transform: translateY(-1px) !important;
+}
+.nav-link:active {
+  transform: scale(0.94) !important;
+  transition-duration: .07s !important;
+}
+
+/* Carousel arrows — keep translateY(-50%) in all states */
+.pf-arrow {
+  transition: background .2s, border-color .2s, box-shadow .22s, transform .22s cubic-bezier(.34,1.56,.64,1) !important;
+}
+.pf-arrow:hover {
+  background: ${OR}22 !important;
+  border-color: ${OR}55 !important;
+  box-shadow: 0 0 0 1px ${OR}44, 0 0 20px ${OR}44 !important;
+  transform: translateY(-50%) scale(1.14) !important;
+}
+.pf-arrow:active {
+  transform: translateY(-50%) scale(0.86) !important;
+  box-shadow: 0 0 0 4px ${OR}55, 0 0 28px ${OR}77 !important;
+  transition: transform .07s ease, box-shadow .07s ease !important;
+}
+
+.pf-dot { transition: all .35s cubic-bezier(.16,1,.3,1); }
+.pf-dot:hover { transform: scale(1.3) !important; }
+.pf-dot:active { transform: scale(0.82) !important; transition-duration: .08s !important; }
+
+.pf-thumb { transition: opacity .25s, border-color .25s, box-shadow .25s, transform .22s cubic-bezier(.34,1.56,.64,1); }
+.pf-thumb:hover { opacity: .9 !important; transform: scale(1.07) translateY(-3px) !important; }
+.pf-thumb:active { transform: scale(0.94) !important; transition-duration: .07s !important; }
+
+.pf-progress-bar { animation: pf-progress 4.5s linear forwards; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { scrollbar-width: none; }
+
+/* Glow on click — applied via animation keyframe on .og-btn:active */
+@keyframes click-ring { 0%{box-shadow:0 0 0 0 ${OR}66,0 0 0 0 ${OR}44;} 100%{box-shadow:0 0 0 14px ${OR}00,0 0 32px ${OR}00;} }
+
+.mq-inner { animation: marquee 40s linear infinite; }
+.mq-inner:hover { animation-play-state: paused; }
+
+.fu { opacity: 0; animation: fadeUp .45s ease forwards; }
+.d1{animation-delay:0s;}.d2{animation-delay:.06s;}.d3{animation-delay:.13s;}.d4{animation-delay:.22s;}
 
 .nav-link{font-size:13px;font-weight:600;color:rgba(255,255,255,.5);text-decoration:none;transition:color .2s;letter-spacing:.01em;padding:6px 0;}
 .nav-link:hover{color:#fff;}
@@ -300,10 +396,10 @@ export default function LandingPage() {
   const [pfTag, setPfTag] = useState("All");
   const [vReady, setVReady] = useState(false);
   const [mobileNav, setMobileNav] = useState(false);
+  const [btfIndex, setBtfIndex] = useState(0);   // Behind-the-Frame slider index
   const bgRef = useRef<HTMLDivElement>(null);
   const [slideIndex, setSlideIndex] = useState(0);
   const pfSliderRef = useRef<HTMLDivElement>(null);
-
   // Parallax
   useEffect(() => {
     let raf = 0;
@@ -364,10 +460,6 @@ export default function LandingPage() {
   const showreel = vids.find(v => v.category === "showreel");
   const pfVids = vids.filter(v => v.category === "portfolio");
 
-  // LOGIC FILTER YANG DIPERBAIKI (TIDAK MENGARANG):
-  // Menambahkan semua kemungkinan input CMS agar videonya pasti terbaca
-  const reelVids = vids.filter(v => v.category === "reels" || v.category === "portrait" || v.category === "behind-the-frame" || v.category === "Behind the Frame");
-
   const allTags = Array.from(new Set(pfVids.flatMap(v => { try { return JSON.parse(v.tags || "[]"); } catch { return []; } })));
   const pfShown = pfTag === "All" ? pfVids : pfVids.filter(v => { try { return JSON.parse(v.tags || "[]").includes(pfTag); } catch { return false; } });
 
@@ -378,6 +470,14 @@ export default function LandingPage() {
     const id = setInterval(() => setSlideIndex(prev => (prev + 1) % pfShown.length), 4500);
     return () => clearInterval(id);
   }, [pfShown.length]); // reset interval ketika category filter berubah
+
+  // ── Autoplay Behind-the-Frame slider ────────────────────────────────────────
+  const reelVids = vids.filter(v => v.category === "reels" || v.category === "portrait" || v.category === "behind-the-frame" || v.category === "Behind the Frame");
+  useEffect(() => {
+    if (reelVids.length <= 1) return;
+    const id = setInterval(() => setBtfIndex(prev => (prev + 1) % reelVids.length), 5000);
+    return () => clearInterval(id);
+  }, [reelVids.length]);
 
   const pubCourses = courses.filter(c => c.isPublished !== false && c.packages?.length > 0);
   const pubAssets = assets.filter(a => a.isActive).slice(0, 6);
@@ -411,7 +511,7 @@ export default function LandingPage() {
           {/* Logo */}
           <a href="/" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none", flexShrink: 0 }}>
             {logoUrl
-              ? <img src={logoUrl} alt={brandName} style={{ height: 32, width: "auto", objectFit: "contain", filter: "brightness(0) invert(1)" }} />
+              ? <img src={logoUrl} alt={brandName} loading="eager" fetchPriority="high" style={{ height: 32, width: "auto", objectFit: "contain", filter: "brightness(0) invert(1)" }} />
               : <div style={{ fontSize: 15, fontWeight: 900, color: "#fff", letterSpacing: "-.02em", lineHeight: 1 }}>{brandName}</div>
             }
           </a>
@@ -528,247 +628,401 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ══════ PORTRAIT REEL VIDEOS ══════ */}
+      {/* ══════ BEHIND THE FRAME — Portrait Auto-Slider ══════ */}
       {(reelVids.length > 0 || true) && (
         <section id="reels" style={{ padding: "100px 0", position: "relative", overflow: "hidden" }}>
-          <div style={{ position: "absolute", inset: 0, background: `radial-gradient(ellipse 90% 70% at 50% 50%,${OR}08,transparent 70%)`, pointerEvents: "none" }} />
-          <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 1, background: `linear-gradient(to right,transparent,${OR}33,transparent)` }} />
-          <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 1, background: `linear-gradient(to right,transparent,${OR}22,transparent)` }} />
+          <div style={{ position: "absolute", inset: 0, background: `radial-gradient(ellipse 90% 70% at 50% 50%,${OR}07,transparent 70%)`, pointerEvents: "none" }} />
+          <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 1, background: `linear-gradient(to right,transparent,${OR}28,transparent)` }} />
+          <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 1, background: `linear-gradient(to right,transparent,${OR}18,transparent)` }} />
 
           {/* Header */}
-          <div style={{ maxWidth: 1280, margin: "0 auto", padding: "0 28px 48px" }}>
-            <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", flexWrap: "wrap", gap: 16 }}>
-              <div>
-                <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: ".24em", color: OR, textTransform: "uppercase", marginBottom: 14 }}>FILM & REEL</p>
-                <h2 style={{ fontSize: "clamp(30px,4.5vw,54px)", fontWeight: 900, letterSpacing: "-.04em", color: "#fff", margin: 0, lineHeight: 1.0 }}>
-                  Behind the Frame
-                </h2>
-              </div>
-              <p style={{ fontSize: 14, color: "rgba(255,255,255,.4)", maxWidth: 360, lineHeight: 1.65 }}>Cuplikan karya terbaik dari berbagai project yang sudah kami kerjakan.</p>
-            </div>
+          <div style={{ maxWidth: 960, margin: "0 auto", padding: "0 32px 48px", textAlign: "center" }}>
+            <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: ".22em", color: OR, textTransform: "uppercase", marginBottom: 10 }}>FILM & REEL</p>
+            <h2 style={{ fontSize: "clamp(28px,4vw,48px)", fontWeight: 900, letterSpacing: "-.04em", color: "#fff", lineHeight: 1.0, marginBottom: 10 }}>Behind the Frame</h2>
+            <p style={{ fontSize: 14, color: "rgba(255,255,255,.38)", lineHeight: 1.65 }}>Cuplikan karya terbaik dari berbagai project yang sudah kami kerjakan.</p>
           </div>
 
-          {/* Scrollable portrait cards */}
-          <div style={{ overflowX: "auto", overflowY: "visible", paddingBottom: 24, scrollbarWidth: "none", WebkitOverflowScrolling: "touch" } as any}>
-            <div className="reel-scroll" style={{ display: "flex", gap: 20, padding: "0 28px", width: "max-content", margin: "0 auto" }}>
-              {(reelVids.length > 0 ? reelVids : [
-                { id: "demo1", title: "Wedding Film", description: "Cinematic Wedding", embedUrl: "https://youtube.com/watch?v=dQw4w9WgXcQ", thumbnailUrl: "", category: "reels", tags: "[]", isActive: true, orderIndex: 0 },
-                { id: "demo2", title: "Commercial TVC", description: "Brand Video", embedUrl: "https://youtube.com/watch?v=dQw4w9WgXcQ", thumbnailUrl: "", category: "reels", tags: "[]", isActive: true, orderIndex: 1 },
-                { id: "demo3", title: "Music Video", description: "Artist Production", embedUrl: "https://youtube.com/watch?v=dQw4w9WgXcQ", thumbnailUrl: "", category: "reels", tags: "[]", isActive: true, orderIndex: 2 },
-              ]).map(v => (
-                <ReelCard key={v.id} video={v} onClick={() => setModal(v.embedUrl)} />
-              ))}
-            </div>
-          </div>
+          {/* Portrait Auto-Slider */}
+          {(() => {
+            const srcList = reelVids.length > 0 ? reelVids : [
+              { id: "d1", title: "Wedding Film",    embedUrl: "https://youtube.com/watch?v=dQw4w9WgXcQ", thumbnailUrl: "", category: "reels", description: "Cinematic Wedding",    tags: "[]", isActive: true, orderIndex: 0 },
+              { id: "d2", title: "Commercial TVC",  embedUrl: "https://youtube.com/watch?v=dQw4w9WgXcQ", thumbnailUrl: "", category: "reels", description: "Brand Video",          tags: "[]", isActive: true, orderIndex: 1 },
+              { id: "d3", title: "Music Video",     embedUrl: "https://youtube.com/watch?v=dQw4w9WgXcQ", thumbnailUrl: "", category: "reels", description: "Artist Production",   tags: "[]", isActive: true, orderIndex: 2 },
+            ] as SiteVideo[];
 
-          {/* Upload hint for admin */}
-          <div style={{ maxWidth: 1280, margin: "24px auto 0", padding: "0 28px" }}>
-            <p style={{ fontSize: 11, color: "rgba(255,255,255,.2)", textAlign: "center" }}>Upload video portrait di Admin → Site Videos → kategori "reels", "portrait", atau "Behind the Frame"</p>
-          </div>
-        </section>
-      )}
-
-      {/* ══════ PORTFOLIO — Cinematic 3D Carousel ══════ */}
-      {pfVids.length > 0 && (
-        <section id="portfolio" style={{ padding: "110px 0", position: "relative", overflow: "hidden" }}>
-          {/* Background atmosphere */}
-          <div style={{ position: "absolute", inset: 0, background: `radial-gradient(ellipse 130% 65% at 50% 100%,${OR}0c,transparent 65%)`, pointerEvents: "none" }} />
-          <div data-px="0.12" style={{ position: "absolute", bottom: "-10%", left: "5%", width: "70%", height: "60%", background: `radial-gradient(ellipse at center,${OR}08,transparent 68%)`, filter: "blur(80px)", willChange: "transform", pointerEvents: "none" }} />
-          <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 1, background: `linear-gradient(to right,transparent,${OR}20,transparent)` }} />
-          <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 1, background: `linear-gradient(to right,transparent,rgba(255,255,255,.05),transparent)` }} />
-
-          {/* ── Header + Category Pills ── */}
-          <div style={{ maxWidth: 1280, margin: "0 auto", padding: "0 28px 52px", position: "relative", zIndex: 2 }}>
-            <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", flexWrap: "wrap", gap: 20 }}>
-              <div>
-                <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: ".24em", color: OR, textTransform: "uppercase", marginBottom: 12 }}>PORTFOLIO</p>
-                <h2 style={{ fontSize: "clamp(28px,4.5vw,52px)", fontWeight: 900, letterSpacing: "-.04em", color: "#fff", lineHeight: 1.0 }}>Karya Terbaik Kami</h2>
-              </div>
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                {["All", ...allTags].map(cat => (
-                  <button key={cat} onClick={() => { setPfTag(cat); setSlideIndex(0); }}
-                    style={{ padding: "7px 18px", borderRadius: 100, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: FONT, transition: "all .22s", background: pfTag === cat ? OR : "rgba(255,255,255,.06)", border: pfTag === cat ? "none" : "1px solid rgba(255,255,255,.1)", color: pfTag === cat ? "#fff" : "rgba(255,255,255,.47)" }}>
-                    {cat}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* ── Carousel ── */}
-          {pfShown.length > 0 && (() => {
-            const total = pfShown.length;
-            const goTo = (i: number) => setSlideIndex(((i % total) + total) % total);
-            const goPrev = (e: { stopPropagation(): void }) => { e.stopPropagation(); goTo(slideIndex - 1); };
-            const goNext = (e: { stopPropagation(): void }) => { e.stopPropagation(); goTo(slideIndex + 1); };
+            const total  = srcList.length;
+            const curIdx = btfIndex % total;
+            const goTo   = (i: number) => setBtfIndex(((i % total) + total) % total);
+            const STEP   = 300; // px per step (portrait cards, narrower)
 
             return (
-              <>
-                {/* 3D Stage */}
-                <div style={{ position: "relative", height: "clamp(200px,38vw,500px)", zIndex: 2 }}>
-                  {/* Side fade masks */}
-                  <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: "min(20%,220px)", background: "linear-gradient(to right,#0a0a0c 30%,transparent)", zIndex: 25, pointerEvents: "none" }} />
-                  <div style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: "min(20%,220px)", background: "linear-gradient(to left,#0a0a0c 30%,transparent)", zIndex: 25, pointerEvents: "none" }} />
+              <div style={{ position: "relative" }}>
+                {/* Stage — centered, clips side cards */}
+                <div style={{ maxWidth: 960, margin: "0 auto", overflow: "hidden", position: "relative" }}>
 
-                  {pfShown.map((v, idx) => {
-                    let rel = ((idx - slideIndex) % total + total) % total;
-                    if (rel > total / 2) rel -= total;
-                    if (Math.abs(rel) > 2) return null;
+                  {/* Fade masks */}
+                  <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: "18%", background: "linear-gradient(to right,#0a0a0c 20%,transparent)", zIndex: 20, pointerEvents: "none" }} />
+                  <div style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: "18%", background: "linear-gradient(to left,#0a0a0c 20%,transparent)", zIndex: 20, pointerEvents: "none" }} />
 
-                    const isC = rel === 0;
-                    const ab = Math.abs(rel);
-                    const scale = [1, 0.80, 0.62][ab];
-                    const opac  = [1, 0.68, 0.36][ab];
-                    const zIdx  = [20, 12, 6][ab];
-                    const blur  = [0, 0, 1.5][ab];
-                    const th = getThumbnail(v.embedUrl, v.thumbnailUrl);
+                  {/* Card track */}
+                  <div style={{ position: "relative", height: "clamp(340px, 52vw, 560px)" }}>
+                    {srcList.map((v, idx) => {
+                      let rel = ((idx - curIdx) % total + total) % total;
+                      if (rel > total / 2) rel -= total;
+                      if (Math.abs(rel) > 2) return null;
 
-                    return (
-                      <div
-                        key={v.id}
-                        className={`pf-3d-card${isC ? " pf-center-card" : ""}`}
-                        onClick={() => isC ? setModal(v.embedUrl) : goTo(idx)}
-                        style={{
-                          position: "absolute",
-                          top: "50%", left: "50%",
-                          width: isC ? "min(60vw,760px)" : "min(44vw,560px)",
-                          aspectRatio: "16/9",
-                          borderRadius: isC ? 22 : 15,
-                          overflow: "hidden",
-                          cursor: "pointer",
-                          transform: `translate(-50%,-50%) translateX(${rel * 49}vw) scale(${scale})`,
-                          zIndex: zIdx,
-                          opacity: opac,
-                          filter: blur > 0 ? `blur(${blur}px)` : "none",
-                          boxShadow: isC
-                            ? `0 0 0 1.5px rgba(255,255,255,.13), 0 32px 96px rgba(0,0,0,.8), 0 0 80px ${OR}2a, 0 0 180px ${OR}0e`
-                            : "0 16px 48px rgba(0,0,0,.55)",
-                        }}
-                      >
-                        {/* Thumbnail */}
-                        {th
-                          ? <img src={th} alt={v.title} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", transition: "transform .65s cubic-bezier(.16,1,.3,1)" }} />
-                          : <div style={{ width: "100%", height: "100%", background: "#111", display: "flex", alignItems: "center", justifyContent: "center" }}><Film size={36} color="rgba(255,255,255,.15)" /></div>
-                        }
+                      const isC   = rel === 0;
+                      const ab    = Math.abs(rel);
+                      const scale = ([1, 0.80, 0.62] as const)[ab];
+                      const opac  = ([1, 0.55, 0.25] as const)[ab];
+                      const zIdx  = ([15, 8,   3]    as const)[ab];
+                      const th    = getThumbnail(v.embedUrl, v.thumbnailUrl);
 
-                        {/* Gradient overlay */}
-                        <div style={{ position: "absolute", inset: 0, background: isC ? "linear-gradient(to top,rgba(0,0,0,.94) 0%,rgba(0,0,0,.22) 48%,transparent 100%)" : "rgba(0,0,0,.28)" }} />
+                      // Auto-embed: autoplay, muted, looped, no controls, no branding
+                      const embedSrc = autoEmbed(v.embedUrl, true);
 
-                        {/* Glow border (center only) */}
-                        {isC && <div style={{ position: "absolute", inset: 0, borderRadius: 22, boxShadow: `inset 0 0 0 1.5px rgba(255,255,255,.16), inset 0 0 50px ${OR}14`, pointerEvents: "none" }} />}
+                      return (
+                        <div
+                          key={v.id}
+                          className="pf-3d-card"
+                          onClick={() => isC ? setModal(v.embedUrl) : goTo(idx)}
+                          style={{
+                            position: "absolute",
+                            top: "50%",
+                            /* Portrait card: 9:16, centered, offset by STEP per slot */
+                            left: `calc(50% + ${rel * STEP}px)`,
+                            transform: `translateX(-50%) translateY(-50%) scale(${scale})`,
+                            /* Width → aspect ratio 9:16 gives ~tall card */
+                            width: "clamp(160px, 22vw, 240px)",
+                            aspectRatio: "9/16",
+                            borderRadius: 18,
+                            overflow: "hidden",
+                            cursor: "pointer",
+                            zIndex: zIdx,
+                            opacity: opac,
+                            boxShadow: isC
+                              ? `0 0 0 1px rgba(255,255,255,.10), 0 20px 60px rgba(0,0,0,.75), 0 0 44px ${OR}1a`
+                              : "0 10px 32px rgba(0,0,0,.45)",
+                            background: "#0f0f12",
+                          }}
+                        >
+                          {/* CENTER CARD: iframe autoplay (hidden UI via overflow + scale trick) */}
+                          {isC && embedSrc ? (
+                            <div style={{ position: "absolute", inset: 0, overflow: "hidden", borderRadius: 18 }}>
+                              <iframe
+                                key={`btf-${v.id}`}
+                                src={`${embedSrc}&controls=0&modestbranding=1&rel=0&disablekb=1`}
+                                style={{
+                                  position: "absolute",
+                                  top: "50%", left: "50%",
+                                  /* Scale up to hide YT borders/UI, clip with overflow:hidden */
+                                  width: "300%", height: "300%",
+                                  transform: "translate(-50%, -50%)",
+                                  border: "none",
+                                  pointerEvents: "none",
+                                }}
+                                allow="autoplay; muted; loop"
+                              />
+                            </div>
+                          ) : (
+                            /* SIDE CARDS: just thumbnail (no iframe for perf) */
+                            th
+                              ? <img src={th} alt={v.title} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                              : <div style={{ width: "100%", height: "100%", background: `linear-gradient(135deg,${OR}14,rgba(124,58,237,.14))` }} />
+                          )}
 
-                        {/* Play button (center only) */}
-                        {isC && (
-                          <motion.div
-                            whileHover={{ scale: 1.14 }}
-                            transition={{ type: "spring", stiffness: 380, damping: 18 }}
-                            style={{
+                          {/* Gradient overlay */}
+                          <div style={{ position: "absolute", inset: 0, background: isC
+                            ? "linear-gradient(to top,rgba(0,0,0,.88) 0%,rgba(0,0,0,.1) 40%,transparent 100%)"
+                            : "rgba(0,0,0,.22)" }} />
+
+                          {/* Subtle border (center) */}
+                          {isC && <div style={{ position: "absolute", inset: 0, borderRadius: 18, boxShadow: "inset 0 0 0 1px rgba(255,255,255,.12)", pointerEvents: "none" }} />}
+
+                          {/* Play icon (center) */}
+                          {isC && (
+                            <div style={{
                               position: "absolute", top: "50%", left: "50%",
                               transform: "translate(-50%,-50%)",
-                              width: 68, height: 68, borderRadius: "50%",
-                              background: OR, cursor: "pointer",
+                              width: 52, height: 52, borderRadius: "50%",
+                              background: `${OR}cc`, cursor: "pointer", zIndex: 5,
                               display: "flex", alignItems: "center", justifyContent: "center",
-                              boxShadow: `0 0 0 14px ${OR}1c, 0 0 0 28px ${OR}0a, 0 12px 40px ${OR}55`,
-                              zIndex: 5,
-                            }}
-                          >
-                            <Play size={24} style={{ fill: "#fff", color: "#fff", marginLeft: 4 }} />
-                          </motion.div>
-                        )}
+                              boxShadow: `0 0 0 10px ${OR}18, 0 6px 24px ${OR}44`,
+                              pointerEvents: "none",
+                            }}>
+                              <Play size={18} style={{ fill: "#fff", color: "#fff", marginLeft: 3 }} />
+                            </div>
+                          )}
 
-                        {/* Info overlay (center only) */}
-                        {isC && (
-                          <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "clamp(14px,3vw,32px)" }}>
-                            <motion.div key={`info-${v.id}`} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .42, delay: .1 }}>
-                              <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 10 }}>
-                                {(() => { try { return (JSON.parse(v.tags || "[]") as string[]).slice(0, 3).map((t: string) => (
-                                  <span key={t} style={{ fontSize: 9, fontWeight: 700, padding: "3px 10px", borderRadius: 100, background: `${OR}22`, border: `1px solid ${OR}44`, color: OR, letterSpacing: ".1em", textTransform: "uppercase", backdropFilter: "blur(8px)" }}>{t}</span>
-                                )); } catch { return null; } })()}
-                              </div>
-                              <h3 style={{ fontSize: "clamp(15px,2.6vw,34px)", fontWeight: 900, color: "#fff", letterSpacing: "-.03em", lineHeight: 1.1, marginBottom: 6, textShadow: "0 2px 20px rgba(0,0,0,.5)" }}>{v.title}</h3>
-                              {v.description && <p style={{ fontSize: "clamp(11px,1vw,13px)", color: "rgba(255,255,255,.48)", lineHeight: 1.5, maxWidth: 500 }}>{v.description}</p>}
+                          {/* Info (center only) */}
+                          {isC && (
+                            <motion.div
+                              key={`btf-info-${v.id}`}
+                              initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .35, delay: .1 }}
+                              style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "18px 16px" }}
+                            >
+                              <div style={{ fontSize: 14, fontWeight: 800, color: "#fff", letterSpacing: "-.02em", lineHeight: 1.2 }}>{v.title}</div>
+                              {v.description && <div style={{ fontSize: 11, color: "rgba(255,255,255,.45)", marginTop: 3 }}>{v.description}</div>}
                             </motion.div>
-                          </div>
-                        )}
+                          )}
 
-                        {/* Slide counter badge (center only) */}
-                        {isC && total > 1 && (
-                          <div style={{ position: "absolute", top: 16, right: 18, padding: "4px 12px", borderRadius: 100, background: "rgba(0,0,0,.65)", border: "1px solid rgba(255,255,255,.12)", backdropFilter: "blur(12px)", fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,.65)", letterSpacing: ".08em" }}>
-                            {String(slideIndex + 1).padStart(2, "0")} / {String(total).padStart(2, "0")}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
+                          {/* Counter badge (center) */}
+                          {isC && total > 1 && (
+                            <div style={{ position: "absolute", top: 12, right: 12, padding: "2px 8px", borderRadius: 100, background: "rgba(0,0,0,.6)", fontSize: 9, fontWeight: 700, color: "rgba(255,255,255,.55)", backdropFilter: "blur(8px)", border: "1px solid rgba(255,255,255,.09)" }}>
+                              {String(curIdx + 1).padStart(2, "0")} / {String(total).padStart(2, "0")}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
 
-                  {/* Nav arrows */}
+                  {/* Arrow buttons */}
                   {total > 1 && (
                     <>
-                      <button className="pf-arrow" onClick={goPrev} style={{
-                        position: "absolute", left: "min(6%,72px)", top: "50%", transform: "translateY(-50%)",
-                        width: 50, height: 50, borderRadius: "50%",
-                        background: "rgba(10,10,12,.72)", border: "1px solid rgba(255,255,255,.14)",
+                      <button className="pf-arrow" onClick={() => goTo(curIdx - 1)} style={{
+                        position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)",
+                        width: 38, height: 38, borderRadius: "50%", zIndex: 30,
+                        background: "rgba(10,10,12,.8)", border: "1px solid rgba(255,255,255,.12)",
                         color: "#fff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
-                        backdropFilter: "blur(20px)", zIndex: 30, fontSize: 26, fontWeight: 200, lineHeight: 1, fontFamily: "sans-serif"
+                        backdropFilter: "blur(10px)", fontSize: 20, fontWeight: 300,
                       }}>‹</button>
-                      <button className="pf-arrow" onClick={goNext} style={{
-                        position: "absolute", right: "min(6%,72px)", top: "50%", transform: "translateY(-50%)",
-                        width: 50, height: 50, borderRadius: "50%",
-                        background: "rgba(10,10,12,.72)", border: "1px solid rgba(255,255,255,.14)",
+                      <button className="pf-arrow" onClick={() => goTo(curIdx + 1)} style={{
+                        position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)",
+                        width: 38, height: 38, borderRadius: "50%", zIndex: 30,
+                        background: "rgba(10,10,12,.8)", border: "1px solid rgba(255,255,255,.12)",
                         color: "#fff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
-                        backdropFilter: "blur(20px)", zIndex: 30, fontSize: 26, fontWeight: 200, lineHeight: 1, fontFamily: "sans-serif"
+                        backdropFilter: "blur(10px)", fontSize: 20, fontWeight: 300,
                       }}>›</button>
                     </>
                   )}
                 </div>
 
-                {/* Autoplay progress bar */}
+                {/* Progress bar */}
                 {total > 1 && (
-                  <div style={{ height: 2, background: "rgba(255,255,255,.06)", margin: "0 0", position: "relative", zIndex: 2 }}>
-                    <div key={`prog-${slideIndex}`} className="pf-progress-bar" style={{ height: "100%", background: `linear-gradient(to right, ${OR}, ${OR}88)`, width: 0, borderRadius: 2 }} />
+                  <div style={{ maxWidth: 280, margin: "18px auto 0", height: 2, background: "rgba(255,255,255,.07)", borderRadius: 2, overflow: "hidden" }}>
+                    <div key={`btf-prog-${curIdx}`} className="pf-progress-bar" style={{ height: "100%", background: OR, width: 0, animationDuration: "5s", borderRadius: 2 }} />
                   </div>
                 )}
 
                 {/* Dot indicators */}
                 {total > 1 && (
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "22px 28px 0", position: "relative", zIndex: 2 }}>
+                  <div style={{ display: "flex", justifyContent: "center", gap: 5, marginTop: 14 }}>
+                    {srcList.map((_, i) => (
+                      <button key={i} className="pf-dot" onClick={() => goTo(i)} style={{
+                        width: i === curIdx ? 22 : 6, height: 6, borderRadius: 100, padding: 0, border: "none", cursor: "pointer",
+                        background: i === curIdx ? OR : "rgba(255,255,255,.15)",
+                        boxShadow: i === curIdx ? `0 0 8px ${OR}55` : "none",
+                      }} />
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+        </section>
+      )}
+
+      {/* ══════ PORTFOLIO — Centered Minimal Carousel ══════ */}
+      {pfVids.length > 0 && (
+        <section id="portfolio" style={{ padding: "100px 0", position: "relative", overflow: "hidden" }}>
+          {/* Subtle bg glow */}
+          <div style={{ position: "absolute", inset: 0, background: `radial-gradient(ellipse 70% 45% at 50% 100%,${OR}09,transparent 60%)`, pointerEvents: "none" }} />
+          <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 1, background: `linear-gradient(to right,transparent,rgba(255,255,255,.07),transparent)` }} />
+
+          {/* ── Header ── */}
+          <div style={{ maxWidth: 960, margin: "0 auto", padding: "0 32px 44px", position: "relative", zIndex: 2 }}>
+            <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", flexWrap: "wrap", gap: 16 }}>
+              <div>
+                <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: ".22em", color: OR, textTransform: "uppercase", marginBottom: 10 }}>PORTFOLIO</p>
+                <h2 style={{ fontSize: "clamp(26px,4vw,46px)", fontWeight: 900, letterSpacing: "-.04em", color: "#fff", lineHeight: 1.0 }}>Karya Terbaik Kami</h2>
+              </div>
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                {["All", ...allTags].map(cat => (
+                  <button key={cat} onClick={() => { setPfTag(cat); setSlideIndex(0); }} style={{
+                    padding: "6px 15px", borderRadius: 100, fontSize: 11, fontWeight: 600,
+                    cursor: "pointer", fontFamily: FONT, transition: "all .2s",
+                    background: pfTag === cat ? OR : "rgba(255,255,255,.05)",
+                    border: pfTag === cat ? "none" : "1px solid rgba(255,255,255,.09)",
+                    color: pfTag === cat ? "#fff" : "rgba(255,255,255,.42)",
+                  }}>{cat}</button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* ── Carousel (contained, centered) ── */}
+          {pfShown.length > 0 && (() => {
+            const total = pfShown.length;
+            const goTo  = (i: number) => setSlideIndex(((i % total) + total) % total);
+            const STEP  = 700; // px offset per step — works for 1100px max container
+
+            return (
+              <>
+                {/* Stage: maxWidth 1100, overflow hidden → side cards clip cleanly */}
+                <div style={{ maxWidth: 1100, margin: "0 auto", position: "relative", overflow: "hidden" }}>
+
+                  {/* Fade masks — blend clipped cards into bg */}
+                  <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: "13%", background: "linear-gradient(to right,#0a0a0c 25%,transparent)", zIndex: 20, pointerEvents: "none" }} />
+                  <div style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: "13%", background: "linear-gradient(to left,#0a0a0c 25%,transparent)", zIndex: 20, pointerEvents: "none" }} />
+
+                  {/* Card track */}
+                  <div style={{ position: "relative", height: "clamp(180px,31vw,420px)" }}>
+                    {pfShown.map((v, idx) => {
+                      let rel = ((idx - slideIndex) % total + total) % total;
+                      if (rel > total / 2) rel -= total;
+                      if (Math.abs(rel) > 2) return null;
+
+                      const isC = rel === 0;
+                      const ab  = Math.abs(rel);
+                      const scale = ([1, 0.81, 0.63] as const)[ab];
+                      const opac  = ([1, 0.60, 0.28] as const)[ab];
+                      const zIdx  = ([15, 8,  3]  as const)[ab];
+                      const th    = getThumbnail(v.embedUrl, v.thumbnailUrl);
+
+                      return (
+                        <div
+                          key={v.id}
+                          className="pf-3d-card"
+                          onClick={() => isC ? setModal(v.embedUrl) : goTo(idx)}
+                          style={{
+                            position: "absolute",
+                            top: "50%",
+                            /* KEY FIX: left = center + pixel offset per step */
+                            left: `calc(50% + ${rel * STEP}px)`,
+                            /* Card centers on its own anchor, then scales */
+                            transform: `translateX(-50%) translateY(-50%) scale(${scale})`,
+                            width: isC ? "min(70%, 770px)" : "min(52%, 572px)",
+                            aspectRatio: "16/9",
+                            borderRadius: 14,
+                            overflow: "hidden",
+                            cursor: "pointer",
+                            zIndex: zIdx,
+                            opacity: opac,
+                            boxShadow: isC
+                              ? `0 0 0 1px rgba(255,255,255,.1), 0 20px 60px rgba(0,0,0,.7), 0 0 48px ${OR}1e`
+                              : "0 10px 32px rgba(0,0,0,.45)",
+                          }}
+                        >
+                          {/* Thumbnail */}
+                          {th
+                            ? <img src={th} alt={v.title} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", transition: "transform .6s cubic-bezier(.16,1,.3,1)" }} />
+                            : <div style={{ width: "100%", height: "100%", background: "#0f0f12", display: "flex", alignItems: "center", justifyContent: "center" }}><Film size={28} color="rgba(255,255,255,.1)" /></div>
+                          }
+
+                          {/* Gradient */}
+                          <div style={{ position: "absolute", inset: 0, background: isC
+                            ? "linear-gradient(to top,rgba(0,0,0,.92) 0%,rgba(0,0,0,.18) 46%,transparent 100%)"
+                            : "rgba(0,0,0,.26)" }} />
+
+                          {/* Subtle border (center) */}
+                          {isC && <div style={{ position: "absolute", inset: 0, borderRadius: 14, boxShadow: "inset 0 0 0 1px rgba(255,255,255,.11)", pointerEvents: "none" }} />}
+
+                          {/* Play button */}
+                          {isC && (
+                            <motion.div
+                              whileHover={{ scale: 1.12 }}
+                              transition={{ type: "spring", stiffness: 380, damping: 20 }}
+                              style={{
+                                position: "absolute", top: "50%", left: "50%",
+                                transform: "translate(-50%,-50%)",
+                                width: 56, height: 56, borderRadius: "50%",
+                                background: OR, cursor: "pointer", zIndex: 5,
+                                display: "flex", alignItems: "center", justifyContent: "center",
+                                boxShadow: `0 0 0 10px ${OR}18, 0 8px 28px ${OR}40`,
+                              }}
+                            >
+                              <Play size={20} style={{ fill: "#fff", color: "#fff", marginLeft: 3 }} />
+                            </motion.div>
+                          )}
+
+                          {/* Info (center) */}
+                          {isC && (
+                            <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "clamp(14px,2.2vw,26px)" }}>
+                              <motion.div key={`pf-info-${v.id}`} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .36, delay: .08 }}>
+                                <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginBottom: 8 }}>
+                                  {(() => { try { return (JSON.parse(v.tags || "[]") as string[]).slice(0, 2).map((t: string) => (
+                                    <span key={t} style={{ fontSize: 9, fontWeight: 700, padding: "2px 8px", borderRadius: 100, background: `${OR}1e`, border: `1px solid ${OR}40`, color: OR, letterSpacing: ".09em", textTransform: "uppercase" }}>{t}</span>
+                                  )); } catch { return null; } })()}
+                                </div>
+                                <h3 style={{ fontSize: "clamp(14px,2vw,26px)", fontWeight: 900, color: "#fff", letterSpacing: "-.03em", lineHeight: 1.15 }}>{v.title}</h3>
+                                {v.description && <p style={{ fontSize: "clamp(10px,.85vw,12px)", color: "rgba(255,255,255,.42)", marginTop: 4, lineHeight: 1.5 }}>{v.description}</p>}
+                              </motion.div>
+                            </div>
+                          )}
+
+                          {/* Counter (center) */}
+                          {isC && total > 1 && (
+                            <div style={{ position: "absolute", top: 13, right: 14, padding: "3px 9px", borderRadius: 100, background: "rgba(0,0,0,.6)", fontSize: 9, fontWeight: 700, color: "rgba(255,255,255,.55)", letterSpacing: ".08em", backdropFilter: "blur(8px)", border: "1px solid rgba(255,255,255,.09)" }}>
+                              {String(slideIndex + 1).padStart(2, "0")} / {String(total).padStart(2, "0")}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Arrow buttons — inside stage, zIndex above masks */}
+                  {total > 1 && (
+                    <>
+                      <button className="pf-arrow" onClick={() => goTo(slideIndex - 1)} style={{
+                        position: "absolute", left: 16, top: "50%", transform: "translateY(-50%)",
+                        width: 40, height: 40, borderRadius: "50%", zIndex: 30,
+                        background: "rgba(10,10,12,.8)", border: "1px solid rgba(255,255,255,.11)",
+                        color: "#fff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+                        backdropFilter: "blur(10px)", fontSize: 22, fontWeight: 300, lineHeight: 1,
+                      }}>‹</button>
+                      <button className="pf-arrow" onClick={() => goTo(slideIndex + 1)} style={{
+                        position: "absolute", right: 16, top: "50%", transform: "translateY(-50%)",
+                        width: 40, height: 40, borderRadius: "50%", zIndex: 30,
+                        background: "rgba(10,10,12,.8)", border: "1px solid rgba(255,255,255,.11)",
+                        color: "#fff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+                        backdropFilter: "blur(10px)", fontSize: 22, fontWeight: 300, lineHeight: 1,
+                      }}>›</button>
+                    </>
+                  )}
+                </div>
+
+                {/* Progress bar — narrow, centered */}
+                {total > 1 && (
+                  <div style={{ maxWidth: 360, margin: "18px auto 0", height: 2, background: "rgba(255,255,255,.07)", borderRadius: 2, overflow: "hidden" }}>
+                    <div key={`prog-${slideIndex}`} className="pf-progress-bar" style={{ height: "100%", background: OR, width: 0, borderRadius: 2 }} />
+                  </div>
+                )}
+
+                {/* Dots */}
+                {total > 1 && (
+                  <div style={{ display: "flex", justifyContent: "center", gap: 5, marginTop: 14 }}>
                     {pfShown.map((_, i) => (
                       <button key={i} className="pf-dot" onClick={() => goTo(i)} style={{
-                        width: i === slideIndex ? 30 : 7, height: 7, borderRadius: 100, padding: 0,
-                        background: i === slideIndex ? OR : "rgba(255,255,255,.18)",
-                        border: "none", cursor: "pointer",
-                        boxShadow: i === slideIndex ? `0 0 12px ${OR}66` : "none",
+                        width: i === slideIndex ? 22 : 6, height: 6, borderRadius: 100, padding: 0, border: "none", cursor: "pointer",
+                        background: i === slideIndex ? OR : "rgba(255,255,255,.15)",
+                        boxShadow: i === slideIndex ? `0 0 8px ${OR}55` : "none",
                       }} />
                     ))}
                   </div>
                 )}
 
-                {/* Thumbnail strip */}
+                {/* Thumbnail strip — centered within 960px */}
                 {total > 1 && (
-                  <div style={{ maxWidth: 1280, margin: "20px auto 0", padding: "0 28px", position: "relative", zIndex: 2 }}>
-                    <div className="no-scrollbar" style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4 }}>
+                  <div style={{ maxWidth: 960, margin: "16px auto 0", padding: "0 32px" }}>
+                    <div className="no-scrollbar" style={{ display: "flex", gap: 7, overflowX: "auto", justifyContent: total <= 8 ? "center" : "flex-start" }}>
                       {pfShown.map((vid, i) => {
-                        const tn = getThumbnail(vid.embedUrl, vid.thumbnailUrl);
+                        const tn  = getThumbnail(vid.embedUrl, vid.thumbnailUrl);
                         const isA = i === slideIndex;
                         return (
                           <div key={vid.id} className="pf-thumb" onClick={() => goTo(i)} style={{
-                            flexShrink: 0,
-                            width: "clamp(72px,10vw,130px)", aspectRatio: "16/9",
-                            borderRadius: 8, overflow: "hidden", cursor: "pointer", position: "relative",
-                            border: isA ? `2px solid ${OR}` : "2px solid rgba(255,255,255,.07)",
-                            boxShadow: isA ? `0 0 16px ${OR}55, 0 4px 20px rgba(0,0,0,.4)` : "0 4px 12px rgba(0,0,0,.3)",
-                            opacity: isA ? 1 : 0.42,
+                            flexShrink: 0, width: "clamp(60px,8vw,108px)", aspectRatio: "16/9",
+                            borderRadius: 6, overflow: "hidden", cursor: "pointer", position: "relative",
+                            border: isA ? `1.5px solid ${OR}` : "1.5px solid rgba(255,255,255,.07)",
+                            boxShadow: isA ? `0 0 10px ${OR}40` : "none",
+                            opacity: isA ? 1 : 0.38,
                           }}>
                             {tn
                               ? <img src={tn} alt={vid.title} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
-                              : <div style={{ width: "100%", height: "100%", background: "#111", display: "flex", alignItems: "center", justifyContent: "center" }}><Film size={12} color="rgba(255,255,255,.2)" /></div>
+                              : <div style={{ width: "100%", height: "100%", background: "#111" }} />
                             }
-                            {isA && (
-                              <>
-                                <div style={{ position: "absolute", inset: 0, background: `${OR}18` }} />
-                                <div style={{ position: "absolute", inset: 0, borderRadius: 6, boxShadow: `inset 0 0 0 1.5px ${OR}66` }} />
-                              </>
-                            )}
+                            {isA && <div style={{ position: "absolute", inset: 0, background: `${OR}12` }} />}
                           </div>
                         );
                       })}
@@ -981,16 +1235,16 @@ export default function LandingPage() {
       {/* ══════ CREW PROFILES (modern glow animated cards) ══════ */}
       {activeTeam.length > 0 && (
         <section id="crew" className="pxs" style={{ padding: "80px 28px 100px", background: "rgba(0,0,0,.2)", position: "relative", overflow: "hidden" }}>
-          <div style={{ maxWidth: 1280, margin: "0 auto" }}>
-            <div style={{ textAlign: "center", marginBottom: 48 }}>
+          <div style={{ maxWidth: 900, margin: "0 auto" }}>
+            <div style={{ textAlign: "center", marginBottom: 52 }}>
               <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: ".2em", color: OR, textTransform: "uppercase", marginBottom: 8 }}>THE TEAM</div>
-              <h2 style={{ fontSize: "clamp(32px, 5vw, 48px)", fontWeight: 900, letterSpacing: "-.03em", color: "#fff", margin: 0, lineHeight: 1.05 }}>
+              <h2 style={{ fontSize: "clamp(28px, 4.5vw, 46px)", fontWeight: 900, letterSpacing: "-.03em", color: "#fff", margin: 0, lineHeight: 1.05 }}>
                 Meet the <span style={{ color: OR }}>Frameless Crew</span>
               </h2>
-              <p style={{ color: "rgba(255,255,255,.5)", marginTop: 12, fontSize: 15 }}>Para kreator di balik setiap frame yang tak terlupakan.</p>
+              <p style={{ color: "rgba(255,255,255,.42)", marginTop: 12, fontSize: 14, maxWidth: 420, margin: "12px auto 0" }}>Para kreator di balik setiap frame yang tak terlupakan.</p>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 18 }}>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 18, justifyContent: "center" }}>
               {activeTeam.map((member: any, idx: number) => {
                 const socials = [
                   member.instagram && { icon: Instagram, label: "Instagram", url: member.instagram.startsWith("http") ? member.instagram : `https://instagram.com/${member.instagram.replace("@","")}` },
@@ -1019,7 +1273,9 @@ export default function LandingPage() {
                       position: "relative",
                       overflow: "hidden",
                       boxShadow: "0 10px 30px rgba(0,0,0,0.3)",
-                      transition: "box-shadow .3s, border-color .3s"
+                      transition: "box-shadow .3s, border-color .3s",
+                      width: "clamp(200px, 22vw, 240px)",
+                      flexShrink: 0,
                     }}
                     className="crew-card"
                   >
