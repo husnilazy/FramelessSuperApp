@@ -22,11 +22,12 @@ html{scroll-behavior:smooth;}
 
 interface CmsData { [s: string]: { [k: string]: string } }
 interface SiteVideo { id: string; title: string; description: string; embedUrl: string; thumbnailUrl: string; category: string; isActive: boolean; }
-interface ServiceItem { icon: string; title: string; description: string; tags: string[]; slug: string; price?: string; features?: string[]; duration?: string; }
+interface ServiceItem { icon: string; title: string; description: string; tags: string[]; slug: string; price?: string; features?: string[]; duration?: string; highlightVideoUrl?: string; }
 
 function ytId(u?: string) { return u?.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=))([ \w-]{11})/)?.[1] ?? null; }
 function watchUrl(u: string) { const id = ytId(u); return id ? `https://www.youtube.com/embed/${id}?autoplay=1&rel=0` : u; }
 function getThumb(u: string, c?: string) { if (c) return c; const id = ytId(u); return id ? `https://img.youtube.com/vi/${id}/hqdefault.jpg` : ""; }
+function isDirectVideo(u?: string) { return !!u && /\.(mp4|webm|mov|m4v)(?:\?|#|$)/i.test(u); }
 
 const DEFAULTS: ServiceItem[] = [
     {
@@ -108,7 +109,6 @@ export default function ServicesPage() {
     const [submitting, setSubmitting] = useState(false);
 
     const { data: cms } = useQuery<CmsData>({ queryKey: ["/api/cms"], queryFn: () => fetch("/api/cms").then(r => r.json()), staleTime: 60_000 });
-    const { data: vids = [] } = useQuery<SiteVideo[]>({ queryKey: ["/api/site-videos"], queryFn: () => fetch("/api/site-videos").then(r => r.json()).then((a: SiteVideo[]) => a.filter(v => v.isActive)) });
 
     const cmsServices = (() => { try { return JSON.parse(cms?.services?.items || "[]") as ServiceItem[]; } catch { return []; } })();
     const services = cmsServices.length > 0 ? cmsServices : DEFAULTS;
@@ -117,10 +117,6 @@ export default function ServicesPage() {
     const brand = cms?.branding || {};
     const wa = cont.whatsapp ? `https://wa.me/${cont.whatsapp.replace(/\D/g, "")}#text=Halo, saya tertarik dengan layanan ${selService?.title || ""}` :
         "#";
-
-    function getVideoForService(svc: ServiceItem) {
-        return vids.find(v => v.category === svc.slug || v.title.toLowerCase().includes(svc.title.toLowerCase().split(" ")[0]));
-    }
 
     function openInquiry(svc: ServiceItem) {
         setSelService(svc);
@@ -158,8 +154,13 @@ export default function ServicesPage() {
             <nav style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 100, height: 62, background: "rgba(10,10,12,.75)", backdropFilter: "blur(24px)", borderBottom: "1px solid rgba(255,255,255,.06)" }}>
                 <div style={{ maxWidth: 1280, margin: "0 auto", height: "100%", padding: "0 28px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                     <a href="/" style={{ display: "flex", alignItems: "center", gap: 9, textDecoration: "none" }}>
-                        <div style={{ width: 30, height: 30, borderRadius: 9, background: OR, display: "flex", alignItems: "center", justifyContent: "center" }}><span style={{ color: "#fff", fontWeight: 900, fontSize: 14 }}>F</span></div>
-                        <span style={{ fontSize: 14, fontWeight: 800, color: "#fff", letterSpacing: "-.01em" }}>{brand.name || "Frameless Creative"}</span>
+                        {brand.logoUrl
+                            ? <img src={brand.logoUrl} alt={brand.name || "Frameless Creative"} style={{ height: 28, width: "auto", objectFit: "contain", filter: "brightness(0) invert(1)" }} />
+                            : <>
+                                <div style={{ width: 30, height: 30, borderRadius: 9, background: OR, display: "flex", alignItems: "center", justifyContent: "center" }}><span style={{ color: "#fff", fontWeight: 900, fontSize: 14 }}>F</span></div>
+                                <span style={{ fontSize: 14, fontWeight: 800, color: "#fff", letterSpacing: "-.01em" }}>{brand.name || "Frameless Creative"}</span>
+                              </>
+                        }
                     </a>
                     <div style={{ display: "flex", gap: 8 }}>
                         <a href="/#portfolio" style={{ fontSize: 13, color: "rgba(255,255,255,.5)", textDecoration: "none", fontWeight: 600, padding: "6px 14px" }}>Portfolio</a>
@@ -199,7 +200,6 @@ export default function ServicesPage() {
 
                     <div className="svc-grid" style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 20 }}>
                         {services.map((s, i) => {
-                            const vid = getVideoForService(s);
                             return (
                                 <div key={s.slug || i} id={s.slug} className="svc-item" style={{ background: "rgba(255,255,255,.025)", border: "1px solid rgba(255,255,255,.07)", borderRadius: 24, padding: "28px 26px", scrollMarginTop: 80, display: "flex", flexDirection: "column", gap: 0 }}>
                                     {/* Header */}
@@ -228,15 +228,45 @@ export default function ServicesPage() {
                                         </div>
                                     )}
 
-                                    {/* Video thumbnail if exists */}
-                                    {vid && (
-                                        <div onClick={() => setModal(vid.embedUrl)} style={{ borderRadius: 14, overflow: "hidden", cursor: "pointer", aspectRatio: "16/9", background: "rgba(255,255,255,.04)", position: "relative", marginBottom: 18 }}>
-                                            {getThumb(vid.embedUrl, vid.thumbnailUrl) && <img src={getThumb(vid.embedUrl, vid.thumbnailUrl)} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} alt={vid.title} />}
-                                            <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,.3)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                                                <div style={{ width: 44, height: 44, borderRadius: "50%", background: OR, display: "flex", alignItems: "center", justifyContent: "center" }}><Play size={16} style={{ fill: "#fff", color: "#fff", marginLeft: 2 }} /></div>
+                                    {/* Video highlight: prioritaskan field highlightVideoUrl dari CMS, fallback ke video portfolio matching */}
+                                    {(() => {
+                                        const hv = s.highlightVideoUrl;
+                                        if (hv && isDirectVideo(hv)) {
+                                            // File video langsung (mp4/webm) — autoplay muted loop, tanpa controls/branding
+                                            return (
+                                                <div onClick={() => setModal(hv)} style={{ borderRadius: 14, overflow: "hidden", cursor: "pointer", aspectRatio: "16/9", background: "#000", position: "relative", marginBottom: 18 }}>
+                                                    <video src={hv} autoPlay muted loop playsInline style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                                                    <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,.15)", display: "flex", alignItems: "center", justifyContent: "center", opacity: 0, transition: "opacity .2s" }}
+                                                        onMouseEnter={e => (e.currentTarget as HTMLElement).style.opacity = "1"}
+                                                        onMouseLeave={e => (e.currentTarget as HTMLElement).style.opacity = "0"}>
+                                                        <div style={{ width: 44, height: 44, borderRadius: "50%", background: OR, display: "flex", alignItems: "center", justifyContent: "center" }}><Play size={16} style={{ fill: "#fff", color: "#fff", marginLeft: 2 }} /></div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        }
+                                        if (hv) {
+                                            // YouTube/Vimeo link — autoplay muted via embed (klik untuk buka modal full dengan suara)
+                                            const ytAutoplay = ytId(hv) ? `https://www.youtube.com/embed/${ytId(hv)}?autoplay=1&mute=1&loop=1&playlist=${ytId(hv)}&controls=0&rel=0` : "";
+                                            return (
+                                                <div onClick={() => setModal(hv)} style={{ borderRadius: 14, overflow: "hidden", cursor: "pointer", aspectRatio: "16/9", background: "#000", position: "relative", marginBottom: 18 }}>
+                                                    {ytAutoplay
+                                                        ? <iframe src={ytAutoplay} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", border: "none", pointerEvents: "none" }} allow="autoplay;encrypted-media" />
+                                                        : getThumb(hv) && <img src={getThumb(hv)} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} alt={s.title} />
+                                                    }
+                                                    <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                                        <div style={{ width: 44, height: 44, borderRadius: "50%", background: `${OR}cc`, display: "flex", alignItems: "center", justifyContent: "center" }}><Play size={16} style={{ fill: "#fff", color: "#fff", marginLeft: 2 }} /></div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        }
+                                        // Belum ada video highlight di CMS — tampilkan placeholder jelas, JANGAN tebak-tebak dari portfolio
+                                        return (
+                                            <div style={{ borderRadius: 14, overflow: "hidden", aspectRatio: "16/9", background: "rgba(255,255,255,.025)", border: "1px dashed rgba(255,255,255,.12)", position: "relative", marginBottom: 18, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8 }}>
+                                                <Play size={22} color="rgba(255,255,255,.18)" />
+                                                <p style={{ fontSize: 11, color: "rgba(255,255,255,.28)", textAlign: "center", margin: 0, padding: "0 20px" }}>Belum ada video highlight<br />Upload di CMS → Layanan</p>
                                             </div>
-                                        </div>
-                                    )}
+                                        );
+                                    })()}
 
                                     {/* Price + CTA */}
                                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "auto", paddingTop: 14, borderTop: "1px solid rgba(255,255,255,.07)" }}>

@@ -8,6 +8,7 @@ import {
   MessageCircle, MapPin, Phone, Instagram, Youtube,
   Star, Clock, TrendingUp, Volume2, VolumeX,
   Linkedin, Twitter, Globe,
+  Clapperboard, Music2, Camera, Tv, Heart, Smartphone, Building2, PartyPopper,
 } from "lucide-react";
 import { formatCurrency } from "@/lib/formatters";
 
@@ -18,7 +19,7 @@ interface SiteLogo { id: string; name: string; imageUrl: string; isActive: boole
 interface Package { id: string; name: string; price: string; isTrial: boolean; isActive?: boolean; features?: string; description?: string; }
 interface Course { id: string; title: string; slug: string; level: string; subtitle?: string; thumbnail?: string; highlightVideoUrl?: string; instructor?: string; category?: string; isPublished?: boolean; packages: Package[]; }
 interface DigitalAsset { id: string; title: string; description?: string; price: string; thumbnailUrl?: string; category?: string; fileType?: string; isActive: boolean; }
-interface Service { icon: string; title: string; description: string; tags: string[]; slug: string; price?: string; }
+interface Service { icon: string; title: string; description: string; tags: string[]; slug: string; price?: string; highlightVideoUrl?: string; }
 
 const OR = "#F03820";   // Red-orange (warmer, more vibrant red)
 const FONT = "'Plus Jakarta Sans',sans-serif";
@@ -76,6 +77,22 @@ function isDirectVideo(url?: string) {
 function courseHref(slug: string) {
   return `/course/${encodeURIComponent(slug)}`;
 }
+
+// ── Service icon map (slug → Lucide icon, replaces emoji) ──────────────────────
+const SERVICE_ICON_MAP: Record<string, any> = {
+  "commercial-video": Tv,
+  "music-video": Music2,
+  "short-film": Clapperboard,
+  "documentary": Camera,
+  "wedding-cinema": Heart,
+  "social-media": Smartphone,
+  "corporate-video": Building2,
+  "event-coverage": PartyPopper,
+};
+function getServiceIcon(slug: string) {
+  return SERVICE_ICON_MAP[slug] || Film;
+}
+
 // ── Default Services ──────────────────────────────────────────────────────────
 const DEFAULT_SERVICES: Service[] = [
   { icon: "🎬", title: "Commercial Video", description: "Iklan TV, digital ads, dan brand video yang membangun awareness & konversi tinggi.", tags: ["TVC", "Digital Ads", "Brand Story"], slug: "commercial-video" },
@@ -124,6 +141,20 @@ body{overflow-x:hidden;}
 
 /* ── Spring-physics button animations ─────────────────────────────────── */
 
+.wa-btn {
+  transition: transform .24s cubic-bezier(.34,1.56,.64,1), box-shadow .22s ease !important;
+  will-change: transform;
+}
+.wa-btn:hover {
+  transform: translateY(-2px) scale(1.05) !important;
+  box-shadow: 0 10px 32px rgba(37,211,102,.45), 0 0 22px rgba(37,211,102,.3) !important;
+}
+.wa-btn:active {
+  transform: scale(0.91) !important;
+  box-shadow: 0 0 0 5px rgba(37,211,102,.35) !important;
+  transition: transform .07s ease, box-shadow .07s ease !important;
+}
+
 /* Orange primary buttons */
 .og-btn {
   transition: transform .24s cubic-bezier(.34,1.56,.64,1), box-shadow .22s ease, opacity .15s !important;
@@ -170,6 +201,22 @@ body{overflow-x:hidden;}
 }
 .pill-btn.pill-active:active {
   box-shadow: 0 0 0 4px ${OR}44, 0 0 18px ${OR}55 !important;
+}
+
+.social-icon {
+  transition: background .2s, border-color .2s, color .2s, transform .22s cubic-bezier(.34,1.56,.64,1), box-shadow .22s !important;
+}
+.social-icon:hover {
+  background: ${OR}22 !important;
+  border-color: ${OR}44 !important;
+  color: ${OR} !important;
+  transform: translateY(-2px) scale(1.1) !important;
+  box-shadow: 0 6px 18px ${OR}33 !important;
+}
+.social-icon:active {
+  transform: scale(0.88) !important;
+  box-shadow: 0 0 0 4px ${OR}44 !important;
+  transition-duration: .07s !important;
 }
 
 /* Nav links */
@@ -225,8 +272,8 @@ body{overflow-x:hidden;}
 .nav-link{font-size:13px;font-weight:600;color:rgba(255,255,255,.5);text-decoration:none;transition:color .2s;letter-spacing:.01em;padding:6px 0;}
 .nav-link:hover{color:#fff;}
 
-.svc-card{transition:border-color .25s,background .25s,transform .28s,box-shadow .28s;cursor:pointer;}
-.svc-card:hover{transform:translateY(-4px);border-color:${OR}55!important;box-shadow:0 16px 48px rgba(0,0,0,.4)!important;}
+.svc-card{transition:transform .4s cubic-bezier(.16,1,.3,1),box-shadow .3s,border-color .25s!important;}
+.svc-card:hover img{transform:scale(1.06);transition:transform .5s ease;}
 
 .pf-card{transition:transform .5s cubic-bezier(.16,1,.3,1);}
 .pf-card:hover{transform:scale(1.03);}
@@ -241,10 +288,12 @@ body{overflow-x:hidden;}
 .reel-card .reel-overlay{opacity:0;transition:opacity .25s;}
 .reel-card:hover .reel-overlay{opacity:1;}
 
-.course-card{transition:transform .28s,border-color .25s,box-shadow .28s;}
+.course-card{transition:transform .3s cubic-bezier(.16,1,.3,1),border-color .25s,box-shadow .28s;}
+.course-card:active{transform:scale(0.97)!important;transition-duration:.08s!important;}
 .course-card:hover{transform:translateY(-5px);}
 
-.asset-card{transition:transform .25s,border-color .25s;}
+.asset-card{transition:transform .3s cubic-bezier(.16,1,.3,1),border-color .25s;}
+.asset-card:active{transform:scale(0.96)!important;transition-duration:.08s!important;}
 .asset-card:hover{transform:translateY(-3px);}
 
 @media(max-width:900px){
@@ -397,6 +446,7 @@ export default function LandingPage() {
   const [vReady, setVReady] = useState(false);
   const [mobileNav, setMobileNav] = useState(false);
   const [btfIndex, setBtfIndex] = useState(0);   // Behind-the-Frame slider index
+  const [svcIndex, setSvcIndex] = useState(0);   // Services carousel index
   const bgRef = useRef<HTMLDivElement>(null);
   const [slideIndex, setSlideIndex] = useState(0);
   const pfSliderRef = useRef<HTMLDivElement>(null);
@@ -479,6 +529,13 @@ export default function LandingPage() {
     return () => clearInterval(id);
   }, [reelVids.length]);
 
+  // ── Autoplay Services carousel ──────────────────────────────────────────────
+  useEffect(() => {
+    if (services.length <= 1) return;
+    const id = setInterval(() => setSvcIndex(prev => (prev + 1) % services.length), 4000);
+    return () => clearInterval(id);
+  }, [services.length]);
+
   const pubCourses = courses.filter(c => c.isPublished !== false && c.packages?.length > 0);
   const pubAssets = assets.filter(a => a.isActive).slice(0, 6);
 
@@ -499,7 +556,7 @@ export default function LandingPage() {
               onMouseEnter={e => (e.target as HTMLElement).style.color = "#fff"}
               onMouseLeave={e => (e.target as HTMLElement).style.color = "rgba(255,255,255,.65)"}>{l}</a>
           ))}
-          <a href="#courses" onClick={() => setMobileNav(false)} style={{ marginTop: 16, padding: "14px 40px", borderRadius: 100, background: OR, color: "#fff", textDecoration: "none", fontSize: 16, fontWeight: 800 }}>Mulai Belajar</a>
+          <a href="#courses" onClick={() => setMobileNav(false)} className="og-btn" style={{ marginTop: 16, padding: "14px 40px", borderRadius: 100, background: OR, color: "#fff", textDecoration: "none", fontSize: 16, fontWeight: 800 }}>Mulai Belajar</a>
         </div>
       )}
 
@@ -525,13 +582,11 @@ export default function LandingPage() {
 
           {/* CTA + hamburger */}
           <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
-            <a href="#courses" className="nav-cta-desktop" style={{ padding: "9px 20px", borderRadius: 100, background: OR, color: "#fff", textDecoration: "none", fontSize: 13, fontWeight: 700, whiteSpace: "nowrap", transition: "opacity .2s" }}
-              onMouseEnter={e => (e.currentTarget as HTMLElement).style.opacity = ".88"}
-              onMouseLeave={e => (e.currentTarget as HTMLElement).style.opacity = "1"}>
+            <a href="#courses" className="nav-cta-desktop og-btn" style={{ padding: "9px 20px", borderRadius: 100, background: OR, color: "#fff", textDecoration: "none", fontSize: 13, fontWeight: 700, whiteSpace: "nowrap" }}>
               Mulai Belajar
             </a>
             {/* Hamburger */}
-            <button className="hamburger" onClick={() => setMobileNav(true)}
+            <button className="hamburger outline-btn" onClick={() => setMobileNav(true)}
               style={{ display: "none", width: 40, height: 40, borderRadius: 10, background: "rgba(255,255,255,.08)", border: "1px solid rgba(255,255,255,.1)", cursor: "pointer", alignItems: "center", justifyContent: "center", color: "#fff" }}>
               <Menu size={18} />
             </button>
@@ -568,10 +623,10 @@ export default function LandingPage() {
           <p className="fu d3" style={{ fontSize: "clamp(15px,1.8vw,19px)", color: "rgba(255,255,255,.46)", lineHeight: 1.74, maxWidth: 560, marginBottom: 44 }}>{sub}</p>
           <div className="col fu d4" style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
             {showreel
-              ? <button onClick={() => setModal(showreel.embedUrl)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "14px 28px", borderRadius: 100, background: OR, color: "#fff", border: "none", fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: FONT }}><Play style={{ width: 15, height: 15, fill: "#fff" }} /> Tonton Showreel</button>
-              : <a href="#services" style={{ display: "flex", alignItems: "center", gap: 8, padding: "14px 28px", borderRadius: 100, background: OR, color: "#fff", textDecoration: "none", fontSize: 15, fontWeight: 700 }}>Lihat Layanan <ArrowRight size={15} /></a>
+              ? <button onClick={() => setModal(showreel.embedUrl)} className="og-btn" style={{ display: "flex", alignItems: "center", gap: 10, padding: "14px 28px", borderRadius: 100, background: OR, color: "#fff", border: "none", fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: FONT }}><Play style={{ width: 15, height: 15, fill: "#fff" }} /> Tonton Showreel</button>
+              : <a href="#services" className="og-btn" style={{ display: "flex", alignItems: "center", gap: 8, padding: "14px 28px", borderRadius: 100, background: OR, color: "#fff", textDecoration: "none", fontSize: 15, fontWeight: 700 }}>Lihat Layanan <ArrowRight size={15} /></a>
             }
-            <a href="#courses" style={{ display: "flex", alignItems: "center", gap: 8, padding: "14px 28px", borderRadius: 100, border: "1px solid rgba(255,255,255,.16)", color: "rgba(255,255,255,.78)", textDecoration: "none", fontSize: 15, fontWeight: 600 }}><BookOpen size={15} /> Frameless Academy</a>
+            <a href="#courses" className="outline-btn" style={{ display: "flex", alignItems: "center", gap: 8, padding: "14px 28px", borderRadius: 100, border: "1px solid rgba(255,255,255,.16)", color: "rgba(255,255,255,.78)", textDecoration: "none", fontSize: 15, fontWeight: 600 }}><BookOpen size={15} /> Frameless Academy</a>
           </div>
           {/* Scroll indicator */}
           <div className="float" style={{ position: "absolute", bottom: -48, left: 28, display: "flex", alignItems: "center", gap: 8, opacity: .3, animation: "float 2.5s ease-in-out infinite" }}>
@@ -595,37 +650,185 @@ export default function LandingPage() {
       </section>
 
       {/* ══════ SERVICES ══════ */}
-      <section id="services" className="pxs" style={{ padding: "110px 28px", position: "relative", overflow: "hidden" }}>
+      <section id="services" className="pxs" style={{ padding: "110px 0", position: "relative", overflow: "hidden" }}>
         <div data-px="0.1" style={{ position: "absolute", top: "5%", right: "-8%", width: "55%", height: "65%", background: `radial-gradient(ellipse at center,${c2}10,transparent 70%)`, filter: "blur(60px)", willChange: "transform" }} />
-        <div style={{ maxWidth: 1280, margin: "0 auto", position: "relative" }}>
-          <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginBottom: 60, flexWrap: "wrap", gap: 16 }}>
+        <div style={{ position: "absolute", inset: 0, background: `radial-gradient(ellipse 70% 50% at 50% 0%,${OR}08,transparent 65%)`, pointerEvents: "none" }} />
+
+        <div style={{ maxWidth: 1100, margin: "0 auto", padding: "0 28px", position: "relative" }}>
+          <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginBottom: 48, flexWrap: "wrap", gap: 16 }}>
             <div>
               <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: ".24em", color: OR, textTransform: "uppercase", marginBottom: 14 }}>LAYANAN KAMI</p>
-              <h2 style={{ fontSize: "clamp(32px,5vw,60px)", fontWeight: 900, letterSpacing: "-.04em", color: "#fff", margin: 0, lineHeight: 1.0 }}>
+              <h2 style={{ fontSize: "clamp(28px,4.5vw,52px)", fontWeight: 900, letterSpacing: "-.04em", color: "#fff", margin: 0, lineHeight: 1.0 }}>
                 Produksi Video<br /><span style={{ color: "rgba(255,255,255,.28)" }}>dari Konsep ke Screen</span>
               </h2>
             </div>
-            <a href="/services" style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "10px 20px", borderRadius: 12, border: `1px solid ${OR}44`, color: OR, textDecoration: "none", fontSize: 13, fontWeight: 700, flexShrink: 0 }}>
+            <a href="/services" className="outline-btn" style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "10px 20px", borderRadius: 12, border: `1px solid ${OR}44`, color: OR, textDecoration: "none", fontSize: 13, fontWeight: 700, flexShrink: 0 }}>
               Lihat semua layanan <ChevronRight size={14} />
             </a>
           </div>
-          <div className="g4" style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 16 }}>
-            {services.map((s, i) => (
-              <a key={s.slug || i} href={`/services#${s.slug || i}`} style={{ textDecoration: "none" }}>
-                <div className="svc-card" style={{ padding: "24px 22px", borderRadius: 20, background: "rgba(255,255,255,.025)", border: "1px solid rgba(255,255,255,.07)", height: "100%", display: "flex", flexDirection: "column" }}>
-                  <div style={{ fontSize: 28, marginBottom: 14 }}>{s.icon}</div>
-                  <h3 style={{ fontSize: 15, fontWeight: 700, color: "#fff", marginBottom: 8, letterSpacing: "-.01em", flex: 1 }}>{s.title}</h3>
-                  <p style={{ fontSize: 12, color: "rgba(255,255,255,.43)", lineHeight: 1.65, marginBottom: 14 }}>{s.description}</p>
-                  <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
-                    {(s.tags || []).slice(0, 3).map((t: string) => (
-                      <span key={t} style={{ fontSize: 9, padding: "2px 8px", borderRadius: 100, background: "rgba(255,255,255,.06)", color: "rgba(255,255,255,.38)", fontWeight: 600 }}>{t}</span>
-                    ))}
-                  </div>
-                </div>
-              </a>
-            ))}
-          </div>
         </div>
+
+        {/* Auto-sliding services carousel */}
+        {services.length > 0 && (() => {
+          const total  = services.length;
+          const curIdx = svcIndex % total;
+          const goTo   = (i: number) => setSvcIndex(((i % total) + total) % total);
+          const STEP   = 360; // px offset per step
+
+          return (
+            <div style={{ position: "relative" }}>
+              <div style={{ maxWidth: 1100, margin: "0 auto", overflow: "hidden", position: "relative" }}>
+                {/* Fade masks */}
+                <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: "14%", background: "linear-gradient(to right,#0a0a0c 25%,transparent)", zIndex: 20, pointerEvents: "none" }} />
+                <div style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: "14%", background: "linear-gradient(to left,#0a0a0c 25%,transparent)", zIndex: 20, pointerEvents: "none" }} />
+
+                <div style={{ position: "relative", height: "clamp(280px, 36vw, 380px)" }}>
+                  {services.map((s, idx) => {
+                    let rel = ((idx - curIdx) % total + total) % total;
+                    if (rel > total / 2) rel -= total;
+                    if (Math.abs(rel) > 2) return null;
+
+                    const isC    = rel === 0;
+                    const ab     = Math.abs(rel);
+                    const scale  = ([1, 0.84, 0.68] as const)[ab];
+                    const opac   = ([1, 0.55, 0.25] as const)[ab];
+                    const zIdx   = ([15, 8, 3] as const)[ab];
+                    const Icon   = getServiceIcon(s.slug);
+                    const hv     = s.highlightVideoUrl;
+                    const hvEmbed = isC && hv && !isDirectVideo(hv) ? autoEmbed(hv, true) : "";
+
+                    return (
+                      <a
+                        key={s.slug || idx}
+                        href={isC ? `/services#${s.slug || idx}` : undefined}
+                        onClick={e => { if (!isC) { e.preventDefault(); goTo(idx); } }}
+                        className="svc-card"
+                        style={{
+                          position: "absolute",
+                          top: "50%",
+                          left: `calc(50% + ${rel * STEP}px)`,
+                          transform: `translateX(-50%) translateY(-50%) scale(${scale})`,
+                          width: "min(78%, 420px)",
+                          height: "clamp(260px, 33vw, 340px)",
+                          borderRadius: 20,
+                          overflow: "hidden",
+                          textDecoration: "none",
+                          cursor: "pointer",
+                          zIndex: zIdx,
+                          opacity: opac,
+                          display: "block",
+                          background: "#101013",
+                          boxShadow: isC
+                            ? `0 0 0 1px rgba(255,255,255,.09), 0 24px 64px rgba(0,0,0,.65), 0 0 44px ${OR}1c`
+                            : "0 12px 36px rgba(0,0,0,.5)",
+                        }}
+                      >
+                        {/* Background priority: highlight video (center, autoplay) > YouTube embed (center) > branded gradient fallback */}
+                        {isC && hv && isDirectVideo(hv) ? (
+                          <video key={`svc-vid-${s.slug}`} src={hv} autoPlay muted loop playsInline style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
+                        ) : isC && hvEmbed ? (
+                          <div style={{ position: "absolute", inset: 0, overflow: "hidden" }}>
+                            <iframe
+                              key={`svc-embed-${s.slug}`}
+                              src={`${hvEmbed}&controls=0&modestbranding=1&rel=0&disablekb=1`}
+                              style={{ position: "absolute", top: "50%", left: "50%", width: "300%", height: "300%", transform: "translate(-50%,-50%)", border: "none", pointerEvents: "none" }}
+                              allow="autoplay; muted; loop"
+                            />
+                          </div>
+                        ) : (
+                          // Belum ada video highlight di CMS — gradient bermerek + ikon besar transparan (bukan video acak/tebakan)
+                          <div style={{ position: "absolute", inset: 0, background: `linear-gradient(150deg,${c1}2c,${c2}1a)`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                            <Icon size={64} color="rgba(255,255,255,.06)" strokeWidth={1.4} />
+                          </div>
+                        )}
+                        <div style={{ position: "absolute", inset: 0, background: isC
+                          ? "linear-gradient(to top,rgba(8,8,10,.95) 0%,rgba(8,8,10,.55) 42%,rgba(8,8,10,.18) 100%)"
+                          : "rgba(8,8,10,.45)" }} />
+
+                        {isC && <div style={{ position: "absolute", inset: 0, borderRadius: 20, boxShadow: "inset 0 0 0 1px rgba(255,255,255,.1)", pointerEvents: "none" }} />}
+
+                        {/* Icon badge */}
+                        <div style={{
+                          position: "absolute", top: 22, left: 22,
+                          width: 46, height: 46, borderRadius: 13,
+                          background: `${OR}1e`, border: `1px solid ${OR}40`,
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          backdropFilter: "blur(10px)",
+                        }}>
+                          <Icon size={20} color={OR} strokeWidth={2} />
+                        </div>
+
+                        {/* Counter (center) */}
+                        {isC && total > 1 && (
+                          <div style={{ position: "absolute", top: 22, right: 18, padding: "3px 10px", borderRadius: 100, background: "rgba(0,0,0,.55)", border: "1px solid rgba(255,255,255,.1)", fontSize: 9, fontWeight: 700, color: "rgba(255,255,255,.55)", backdropFilter: "blur(8px)" }}>
+                            {String(curIdx + 1).padStart(2, "0")} / {String(total).padStart(2, "0")}
+                          </div>
+                        )}
+
+                        {/* Info */}
+                        <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "clamp(16px,2.4vw,26px)" }}>
+                          {isC ? (
+                            <motion.div key={`svc-info-${s.slug}`} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .35 }}>
+                              <h3 style={{ fontSize: "clamp(16px,2.2vw,22px)", fontWeight: 800, color: "#fff", letterSpacing: "-.02em", marginBottom: 7, lineHeight: 1.15 }}>{s.title}</h3>
+                              <p style={{ fontSize: 12.5, color: "rgba(255,255,255,.55)", lineHeight: 1.6, marginBottom: 12, maxWidth: 340 }}>{s.description}</p>
+                              <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
+                                {(s.tags || []).slice(0, 3).map((t: string) => (
+                                  <span key={t} style={{ fontSize: 9, fontWeight: 700, padding: "3px 9px", borderRadius: 100, background: `${OR}1e`, border: `1px solid ${OR}3c`, color: OR, letterSpacing: ".06em", textTransform: "uppercase" }}>{t}</span>
+                                ))}
+                              </div>
+                            </motion.div>
+                          ) : (
+                            <h3 style={{ fontSize: 14, fontWeight: 700, color: "rgba(255,255,255,.7)", letterSpacing: "-.01em" }}>{s.title}</h3>
+                          )}
+                        </div>
+                      </a>
+                    );
+                  })}
+                </div>
+
+                {/* Arrows */}
+                {total > 1 && (
+                  <>
+                    <button className="pf-arrow" onClick={() => goTo(curIdx - 1)} style={{
+                      position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)",
+                      width: 40, height: 40, borderRadius: "50%", zIndex: 30,
+                      background: "rgba(10,10,12,.78)", border: "1px solid rgba(255,255,255,.12)",
+                      color: "#fff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+                      backdropFilter: "blur(10px)", fontSize: 21, fontWeight: 300,
+                    }}>‹</button>
+                    <button className="pf-arrow" onClick={() => goTo(curIdx + 1)} style={{
+                      position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)",
+                      width: 40, height: 40, borderRadius: "50%", zIndex: 30,
+                      background: "rgba(10,10,12,.78)", border: "1px solid rgba(255,255,255,.12)",
+                      color: "#fff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+                      backdropFilter: "blur(10px)", fontSize: 21, fontWeight: 300,
+                    }}>›</button>
+                  </>
+                )}
+              </div>
+
+              {/* Progress bar */}
+              {total > 1 && (
+                <div style={{ maxWidth: 280, margin: "22px auto 0", height: 2, background: "rgba(255,255,255,.07)", borderRadius: 2, overflow: "hidden" }}>
+                  <div key={`svc-prog-${curIdx}`} className="pf-progress-bar" style={{ height: "100%", background: OR, width: 0, animationDuration: "4s", borderRadius: 2 }} />
+                </div>
+              )}
+
+              {/* Dots */}
+              {total > 1 && (
+                <div style={{ display: "flex", justifyContent: "center", gap: 5, marginTop: 14 }}>
+                  {services.map((_, i) => (
+                    <button key={i} className="pf-dot" onClick={() => goTo(i)} style={{
+                      width: i === curIdx ? 22 : 6, height: 6, borderRadius: 100, padding: 0, border: "none", cursor: "pointer",
+                      background: i === curIdx ? OR : "rgba(255,255,255,.15)",
+                      boxShadow: i === curIdx ? `0 0 8px ${OR}55` : "none",
+                    }} />
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })()}
       </section>
 
       {/* ══════ BEHIND THE FRAME — Portrait Auto-Slider ══════ */}
@@ -839,9 +1042,9 @@ export default function LandingPage() {
               </div>
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                 {["All", ...allTags].map(cat => (
-                  <button key={cat} onClick={() => { setPfTag(cat); setSlideIndex(0); }} style={{
+                  <button key={cat} onClick={() => { setPfTag(cat); setSlideIndex(0); }} className={`pill-btn${pfTag === cat ? " pill-active" : ""}`} style={{
                     padding: "6px 15px", borderRadius: 100, fontSize: 11, fontWeight: 600,
-                    cursor: "pointer", fontFamily: FONT, transition: "all .2s",
+                    cursor: "pointer", fontFamily: FONT,
                     background: pfTag === cat ? OR : "rgba(255,255,255,.05)",
                     border: pfTag === cat ? "none" : "1px solid rgba(255,255,255,.09)",
                     color: pfTag === cat ? "#fff" : "rgba(255,255,255,.42)",
@@ -1142,7 +1345,7 @@ export default function LandingPage() {
                 <p style={{ color: "rgba(255,255,255,.41)", fontSize: 14, maxWidth: 400, lineHeight: 1.65 }}>Trial gratis tersedia. Tidak perlu kartu kredit. 500+ alumni.</p>
               </div>
               <div style={{ display: "flex", gap: 10, flexDirection: "column", flexShrink: 0 }}>
-                <a href="/courses" style={{ padding: "13px 26px", borderRadius: 100, background: OR, color: "#fff", textDecoration: "none", fontSize: 14, fontWeight: 700, whiteSpace: "nowrap", textAlign: "center" }}>Lihat Semua Kelas →</a>
+                <a href="/courses" className="og-btn" style={{ padding: "13px 26px", borderRadius: 100, background: OR, color: "#fff", textDecoration: "none", fontSize: 14, fontWeight: 700, whiteSpace: "nowrap", textAlign: "center" }}>Lihat Semua Kelas →</a>
                 <a href="#contact" style={{ padding: "11px 20px", borderRadius: 100, border: "1px solid rgba(255,255,255,.14)", color: "rgba(255,255,255,.63)", textDecoration: "none", fontSize: 13, fontWeight: 600, textAlign: "center" }}>Konsultasi dulu</a>
               </div>
             </div>
@@ -1163,7 +1366,7 @@ export default function LandingPage() {
             </div>
             <div>
               <p style={{ fontSize: 14, color: "rgba(255,255,255,.4)", lineHeight: 1.65, maxWidth: 340, marginBottom: 14 }}>LUT, template, preset, dan aset editing dari Frameless Creative — siap pakai untuk proyekmu.</p>
-              <a href="/store" style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "10px 22px", borderRadius: 12, background: OR, color: "#fff", textDecoration: "none", fontSize: 13, fontWeight: 700 }}>Lihat Semua Aset <ArrowRight size={14} /></a>
+              <a href="/store" className="og-btn" style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "10px 22px", borderRadius: 12, background: OR, color: "#fff", textDecoration: "none", fontSize: 13, fontWeight: 700 }}>Lihat Semua Aset <ArrowRight size={14} /></a>
             </div>
           </div>
 
@@ -1225,9 +1428,9 @@ export default function LandingPage() {
           <h2 style={{ fontSize: "clamp(34px,5vw,60px)", fontWeight: 900, letterSpacing: "-.04em", color: "#fff", margin: "0 0 20px", lineHeight: 1.0 }}>Siap Mulai<br /><span style={{ color: OR }}>Proyek Kamu?</span></h2>
           <p style={{ color: "rgba(255,255,255,.4)", fontSize: 16, lineHeight: 1.72, margin: "0 0 44px" }}>{cont.desc || "Tim Frameless Creative siap mewujudkan visi kamu menjadi visual sinematik yang tak terlupakan."}</p>
           <div className="col" style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
-            {cont.whatsapp && <a href={wa} target="_blank" rel="noopener noreferrer" style={{ display: "flex", alignItems: "center", gap: 9, padding: "14px 26px", borderRadius: 100, background: "#25D366", color: "#fff", textDecoration: "none", fontSize: 15, fontWeight: 700 }}><MessageCircle size={16} /> WhatsApp</a>}
-            {cont.email && <a href={`mailto:${cont.email}`} style={{ display: "flex", alignItems: "center", gap: 8, padding: "14px 26px", borderRadius: 100, border: "1px solid rgba(255,255,255,.15)", color: "rgba(255,255,255,.78)", textDecoration: "none", fontSize: 15, fontWeight: 600 }}><Mail size={15} />{cont.email}</a>}
-            {!cont.whatsapp && !cont.email && <a href="https://wa.me/0859106723181?text=Halo%20Admin%20Frameless%20Creative!%20%F0%9F%91%8B%20Saya%20ingin%20menanyakan%20mengenai%20project%20video.%20Bisa%20dibantu%3F" target="_blank" rel="noopener noreferrer" style={{ display: "flex", alignItems: "center", gap: 8, padding: "14px 28px", borderRadius: 100, background: OR, color: "#fff", textDecoration: "none", fontSize: 15, fontWeight: 700 }}>Hubungi Kami <ArrowRight size={15} /></a>}
+            {cont.whatsapp && <a href={wa} target="_blank" rel="noopener noreferrer" className="wa-btn" style={{ display: "flex", alignItems: "center", gap: 9, padding: "14px 26px", borderRadius: 100, background: "#25D366", color: "#fff", textDecoration: "none", fontSize: 15, fontWeight: 700 }}><MessageCircle size={16} /> WhatsApp</a>}
+            {cont.email && <a href={`mailto:${cont.email}`} className="outline-btn" style={{ display: "flex", alignItems: "center", gap: 8, padding: "14px 26px", borderRadius: 100, border: "1px solid rgba(255,255,255,.15)", color: "rgba(255,255,255,.78)", textDecoration: "none", fontSize: 15, fontWeight: 600 }}><Mail size={15} />{cont.email}</a>}
+            {!cont.whatsapp && !cont.email && <a href="https://wa.me/0859106723181?text=Halo%20Admin%20Frameless%20Creative!%20%F0%9F%91%8B%20Saya%20ingin%20menanyakan%20mengenai%20project%20video.%20Bisa%20dibantu%3F" target="_blank" rel="noopener noreferrer" className="og-btn" style={{ display: "flex", alignItems: "center", gap: 8, padding: "14px 28px", borderRadius: 100, background: OR, color: "#fff", textDecoration: "none", fontSize: 15, fontWeight: 700 }}>Hubungi Kami <ArrowRight size={15} /></a>}
           </div>
         </div>
       </section>
@@ -1335,9 +1538,7 @@ export default function LandingPage() {
             <p style={{ fontSize: 13, color: "rgba(255,255,255,.4)", lineHeight: 1.72, maxWidth: 280, marginBottom: 24 }}>Video production & media agency profesional berbasis di Wonosobo, Central Java. Mengubah ide menjadi visual sinematik yang tak terlupakan.</p>
             <div style={{ display: "flex", gap: 9 }}>
               {[{ icon: <Instagram size={14} />, href: "https://www.instagram.com/framelesscreative/", label: "IG" }, { icon: <Youtube size={14} />, href: "https://www.youtube.com/@framelesscreativeproject", label: "YT" }, { icon: <MessageCircle size={14} />, href: "https://wa.me/0859106723181?text=Halo%20Admin%20Frameless%20Creative!%20%F0%9F%91%8B%20Saya%20ingin%20menanyakan%20mengenai%20project%20video.%20Bisa%20dibantu%3F", label: "WA" }].map(s => (
-                <a key={s.label} href={s.href} target="_blank" rel="noopener noreferrer" title={s.label} style={{ width: 36, height: 36, borderRadius: 10, background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.09)", display: "flex", alignItems: "center", justifyContent: "center", color: "rgba(255,255,255,.45)", textDecoration: "none", transition: "all .2s" }}
-                  onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.background = `${OR}22`; el.style.borderColor = `${OR}44`; el.style.color = OR; }}
-                  onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.background = "rgba(255,255,255,.06)"; el.style.borderColor = "rgba(255,255,255,.09)"; el.style.color = "rgba(255,255,255,.45)"; }}>
+                <a key={s.label} href={s.href} target="_blank" rel="noopener noreferrer" title={s.label} className="social-icon" style={{ width: 36, height: 36, borderRadius: 10, background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.09)", display: "flex", alignItems: "center", justifyContent: "center", color: "rgba(255,255,255,.45)", textDecoration: "none" }}>
                   {s.icon}
                 </a>
               ))}

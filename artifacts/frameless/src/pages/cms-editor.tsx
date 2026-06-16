@@ -109,6 +109,225 @@ const VIDEO_CATEGORIES = [
   { v: "behind-the-frame", l: "Behind the Frame (Section)" },
 ];
 
+/* ─── SERVICES ─── */
+interface ServiceItem {
+  icon: string; title: string; description: string; tags: string[]; slug: string;
+  price?: string; duration?: string; features?: string[]; longDescription?: string;
+  portfolioCategory?: string; highlightVideoUrl?: string;
+}
+
+const EMPTY_SERVICE: ServiceItem = {
+  icon: "🎬", title: "", description: "", tags: [], slug: "",
+  price: "", duration: "", features: [], longDescription: "",
+  portfolioCategory: "", highlightVideoUrl: "",
+};
+
+function slugify(s: string) {
+  return s.toLowerCase().trim().replace(/[^\w\s-]/g, "").replace(/\s+/g, "-");
+}
+
+function isDirectVideoFile(url?: string) {
+  return !!url && /\.(mp4|webm|mov|m4v)(?:\?|#|$)/i.test(url);
+}
+
+function ServicesTab() {
+  const { toast } = useToast();
+  const [services, setServices] = useState<ServiceItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+  const [editIdx, setEditIdx] = useState<number | null>(null);
+  const [form, setForm] = useState<ServiceItem>(EMPTY_SERVICE);
+  const [tagsInput, setTagsInput] = useState("");
+  const [featuresInput, setFeaturesInput] = useState("");
+
+  useEffect(() => {
+    fetch("/api/cms").then(r => r.json()).then((data: Record<string, Record<string, string>>) => {
+      try { setServices(JSON.parse(data?.services?.items || "[]")); } catch { setServices([]); }
+    }).catch(() => {}).finally(() => setLoading(false));
+  }, []);
+
+  function resetForm(svc?: ServiceItem, idx?: number) {
+    if (svc) {
+      setForm(svc);
+      setTagsInput((svc.tags || []).join(", "));
+      setFeaturesInput((svc.features || []).join("\n"));
+      setEditIdx(idx ?? null);
+    } else {
+      setForm(EMPTY_SERVICE);
+      setTagsInput("");
+      setFeaturesInput("");
+      setEditIdx(null);
+    }
+    setShowForm(true);
+  }
+
+  async function persist(next: ServiceItem[]) {
+    setSaving(true);
+    try {
+      const res = await fetch("/api/cms", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", ...authHeader() } as any,
+        body: JSON.stringify([{ section: "services", key: "items", value: JSON.stringify(next) }]),
+      });
+      if (res.ok) {
+        setServices(next);
+        toast({ title: "Layanan tersimpan" });
+        return true;
+      }
+      toast({ variant: "destructive", title: "Gagal menyimpan" });
+      return false;
+    } catch {
+      toast({ variant: "destructive", title: "Gagal menyimpan" });
+      return false;
+    } finally { setSaving(false); }
+  }
+
+  async function handleSave() {
+    if (!form.title) { toast({ variant: "destructive", title: "Judul layanan wajib diisi" }); return; }
+    const payload: ServiceItem = {
+      ...form,
+      slug: form.slug || slugify(form.title),
+      tags: tagsInput.split(",").map(t => t.trim()).filter(Boolean),
+      features: featuresInput.split("\n").map(f => f.trim()).filter(Boolean),
+    };
+    const next = editIdx !== null
+      ? services.map((s, i) => (i === editIdx ? payload : s))
+      : [...services, payload];
+    const ok = await persist(next);
+    if (ok) { setShowForm(false); setEditIdx(null); }
+  }
+
+  async function handleDelete(idx: number) {
+    const next = services.filter((_, i) => i !== idx);
+    await persist(next);
+  }
+
+  async function handleMove(idx: number, dir: -1 | 1) {
+    const target = idx + dir;
+    if (target < 0 || target >= services.length) return;
+    const next = [...services];
+    [next[idx], next[target]] = [next[target], next[idx]];
+    await persist(next);
+  }
+
+  if (loading) return <div className="flex items-center justify-center py-10"><div className="w-6 h-6 rounded-full border-2 border-primary border-t-transparent animate-spin" /></div>;
+
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-muted-foreground">Kelola layanan, harga, dan video highlight yang tampil di halaman Layanan & landing page.</p>
+        <Button onClick={() => resetForm()} className="bg-primary hover:bg-primary/90 text-white rounded-xl text-sm">
+          <Plus className="w-4 h-4 mr-1.5" /> Tambah Layanan
+        </Button>
+      </div>
+
+      {showForm && (
+        <Card className="glass-panel border-border">
+          <CardContent className="p-5 space-y-4">
+            <div className="flex items-center justify-between">
+              <h4 className="font-bold text-foreground">{editIdx !== null ? "Edit Layanan" : "Tambah Layanan Baru"}</h4>
+              <button onClick={() => { setShowForm(false); setEditIdx(null); }} className="text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></button>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-[11px] uppercase tracking-widest text-muted-foreground font-semibold">Judul Layanan</label>
+                <Input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} className="bg-muted/30 border-border" placeholder="Commercial Video" />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[11px] uppercase tracking-widest text-muted-foreground font-semibold">Slug (kosongkan = otomatis)</label>
+                <Input value={form.slug} onChange={e => setForm(f => ({ ...f, slug: e.target.value }))} className="bg-muted/30 border-border" placeholder="commercial-video" />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[11px] uppercase tracking-widest text-muted-foreground font-semibold">Icon (emoji)</label>
+                <Input value={form.icon} onChange={e => setForm(f => ({ ...f, icon: e.target.value }))} className="bg-muted/30 border-border" placeholder="🎬" />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[11px] uppercase tracking-widest text-muted-foreground font-semibold">Estimasi Harga</label>
+                <Input value={form.price} onChange={e => setForm(f => ({ ...f, price: e.target.value }))} className="bg-muted/30 border-border" placeholder="Rp 5.000.000+" />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[11px] uppercase tracking-widest text-muted-foreground font-semibold">Durasi Pengerjaan</label>
+                <Input value={form.duration} onChange={e => setForm(f => ({ ...f, duration: e.target.value }))} className="bg-muted/30 border-border" placeholder="3-14 hari" />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[11px] uppercase tracking-widest text-muted-foreground font-semibold">Kategori Portfolio (untuk matching video)</label>
+                <Input value={form.portfolioCategory} onChange={e => setForm(f => ({ ...f, portfolioCategory: e.target.value }))} className="bg-muted/30 border-border" placeholder="commercial-video" />
+              </div>
+              <div className="col-span-2 space-y-1.5">
+                <label className="text-[11px] uppercase tracking-widest text-muted-foreground font-semibold">Deskripsi Singkat</label>
+                <Input value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} className="bg-muted/30 border-border" placeholder="Iklan TV, digital ads, dan brand video..." />
+              </div>
+              <div className="col-span-2 space-y-1.5">
+                <label className="text-[11px] uppercase tracking-widest text-muted-foreground font-semibold">Deskripsi Lengkap (opsional, untuk halaman detail)</label>
+                <textarea value={form.longDescription} onChange={e => setForm(f => ({ ...f, longDescription: e.target.value }))} className="w-full bg-muted/30 border border-border rounded-lg px-3 py-2 text-sm text-foreground resize-none h-20" />
+              </div>
+              <div className="col-span-2 space-y-1.5">
+                <label className="text-[11px] uppercase tracking-widest text-muted-foreground font-semibold">Tags (pisah koma)</label>
+                <Input value={tagsInput} onChange={e => setTagsInput(e.target.value)} className="bg-muted/30 border-border" placeholder="TVC, Digital Ads, Brand Story" />
+              </div>
+              <div className="col-span-2 space-y-1.5">
+                <label className="text-[11px] uppercase tracking-widest text-muted-foreground font-semibold">Fitur / Yang Didapat (1 per baris)</label>
+                <textarea value={featuresInput} onChange={e => setFeaturesInput(e.target.value)} className="w-full bg-muted/30 border border-border rounded-lg px-3 py-2 text-sm text-foreground resize-none h-24" placeholder={"Konsultasi konsep gratis\nTim produksi lengkap\nRevisi 3x"} />
+              </div>
+
+              {/* Highlight Video — upload langsung, autoplay di card layanan */}
+              <div className="col-span-2 space-y-1.5">
+                <label className="text-[11px] uppercase tracking-widest text-muted-foreground font-semibold">Video Highlight (autoplay di card Layanan)</label>
+                <UploadBtn value={form.highlightVideoUrl || ""} onChange={url => setForm(f => ({ ...f, highlightVideoUrl: url }))} label="Upload Video" accept="video/*" />
+                <p className="text-[11px] text-muted-foreground">Upload file video (mp4/webm) untuk autoplay muted-loop di card layanan, atau tempel link YouTube sebagai fallback.</p>
+                {form.highlightVideoUrl && isDirectVideoFile(form.highlightVideoUrl) && (
+                  <div className="mt-2 rounded-xl overflow-hidden border border-border bg-black" style={{ aspectRatio: "16/9", maxWidth: 320 }}>
+                    <video src={form.highlightVideoUrl} muted loop autoPlay playsInline className="w-full h-full object-cover" />
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <Button variant="ghost" onClick={() => { setShowForm(false); setEditIdx(null); }} className="flex-1 rounded-xl">Batal</Button>
+              <Button onClick={handleSave} disabled={saving} className="flex-1 bg-primary hover:bg-primary/90 text-white rounded-xl">
+                {saving ? "Saving..." : (editIdx !== null ? "Update Layanan" : "Simpan Layanan")}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      <div className="space-y-3">
+        {services.map((s, idx) => (
+          <div key={s.slug || idx} className="flex items-center gap-4 p-4 rounded-xl border border-border bg-card/50 hover:bg-card/80 transition-all">
+            <div className="w-16 h-10 rounded-lg overflow-hidden bg-muted/30 shrink-0 flex items-center justify-center relative">
+              {s.highlightVideoUrl && isDirectVideoFile(s.highlightVideoUrl) ? (
+                <video src={s.highlightVideoUrl} muted loop autoPlay playsInline className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-lg">{s.icon || "🎬"}</span>
+              )}
+              {s.highlightVideoUrl && <div className="absolute bottom-0.5 right-0.5 bg-primary rounded-full p-0.5"><Video className="w-2 h-2 text-white" /></div>}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="font-semibold text-sm text-foreground truncate">{s.title}</div>
+              <div className="text-xs text-muted-foreground truncate">{s.description}</div>
+            </div>
+            {s.price && <span className="text-[11px] px-2 py-0.5 rounded-md bg-primary/10 text-primary border border-primary/20 whitespace-nowrap shrink-0">{s.price}</span>}
+            <div className="flex gap-1 shrink-0">
+              <button onClick={() => handleMove(idx, -1)} disabled={idx === 0} className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors disabled:opacity-25">↑</button>
+              <button onClick={() => handleMove(idx, 1)} disabled={idx === services.length - 1} className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors disabled:opacity-25">↓</button>
+              <button onClick={() => resetForm(s, idx)} className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"><Settings2 className="w-3.5 h-3.5" /></button>
+              <button onClick={() => handleDelete(idx)} className="p-2 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
+            </div>
+          </div>
+        ))}
+        {services.length === 0 && (
+          <div className="text-center py-10 text-muted-foreground text-sm">
+            <Tag className="w-8 h-8 mx-auto mb-2 opacity-25" />
+            Belum ada layanan custom. Halaman akan menampilkan layanan default bawaan sistem.
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function VideosTab() {
   const { toast } = useToast();
   const qc = useQueryClient();
@@ -444,7 +663,7 @@ function ContentTab() {
 
 /* ─── MAIN ─── */
 export default function CmsEditorPage() {
-  const [activeTab, setActiveTab] = useState<"content" | "videos" | "logos">("content");
+  const [activeTab, setActiveTab] = useState<"content" | "services" | "videos" | "logos">("content");
 
   return (
     <div className="space-y-8 pb-8">
@@ -455,7 +674,7 @@ export default function CmsEditorPage() {
 
       {/* Tabs */}
       <div className="flex gap-1 glass-panel rounded-xl p-1 border-border w-fit">
-        {([["content", "📝 Konten"], ["videos", "🎬 Videos"], ["logos", "🏢 Logo Klien"]] as const).map(([t, l]) => (
+        {([["content", "📝 Konten"], ["services", "🛠️ Layanan"], ["videos", "🎬 Videos"], ["logos", "🏢 Logo Klien"]] as const).map(([t, l]) => (
           <button key={t} onClick={() => setActiveTab(t)}
             className={`px-5 py-2.5 rounded-lg text-[13px] font-semibold transition-all ${activeTab === t ? "bg-primary/15 text-primary border border-primary/20" : "text-muted-foreground hover:text-foreground"}`}>
             {l}
@@ -464,6 +683,7 @@ export default function CmsEditorPage() {
       </div>
 
       {activeTab === "content" && <ContentTab />}
+      {activeTab === "services" && <ServicesTab />}
       {activeTab === "videos" && <VideosTab />}
       {activeTab === "logos" && <LogosTab />}
     </div>

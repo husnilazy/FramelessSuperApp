@@ -13,7 +13,7 @@ import {
 
 interface CmsData { [s:string]:{[k:string]:string} }
 interface SiteVideo { id:string;title:string;description:string;embedUrl:string;thumbnailUrl:string;category:string;tags:string;isActive:boolean;orderIndex:number; }
-interface ServiceItem { icon:string;title:string;description:string;tags:string[];slug:string;price?:string;features?:string[];duration?:string;longDescription?:string;portfolioCategory?:string; }
+interface ServiceItem { icon:string;title:string;description:string;tags:string[];slug:string;price?:string;features?:string[];duration?:string;longDescription?:string;portfolioCategory?:string;highlightVideoUrl?:string; }
 
 const OR   = "#FF6A20";
 const FONT = "'Plus Jakarta Sans',sans-serif";
@@ -93,6 +93,8 @@ const DEFAULT_SERVICES: ServiceItem[] = [
 function ytId(url?:string){return url?.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/)?.[1]??null;}
 function watchUrl(url:string){const id=ytId(url);return id?`https://www.youtube.com/embed/${id}?autoplay=1&rel=0`:url;}
 function getThumb(url:string,custom?:string){if(custom)return custom;const id=ytId(url);return id?`https://img.youtube.com/vi/${id}/maxresdefault.jpg`:""; }
+function isDirectVideo(u?:string){ return !!u && /\.(mp4|webm|mov|m4v)(?:\?|#|$)/i.test(u); }
+function ytAutoplayMuted(u?:string){ const id = u ? ytId(u) : null; return id ? `https://www.youtube.com/embed/${id}?autoplay=1&mute=1&loop=1&playlist=${id}&controls=0&rel=0` : ""; }
 
 function VideoModal({url,onClose}:{url:string;onClose:()=>void}) {
   useEffect(()=>{const h=(e:KeyboardEvent)=>{if(e.key==="Escape")onClose();};window.addEventListener("keydown",h);return()=>window.removeEventListener("keydown",h);},[onClose]);
@@ -225,6 +227,23 @@ export default function ServiceDetailPage() {
               </div>
               <h1 className="fu d2" style={{fontSize:"clamp(36px,5.5vw,66px)",fontWeight:900,letterSpacing:"-.045em",color:"#fff",marginBottom:18,lineHeight:1.0}}>{service.title}</h1>
               <p className="fu d3" style={{fontSize:"clamp(15px,1.6vw,18px)",color:"rgba(255,255,255,.5)",lineHeight:1.74,marginBottom:28}}>{service.description}</p>
+
+              {/* Highlight Video — autoplay, dari CMS Layanan */}
+              {service.highlightVideoUrl && (
+                <div className="fu d3" onClick={()=>setModal(service.highlightVideoUrl!)} style={{borderRadius:18,overflow:"hidden",cursor:"pointer",aspectRatio:"16/9",background:"#000",position:"relative",marginBottom:28,border:"1px solid rgba(255,255,255,.08)"}}>
+                  {isDirectVideo(service.highlightVideoUrl) ? (
+                    <video src={service.highlightVideoUrl} autoPlay muted loop playsInline style={{width:"100%",height:"100%",objectFit:"cover",display:"block"}}/>
+                  ) : ytAutoplayMuted(service.highlightVideoUrl) ? (
+                    <iframe src={ytAutoplayMuted(service.highlightVideoUrl)} style={{position:"absolute",inset:0,width:"100%",height:"100%",border:"none",pointerEvents:"none"}} allow="autoplay;encrypted-media"/>
+                  ) : getThumb(service.highlightVideoUrl) ? (
+                    <img src={getThumb(service.highlightVideoUrl)} alt={service.title} style={{width:"100%",height:"100%",objectFit:"cover",display:"block"}}/>
+                  ) : null}
+                  <div style={{position:"absolute",inset:0,background:"linear-gradient(to top,rgba(0,0,0,.5) 0%,transparent 40%)"}}/>
+                  <div style={{position:"absolute",top:16,right:16,width:40,height:40,borderRadius:"50%",background:`${OR}cc`,display:"flex",alignItems:"center",justifyContent:"center",backdropFilter:"blur(8px)"}}>
+                    <Play size={14} style={{fill:"#fff",color:"#fff",marginLeft:1}}/>
+                  </div>
+                </div>
+              )}
 
               {/* Tags */}
               <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:32}}>
