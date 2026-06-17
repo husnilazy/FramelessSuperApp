@@ -14,30 +14,138 @@ function authHeader() {
 type CmsValue = string | boolean;
 
 /* ─── UPLOAD BUTTON ─── */
+const MAX_UPLOAD_MB = 200;
+
+function formatMB(bytes: number) {
+  return (bytes / 1024 / 1024).toFixed(1);
+}
+
 function UploadBtn({ value, onChange, label, accept }: { value: string; onChange: (url: string) => void; label?: string; accept?: string }) {
   const ref = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
   const [uploading, setUploading] = useState(false);
-  async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const f = e.target.files?.[0]; if (!f) return;
+  const [progress, setProgress] = useState(0);
+  const [errorMsg, setErrorMsg] = useState("");
+  const xhrRef = useRef<XMLHttpRequest | null>(null);
+
+  function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    e.target.value = ""; // reset agar bisa upload file yang sama lagi setelah error
+    if (!f) return;
+
+    setErrorMsg("");
+
+    // Validasi ukuran SEBELUM upload — gagal cepat dengan pesan jelas,
+    // daripada nunggu lama lalu di-reject backend tanpa user tahu kenapa.
+    const sizeMB = f.size / 1024 / 1024;
+    if (sizeMB > MAX_UPLOAD_MB) {
+      const msg = `File ${formatMB(f.size)}MB melebihi batas ${MAX_UPLOAD_MB}MB.`;
+      setErrorMsg(msg);
+      toast({ variant: "destructive", title: "File terlalu besar", description: msg });
+      return;
+    }
+
     setUploading(true);
-    try {
-      const form = new FormData(); form.append("file", f);
-      const res = await fetch("/api/uploads", { method: "POST", headers: authHeader() as any, body: form });
-      const data = await res.json();
-      if (data.url) onChange(data.url);
-    } finally { setUploading(false); }
+    setProgress(0);
+
+    const form = new FormData();
+    form.append("file", f);
+
+    const xhr = new XMLHttpRequest();
+    xhrRef.current = xhr;
+    xhr.open("POST", "/api/uploads");
+    const auth = authHeader() as Record<string, string>;
+    if (auth.Authorization) xhr.setRequestHeader("Authorization", auth.Authorization);
+
+    // Progress real berdasarkan bytes terkirim — penting untuk video besar
+    // supaya user tahu proses BERJALAN, bukan macet/diam.
+    xhr.upload.onprogress = (ev) => {
+      if (ev.lengthComputable) {
+        setProgress(Math.round((ev.loaded / ev.total) * 100));
+      }
+    };
+
+    xhr.onload = () => {
+      setUploading(false);
+      xhrRef.current = null;
+      let data: any = null;
+      try { data = JSON.parse(xhr.responseText); } catch { /* ignore */ }
+
+      if (xhr.status >= 200 && xhr.status < 300 && data?.url) {
+        setProgress(100);
+        onChange(data.url);
+        toast({ title: "Upload berhasil" });
+      } else {
+        const msg = data?.error || `Upload gagal (status ${xhr.status}).`;
+        setErrorMsg(msg);
+        toast({ variant: "destructive", title: "Upload gagal", description: msg });
+      }
+    };
+
+    xhr.onerror = () => {
+      setUploading(false);
+      xhrRef.current = null;
+      const msg = "Koneksi terputus saat upload. Cek internet Anda dan coba lagi.";
+      setErrorMsg(msg);
+      toast({ variant: "destructive", title: "Upload gagal", description: msg });
+    };
+
+    xhr.ontimeout = () => {
+      setUploading(false);
+      xhrRef.current = null;
+      const msg = "Upload timeout — file mungkin terlalu besar atau koneksi lambat.";
+      setErrorMsg(msg);
+      toast({ variant: "destructive", title: "Upload gagal", description: msg });
+    };
+
+    xhr.timeout = 5 * 60 * 1000; // 5 menit, cukup untuk video besar di koneksi lambat
+    xhr.send(form);
   }
+
+  function cancelUpload() {
+    xhrRef.current?.abort();
+    xhrRef.current = null;
+    setUploading(false);
+    setProgress(0);
+  }
+
   return (
-    <div className="flex gap-2 items-start">
-      <div className="flex-1">
-        <Input value={value} onChange={e => onChange(e.target.value)} className="bg-muted/30 border-border text-sm" placeholder="URL atau upload file..." />
+    <div className="space-y-1.5">
+      <div className="flex gap-2 items-start">
+        <div className="flex-1">
+          <Input value={value} onChange={e => onChange(e.target.value)} className="bg-muted/30 border-border text-sm" placeholder="URL atau upload file..." disabled={uploading} />
+        </div>
+        {uploading ? (
+          <button type="button" onClick={cancelUpload}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-destructive/10 border border-destructive/30 text-xs font-semibold text-destructive hover:bg-destructive/20 transition-all whitespace-nowrap">
+            <X className="w-3.5 h-3.5" /> Batal ({progress}%)
+          </button>
+        ) : (
+          <button type="button" onClick={() => ref.current?.click()}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-muted/40 border border-border text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-all whitespace-nowrap">
+            <Upload className="w-3.5 h-3.5" />
+            {label || "Upload"}
+          </button>
+        )}
+        <input ref={ref} type="file" accept={accept || "image/*"} className="hidden" onChange={handleFile} />
       </div>
-      <button type="button" onClick={() => ref.current?.click()}
-        className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-muted/40 border border-border text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-all whitespace-nowrap">
-        {uploading ? <div className="w-3.5 h-3.5 rounded-full border-2 border-primary border-t-transparent animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
-        {label || "Upload"}
-      </button>
-      <input ref={ref} type="file" accept={accept || "image/*"} className="hidden" onChange={handleFile} />
+
+      {/* Progress bar — terlihat jelas selama upload, terutama untuk video besar */}
+      {uploading && (
+        <div className="space-y-1">
+          <div className="h-1.5 rounded-full bg-muted/40 overflow-hidden">
+            <div className="h-full bg-primary rounded-full transition-all duration-200" style={{ width: `${progress}%` }} />
+          </div>
+          <p className="text-[11px] text-muted-foreground">Mengupload... {progress}%</p>
+        </div>
+      )}
+
+      {/* Error message — selalu terlihat sampai user coba lagi */}
+      {!uploading && errorMsg && (
+        <p className="text-[11px] text-destructive flex items-center gap-1">
+          <X className="w-3 h-3" /> {errorMsg}
+        </p>
+      )}
     </div>
   );
 }
