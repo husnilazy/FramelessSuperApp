@@ -62,8 +62,8 @@ app.use(
   })
 );
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
 const uploadDir = process.env.NODE_ENV === "production"
   ? "/tmp/uploads"
@@ -75,6 +75,12 @@ app.use("/api", router);
 app.use((err: any, req: any, res: any, next: any) => {
   console.error("❌ GLOBAL ERROR:", err?.message || err);
   console.error("❌ STACK:", err?.stack);
+
+  if (err?.type === "entity.too.large" || err?.status === 413) {
+    res.status(413).json({ error: "Ukuran data terlalu besar untuk diproses." });
+    return;
+  }
+
   res.status(500).json({
     error: err?.message || "Internal Server Error",
     detail: process.env.NODE_ENV !== "production" ? err?.stack : undefined,

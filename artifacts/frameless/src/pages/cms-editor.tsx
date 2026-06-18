@@ -436,6 +436,130 @@ function ServicesTab() {
   );
 }
 
+/* ─── CREW GALLERY (Behind-the-Scenes) ─── */
+interface CrewGalleryPhoto {
+  id: string; photoUrl: string; productionTitle: string; productionDate: string;
+}
+
+function CrewGalleryTab() {
+  const { toast } = useToast();
+  const [photos, setPhotos] = useState<CrewGalleryPhoto[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState({ photoUrl: "", productionTitle: "", productionDate: "" });
+
+  useEffect(() => {
+    fetch("/api/cms").then(r => r.json()).then((data: Record<string, Record<string, string>>) => {
+      try { setPhotos(JSON.parse(data?.crewGallery?.items || "[]")); } catch { setPhotos([]); }
+    }).catch(() => {}).finally(() => setLoading(false));
+  }, []);
+
+  async function persist(next: CrewGalleryPhoto[]) {
+    setSaving(true);
+    try {
+      const res = await fetch("/api/cms", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", ...authHeader() } as any,
+        body: JSON.stringify([{ section: "crewGallery", key: "items", value: JSON.stringify(next) }]),
+      });
+      if (res.ok) {
+        setPhotos(next);
+        toast({ title: "Galeri tersimpan" });
+        return true;
+      }
+      toast({ variant: "destructive", title: "Gagal menyimpan" });
+      return false;
+    } catch {
+      toast({ variant: "destructive", title: "Gagal menyimpan" });
+      return false;
+    } finally { setSaving(false); }
+  }
+
+  async function handleAdd() {
+    if (!form.photoUrl) { toast({ variant: "destructive", title: "Foto wajib diupload" }); return; }
+    if (!form.productionTitle) { toast({ variant: "destructive", title: "Nama produksi wajib diisi" }); return; }
+    const photo: CrewGalleryPhoto = { id: crypto.randomUUID?.() || String(Date.now()), ...form };
+    const ok = await persist([...photos, photo]);
+    if (ok) { setForm({ photoUrl: "", productionTitle: "", productionDate: "" }); setShowForm(false); }
+  }
+
+  async function handleDelete(id: string) {
+    await persist(photos.filter(p => p.id !== id));
+  }
+
+  if (loading) return <div className="flex items-center justify-center py-10"><div className="w-6 h-6 rounded-full border-2 border-primary border-t-transparent animate-spin" /></div>;
+
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-muted-foreground">Upload foto behind-the-scenes produksi. Tampil sebagai carousel di landing page (Crew Gallery, di bawah Meet the Crew). Tidak ada batas jumlah foto.</p>
+        <Button onClick={() => setShowForm(s => !s)} className="bg-primary hover:bg-primary/90 text-white rounded-xl text-sm">
+          <Plus className="w-4 h-4 mr-1.5" /> Tambah Foto
+        </Button>
+      </div>
+
+      {showForm && (
+        <Card className="glass-panel border-border">
+          <CardContent className="p-5 space-y-4">
+            <div className="flex items-center justify-between">
+              <h4 className="font-bold text-foreground">Tambah Foto BTS</h4>
+              <button onClick={() => setShowForm(false)} className="text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></button>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-[11px] uppercase tracking-widest text-muted-foreground font-semibold">Foto (landscape 16:9 disarankan)</label>
+              <UploadBtn value={form.photoUrl} onChange={url => setForm(f => ({ ...f, photoUrl: url }))} label="Upload Foto" accept="image/*" />
+              {form.photoUrl && (
+                <div className="mt-2 rounded-xl overflow-hidden border border-border bg-black" style={{ aspectRatio: "16/9", maxWidth: 320 }}>
+                  <img src={form.photoUrl} alt="" className="w-full h-full object-cover" />
+                </div>
+              )}
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-[11px] uppercase tracking-widest text-muted-foreground font-semibold">Nama Produksi</label>
+                <Input value={form.productionTitle} onChange={e => setForm(f => ({ ...f, productionTitle: e.target.value }))} className="bg-muted/30 border-border" placeholder="Ingat Kita - Fidella Jasmine" />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[11px] uppercase tracking-widest text-muted-foreground font-semibold">Tanggal Produksi</label>
+                <Input type="date" value={form.productionDate} onChange={e => setForm(f => ({ ...f, productionDate: e.target.value }))} className="bg-muted/30 border-border" />
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <Button variant="ghost" onClick={() => setShowForm(false)} className="flex-1 rounded-xl">Batal</Button>
+              <Button onClick={handleAdd} disabled={saving} className="flex-1 bg-primary hover:bg-primary/90 text-white rounded-xl">
+                {saving ? "Saving..." : "Simpan Foto"}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      <div className="grid grid-cols-4 gap-3">
+        {photos.map(p => (
+          <div key={p.id} className="group relative rounded-xl overflow-hidden border border-border bg-card/50" style={{ aspectRatio: "16/9" }}>
+            <img src={p.photoUrl} alt={p.productionTitle} className="w-full h-full object-cover" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-3">
+              <div className="text-xs font-semibold text-white truncate">{p.productionTitle}</div>
+              {p.productionDate && <div className="text-[10px] text-white/60">{p.productionDate}</div>}
+            </div>
+            <button onClick={() => handleDelete(p.id)}
+              className="absolute top-2 right-2 p-1.5 rounded-lg bg-black/60 text-white/70 hover:text-destructive opacity-0 group-hover:opacity-100 transition-all">
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        ))}
+        {photos.length === 0 && (
+          <div className="col-span-4 text-center py-10 text-muted-foreground text-sm">
+            <Image className="w-8 h-8 mx-auto mb-2 opacity-25" />
+            Belum ada foto behind-the-scenes. Section Crew Gallery tidak akan tampil di landing page sampai ada foto.
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function VideosTab() {
   const { toast } = useToast();
   const qc = useQueryClient();
@@ -771,7 +895,7 @@ function ContentTab() {
 
 /* ─── MAIN ─── */
 export default function CmsEditorPage() {
-  const [activeTab, setActiveTab] = useState<"content" | "services" | "videos" | "logos">("content");
+  const [activeTab, setActiveTab] = useState<"content" | "services" | "gallery" | "videos" | "logos">("content");
 
   return (
     <div className="space-y-8 pb-8">
@@ -782,7 +906,7 @@ export default function CmsEditorPage() {
 
       {/* Tabs */}
       <div className="flex gap-1 glass-panel rounded-xl p-1 border-border w-fit">
-        {([["content", "📝 Konten"], ["services", "🛠️ Layanan"], ["videos", "🎬 Videos"], ["logos", "🏢 Logo Klien"]] as const).map(([t, l]) => (
+        {([["content", "📝 Konten"], ["services", "🛠️ Layanan"], ["gallery", "🎞️ Crew Gallery"], ["videos", "🎬 Videos"], ["logos", "🏢 Logo Klien"]] as const).map(([t, l]) => (
           <button key={t} onClick={() => setActiveTab(t)}
             className={`px-5 py-2.5 rounded-lg text-[13px] font-semibold transition-all ${activeTab === t ? "bg-primary/15 text-primary border border-primary/20" : "text-muted-foreground hover:text-foreground"}`}>
             {l}
@@ -792,6 +916,7 @@ export default function CmsEditorPage() {
 
       {activeTab === "content" && <ContentTab />}
       {activeTab === "services" && <ServicesTab />}
+      {activeTab === "gallery" && <CrewGalleryTab />}
       {activeTab === "videos" && <VideosTab />}
       {activeTab === "logos" && <LogosTab />}
     </div>

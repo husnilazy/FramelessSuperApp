@@ -1,5 +1,5 @@
 // artifacts/frameless/src/pages/landing.tsx
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import {
@@ -74,6 +74,13 @@ function isDirectVideo(url?: string) {
   return !!url && /\.(mp4|webm|mov|m4v)(?:\?|#|$)/i.test(url);
 }
 
+function formatIdDate(dateStr?: string) {
+  if (!dateStr) return "";
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return dateStr;
+  return d.toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
+}
+
 function courseHref(slug: string) {
   return `/course/${encodeURIComponent(slug)}`;
 }
@@ -129,6 +136,18 @@ body{overflow-x:hidden;}
 .pf-3d-card{transition:all .58s cubic-bezier(.16,1,.3,1);}
 .pf-3d-card:hover img{transform:scale(1.06);}
 .pf-center-card{animation:pf-pulse-glow 3.5s ease-in-out infinite;}
+
+/* Crew Gallery — 3 baris marquee independen, auto-scroll terus-menerus (linear infinite, tanpa jeda).
+   Baris tengah (.cg-row-reverse) bergerak ke arah BERLAWANAN dari baris atas & bawah, sesuai permintaan.
+   Track digandakan 2x di JSX -> animasi geser dari 0% ke -50% supaya loop-nya seamless tanpa "patah". */
+@keyframes cg-row-scroll-left{from{transform:translateX(0);}to{transform:translateX(-50%);}}
+@keyframes cg-row-scroll-right{from{transform:translateX(-50%);}to{transform:translateX(0);}}
+.cg-row-track{animation:cg-row-scroll-left linear infinite;}
+.cg-row-track.cg-row-reverse{animation:cg-row-scroll-right linear infinite;}
+.cg-row-card{transition:transform .3s ease;}
+.cg-row-card:hover{transform:scale(1.04);z-index:5;}
+.cg-row-card:hover img{transform:scale(1.06);transition:transform .4s ease;}
+
 .pf-arrow{transition:background .2s,border-color .2s,box-shadow .2s!important;}
 .pf-arrow:hover{background:${OR}22!important;border-color:${OR}55!important;box-shadow:0 0 20px ${OR}33!important;}
 .pf-arrow:active{animation:click-glow .4s ease-out;}
@@ -138,6 +157,10 @@ body{overflow-x:hidden;}
 .pf-progress-bar{animation:pf-progress 4.5s linear forwards;}
 .no-scrollbar::-webkit-scrollbar{display:none;}
 .no-scrollbar{scrollbar-width:none;}
+
+/* Crew Gallery thumbnail caption — hidden by default, fades in on hover/touch */
+.cg-thumb-caption{transition:opacity .22s ease;}
+.cg-thumb:hover .cg-thumb-caption{opacity:1!important;}
 
 /* ── Spring-physics button animations ─────────────────────────────────── */
 
@@ -324,7 +347,6 @@ function Mesh({ c1, c2, c3, opacity = 1 }: { c1: string; c2: string; c3: string;
       <div style={{ position: "absolute", width: "72%", height: "72%", top: "3%", right: "-28%", background: `radial-gradient(ellipse at center,${c2}52 0%,${c2}22 46%,transparent 72%)`, filter: "blur(68px)", animation: "b2 24s ease-in-out infinite" }} />
       <div style={{ position: "absolute", width: "62%", height: "58%", bottom: "-22%", left: "18%", background: `radial-gradient(ellipse at center,${c3}42 0%,${c3}18 52%,transparent 76%)`, filter: "blur(80px)", animation: "b3 28s ease-in-out infinite" }} />
       <div style={{ position: "absolute", width: "48%", height: "48%", top: "36%", left: "26%", background: `radial-gradient(ellipse at center,${c1}28 0%,transparent 60%)`, filter: "blur(50px)", animation: "b2 16s ease-in-out infinite reverse" }} />
-      <div style={{ position: "absolute", inset: 0, backgroundImage: "linear-gradient(rgba(255,255,255,.018) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.018) 1px,transparent 1px)", backgroundSize: "60px 60px" }} />
       <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 140% 110% at 50% 0%,transparent 28%,rgba(10,10,12,.78) 100%)" }} />
       <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom,rgba(10,10,12,0) 18%,rgba(10,10,12,.42) 62%,rgba(10,10,12,1) 100%)" }} />
     </div>
@@ -536,6 +558,28 @@ export default function LandingPage() {
     return () => clearInterval(id);
   }, [services.length]);
 
+  // ── Crew Gallery (Behind-the-Scenes photos) ─────────────────────────────────
+  const crewGalleryPhotos = (() => {
+    try { return JSON.parse(cms?.crewGallery?.items || "[]") as { id: string; photoUrl: string; productionTitle: string; productionDate: string }[]; } catch { return []; }
+  })();
+
+  // FIX FLICKER: lebar random tiap foto dihitung SEKALI lewat useMemo (bergantung jumlah foto),
+  // bukan dipanggil ulang di setiap render seperti sebelumnya. Sebelumnya randomWidth() dipanggil
+  // langsung di dalam .map() pada body render -- itu artinya SETIAP re-render component (yang sering
+  // terjadi karena autoplay carousel lain di halaman ini berjalan setiap beberapa detik) bikin lebar
+  // semua card berubah acak lagi di tengah animasi CSS yang sedang berjalan, sehingga track-nya terlihat
+  // "patah/flicker". Dengan useMemo, lebar di-generate sekali saat mount dan tetap stabil selamanya.
+  const crewGalleryRows = useMemo(() => {
+    const rows: { id: string; photoUrl: string; productionTitle: string; productionDate: string; w: number }[][] = [[], [], []];
+    const widthChoices = [170, 210, 250, 290, 150, 230];
+    crewGalleryPhotos.forEach((p, i) => {
+      const w = widthChoices[Math.floor(Math.random() * widthChoices.length)];
+      rows[i % 3].push({ ...p, w });
+    });
+    return rows;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [crewGalleryPhotos.length]);
+
   const pubCourses = courses.filter(c => c.isPublished !== false && c.packages?.length > 0);
   const pubAssets = assets.filter(a => a.isActive).slice(0, 6);
 
@@ -544,8 +588,23 @@ export default function LandingPage() {
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
-    <div style={{ background: "#0a0a0c", color: "#f0f0f0", fontFamily: FONT, minHeight: "100vh", overflowX: "hidden" }}>
+    <div style={{ background: "#0a0a0c", color: "#f0f0f0", fontFamily: FONT, minHeight: "100vh", overflowX: "hidden", position: "relative" }}>
       <style>{CSS}</style>
+
+      {/* ══════ GLOBAL AMBIENT MESH — fixed di belakang SELURUH halaman, tidak ikut scroll ══════
+          Ini menggantikan pendekatan lama (tiap section punya radial-gradient sendiri-sendiri di
+          atas base warna solid #0a0a0c yang identik). Karena base-nya solid datar, mata menangkap
+          tiap "blob" gradient lokal sebagai area terpisah -- itu sebabnya batas antar section dan
+          pojok-pojok section (terutama yang sebelumnya punya layer solid tambahan, seperti Crew
+          Gallery) terasa kaku/berjahit. Dengan satu mesh lembut yang fixed mengisi seluruh viewport
+          di layer paling belakang, semua section -- termasuk yang transparan -- otomatis "melihat"
+          warna ambient yang sama mengalir di belakangnya, sehingga transisi antar section menyatu. */}
+      <div style={{ position: "fixed", inset: 0, zIndex: 0, pointerEvents: "none", overflow: "hidden" }}>
+        <div style={{ position: "absolute", width: "70%", height: "60%", top: "-12%", left: "-10%", background: `radial-gradient(ellipse at center,${OR}10 0%,transparent 70%)`, filter: "blur(90px)" }} />
+        <div style={{ position: "absolute", width: "65%", height: "55%", top: "20%", right: "-15%", background: `radial-gradient(ellipse at center,${c2}0c 0%,transparent 72%)`, filter: "blur(100px)" }} />
+        <div style={{ position: "absolute", width: "60%", height: "55%", bottom: "-10%", left: "10%", background: `radial-gradient(ellipse at center,${c3}0a 0%,transparent 74%)`, filter: "blur(100px)" }} />
+        <div style={{ position: "absolute", width: "50%", height: "45%", bottom: "20%", right: "5%", background: `radial-gradient(ellipse at center,${OR}08 0%,transparent 70%)`, filter: "blur(90px)" }} />
+      </div>
 
       {/* ══════ MOBILE NAV ══════ */}
       {mobileNav && (
@@ -1437,7 +1496,7 @@ export default function LandingPage() {
 
       {/* ══════ CREW PROFILES (modern glow animated cards) ══════ */}
       {activeTeam.length > 0 && (
-        <section id="crew" className="pxs" style={{ padding: "80px 28px 100px", background: "rgba(0,0,0,.2)", position: "relative", overflow: "hidden" }}>
+        <section id="crew" className="pxs" style={{ padding: "80px 28px 100px", position: "relative", overflow: "hidden" }}>
           <div style={{ maxWidth: 900, margin: "0 auto" }}>
             <div style={{ textAlign: "center", marginBottom: 52 }}>
               <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: ".2em", color: OR, textTransform: "uppercase", marginBottom: 8 }}>THE TEAM</div>
@@ -1525,6 +1584,85 @@ export default function LandingPage() {
           </div>
         </section>
       )}
+
+      {/* ══════ CREW GALLERY — Behind the Scenes (3 baris masonry, lebar stabil via useMemo, lebih lambat & seamless) ══════ */}
+      {/* Minimal 6 foto agar 3 baris masonry terisi cukup rata (tidak nempel pojok kiri seperti saat foto sedikit) */}
+      {crewGalleryPhotos.length >= 6 && (() => {
+        const ROW_HEIGHT = 168; // tinggi tetap per baris -- ini yang membuat grid rapi tanpa overlap
+
+        return (
+          <section id="crew-gallery" style={{ padding: "100px 0", position: "relative", overflow: "hidden" }}>
+            {/* Tidak ada cover/background lokal di section ini lagi -- sepenuhnya transparan,
+                mengandalkan mesh gradient global yang fixed di belakang seluruh halaman.
+                Ini yang menghilangkan "pojok kaku/hitam" karena sebelumnya section ini punya
+                base layer solid sendiri yang berhenti tegas di tepi section. */}
+
+            <div style={{ maxWidth: 960, margin: "0 auto", padding: "0 32px 44px", textAlign: "center", position: "relative", zIndex: 2 }}>
+              <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: ".22em", color: OR, textTransform: "uppercase", marginBottom: 10 }}>BEHIND THE SCENES</p>
+
+              <h2 style={{ fontSize: "clamp(28px,4vw,48px)", fontWeight: 900, letterSpacing: "-.04em", color: "#fff", lineHeight: 1.0, marginBottom: 10 }}>Crew Gallery</h2>
+              <p style={{ fontSize: 14, color: "rgba(255,255,255,.38)", lineHeight: 1.65 }}>Momen di balik kamera dari setiap produksi yang kami kerjakan.</p>
+            </div>
+
+            {/* Konten dibatasi maxWidth supaya keseluruhan galeri lebih terpusat di tengah halaman */}
+            <div style={{ maxWidth: 1240, margin: "0 auto", position: "relative", zIndex: 2 }}>
+              {/* Feather mask kiri-kanan -- diperhalus dengan lebih banyak color-stop (6 titik, bukan 4)
+                  supaya gradasinya benar-benar landai tanpa ada "tepi" yang terasa, dan opacity awal
+                  diturunkan sedikit (dari solid 100% jadi mulai ~92%) supaya transisi masuknya juga lembut. */}
+              <div style={{ position: "relative", overflow: "hidden" }}>
+                <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: "30%", background: "linear-gradient(to right,#0a0a0c 0%,#0a0a0cee 25%,#0a0a0caa 50%,#0a0a0c55 75%,#0a0a0c1a 90%,transparent 100%)", zIndex: 30, pointerEvents: "none" }} />
+                <div style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: "30%", background: "linear-gradient(to left,#0a0a0c 0%,#0a0a0cee 25%,#0a0a0caa 50%,#0a0a0c55 75%,#0a0a0c1a 90%,transparent 100%)", zIndex: 30, pointerEvents: "none" }} />
+
+                <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                  {crewGalleryRows.map((rowPhotos, rowIdx) => {
+                    if (rowPhotos.length === 0) return null;
+                    // Baris tengah (index 1) berlawanan arah dari baris atas & bawah -- sesuai permintaan.
+                    const reverse = rowIdx === 1;
+                    // Durasi diperlambat signifikan (dari *4.5 jadi *8, minimum 36s bukan 22s) supaya
+                    // pergerakannya terasa tenang/premium, bukan terburu-buru.
+                    const duration = Math.max(36, rowPhotos.length * 8);
+
+                    return (
+                      <div key={rowIdx} style={{ overflow: "hidden", height: ROW_HEIGHT }}>
+                        <div
+                          className={`cg-row-track${reverse ? " cg-row-reverse" : ""}`}
+                          style={{ display: "flex", alignItems: "center", gap: 14, width: "max-content", animationDuration: `${duration}s` }}
+                        >
+                          {/* Foto digandakan 2x supaya loop seamless. Lebar (p.w) sudah FIX dari useMemo,
+                              tidak dihitung ulang di sini -- ini yang menghilangkan flicker. */}
+                          {[...rowPhotos, ...rowPhotos].map((p, i) => (
+                            <div
+                              key={`${p.id}-${i}`}
+                              className="cg-row-card"
+                              style={{
+                                flexShrink: 0,
+                                width: p.w,
+                                height: ROW_HEIGHT,
+                                borderRadius: 14,
+                                overflow: "hidden",
+                                position: "relative",
+                                background: "#101013",
+                              }}
+                            >
+                              <img src={p.photoUrl} alt={p.productionTitle} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
+                              <div style={{ position: "absolute", inset: 0, borderRadius: 14, boxShadow: "inset 0 0 0 1px rgba(255,255,255,.08)", pointerEvents: "none" }} />
+                              {/* Caption -- hover-only, tetap sesuai keputusan sebelumnya */}
+                              <div className="cg-thumb-caption" style={{ position: "absolute", inset: 0, background: "linear-gradient(to top,rgba(0,0,0,.85) 0%,rgba(0,0,0,.05) 60%,transparent 100%)", display: "flex", flexDirection: "column", justifyContent: "flex-end", padding: "10px 12px", opacity: 0 }}>
+                                <div style={{ fontSize: 11, fontWeight: 700, color: "#fff", lineHeight: 1.25, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.productionTitle}</div>
+                                {p.productionDate && <div style={{ fontSize: 9.5, color: "rgba(255,255,255,.55)", marginTop: 1 }}>{formatIdDate(p.productionDate)}</div>}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </section>
+        );
+      })()}
 
       {/* ══════ FOOTER ══════ */}
       <footer style={{ borderTop: "1px solid rgba(255,255,255,.07)", background: "rgba(0,0,0,.45)", backdropFilter: "blur(24px)" }}>

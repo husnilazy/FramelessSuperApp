@@ -7,6 +7,8 @@ import {
 } from "express";
 import multer from "multer";
 import path from "path";
+import fs from "fs";
+import os from "os";
 import { requireAuth } from "./middleware.js";
 import { crewTokenStore, getCrewMemberIdFromToken } from "./crew.js";
 import { logger } from "../lib/logger.js";
@@ -15,7 +17,31 @@ import { db, digitalAssetsTable, projectFilesTable } from "@workspace/db";
 
 const router: IRouter = Router();
 
-const storage = multer.memoryStorage();
+// ── Disk storage (bukan memoryStorage) ──────────────────────────────────────
+// Alasan: memoryStorage me-load SELURUH file ke RAM proses Node sekaligus.
+// Untuk video besar (puluhan MB), ini cepat menumpuk memory antar-upload
+// dan bisa membuat upload berikutnya gagal diam-diam tanpa pesan error jelas.
+// Disk storage men-stream file ke disk sementara (OS temp dir / Vercel /tmp),
+// jauh lebih ringan untuk memory heap Node, lalu kita upload ke Supabase dari file
+// tersebut dan langsung hapus setelah selesai (tidak disimpan permanen di disk).
+const tmpUploadDir = process.env.NODE_ENV === "production"
+  ? "/tmp/frameless-uploads"
+  : path.join(os.tmpdir(), "frameless-uploads");
+
+try {
+  fs.mkdirSync(tmpUploadDir, { recursive: true });
+} catch (err) {
+  logger.error({ err, tmpUploadDir }, "uploads.tmpdir.create_failed");
+}
+
+const storage = multer.diskStorage({
+  destination: (_req, _file, cb) => cb(null, tmpUploadDir),
+  filename: (_req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    const unique = `${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`;
+    cb(null, unique);
+  },
+});
 
 const allowedExtensions = [
   ".jpeg",
@@ -37,10 +63,13 @@ const allowedExtensions = [
   ".pptx",
 ];
 
+// Limit dinaikkan untuk video produksi (200MB). Sesuaikan lagi jika perlu.
+const MAX_FILE_SIZE = 200 * 1024 * 1024;
+
 const upload = multer({
   storage,
   limits: {
-    fileSize: 50 * 1024 * 1024,
+    fileSize: MAX_FILE_SIZE,
   },
   fileFilter: (_req, file, cb) => {
     try {
@@ -64,6 +93,16 @@ const upload = multer({
   },
 });
 
+// Hapus file sementara di disk, aman dipanggil meski file sudah tidak ada
+function cleanupTmpFile(filePath?: string) {
+  if (!filePath) return;
+  fs.unlink(filePath, (err) => {
+    if (err && err.code !== "ENOENT") {
+      logger.error({ err, filePath }, "uploads.tmpfile.cleanup_failed");
+    }
+  });
+}
+
 type UploadCallback = (
   req: Request,
   res: Response
@@ -81,8 +120,13 @@ function uploadHandler(callback: UploadCallback) {
       async (err: unknown) => {
         try {
           if (err instanceof multer.MulterError) {
+            logger.error({ err, code: err.code }, "upload.multer.error");
+            const friendly: Record<string, string> = {
+              LIMIT_FILE_SIZE: `File terlalu besar. Maksimal ${Math.round(MAX_FILE_SIZE / 1024 / 1024)}MB.`,
+              LIMIT_UNEXPECTED_FILE: "Field file tidak sesuai. Pastikan upload menggunakan field 'file'.",
+            };
             res.status(400).json({
-              error: err.message,
+              error: friendly[err.code] || err.message,
             });
             return;
           }
@@ -125,13 +169,18 @@ async function uploadToSupabase(
     "site-assets"
   );
 
+  // Disk storage: file ada di file.path (bukan file.buffer lagi).
+  // Stream dari disk ke Supabase — tidak perlu load seluruh file ke memory.
+  const fileStream = fs.createReadStream(file.path);
+
   const { error } = await bucket.upload(
     fileName,
-    file.buffer,
+    fileStream,
     {
       contentType: file.mimetype,
       upsert: true,
-    }
+      duplex: "half",
+    } as any
   );
 
   if (error) {
@@ -172,16 +221,22 @@ router.post(
           .toString(36)
           .slice(2)}${ext}`;
 
-        const publicUrl =
-          await uploadToSupabase(
+        let publicUrl: string;
+        try {
+          publicUrl = await uploadToSupabase(
             req.file,
             fileName
           );
+        } finally {
+          // Selalu hapus file sementara di disk, sukses maupun gagal
+          cleanupTmpFile(req.file.path);
+        }
 
         logger.info(
           {
             fileName,
             publicUrl,
+            sizeBytes: req.file.size,
           },
           "admin.upload.success"
         );
@@ -191,13 +246,14 @@ router.post(
           filename: fileName,
         });
       } catch (error) {
+        cleanupTmpFile(req.file?.path);
         logger.error(
           { err: error },
           "admin.upload.failed"
         );
 
         res.status(500).json({
-          error: "Failed to upload file",
+          error: error instanceof Error ? error.message : "Failed to upload file",
         });
       }
     }
@@ -256,11 +312,15 @@ router.post(
 
         const fileName = `crew-${memberId}-${Date.now()}${ext}`;
 
-        const publicUrl =
-          await uploadToSupabase(
+        let publicUrl: string;
+        try {
+          publicUrl = await uploadToSupabase(
             req.file,
             fileName
           );
+        } finally {
+          cleanupTmpFile(req.file.path);
+        }
 
         let asset = null;
         let projectFile = null;
@@ -334,13 +394,14 @@ router.post(
           projectId: projectId || null,
         });
       } catch (error) {
+        cleanupTmpFile(req.file?.path);
         logger.error(
           { err: error },
           "crew.upload.failed"
         );
 
         res.status(500).json({
-          error: "Upload failed",
+          error: error instanceof Error ? error.message : "Upload failed",
         });
       }
     }
