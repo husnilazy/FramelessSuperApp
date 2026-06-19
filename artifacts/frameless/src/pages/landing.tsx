@@ -738,8 +738,8 @@ export default function LandingPage() {
             <div style={{ position: "relative" }}>
               <div style={{ maxWidth: 1100, margin: "0 auto", overflow: "hidden", position: "relative" }}>
                 {/* Fade masks */}
-                <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: "14%", background: "linear-gradient(to right,#0a0a0c 25%,transparent)", zIndex: 20, pointerEvents: "none" }} />
-                <div style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: "14%", background: "linear-gradient(to left,#0a0a0c 25%,transparent)", zIndex: 20, pointerEvents: "none" }} />
+                <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: "14%", background: "linear-gradient(to right,rgba(10,10,12,1) 0%,rgba(10,10,12,.92) 30%,rgba(10,10,12,.5) 65%,transparent 100%)", zIndex: 20, pointerEvents: "none" }} />
+                <div style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: "14%", background: "linear-gradient(to left,rgba(10,10,12,1) 0%,rgba(10,10,12,.92) 30%,rgba(10,10,12,.5) 65%,transparent 100%)", zIndex: 20, pointerEvents: "none" }} />
 
                 <div style={{ position: "relative", height: "clamp(280px, 36vw, 380px)" }}>
                   {services.map((s, idx) => {
@@ -923,8 +923,8 @@ export default function LandingPage() {
                 <div style={{ maxWidth: 960, margin: "0 auto", overflow: "hidden", position: "relative" }}>
 
                   {/* Fade masks */}
-                  <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: "18%", background: "linear-gradient(to right,#0a0a0c 20%,transparent)", zIndex: 20, pointerEvents: "none" }} />
-                  <div style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: "18%", background: "linear-gradient(to left,#0a0a0c 20%,transparent)", zIndex: 20, pointerEvents: "none" }} />
+                  <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: "18%", background: "linear-gradient(to right,rgba(10,10,12,1) 0%,rgba(10,10,12,.88) 25%,rgba(10,10,12,.4) 60%,transparent 100%)", zIndex: 20, pointerEvents: "none" }} />
+                  <div style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: "18%", background: "linear-gradient(to left,rgba(10,10,12,1) 0%,rgba(10,10,12,.88) 25%,rgba(10,10,12,.4) 60%,transparent 100%)", zIndex: 20, pointerEvents: "none" }} />
 
                   {/* Card track */}
                   <div style={{ position: "relative", height: "clamp(340px, 52vw, 560px)" }}>
@@ -1125,8 +1125,8 @@ export default function LandingPage() {
                 <div style={{ maxWidth: 1100, margin: "0 auto", position: "relative", overflow: "hidden" }}>
 
                   {/* Fade masks — blend clipped cards into bg */}
-                  <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: "13%", background: "linear-gradient(to right,#0a0a0c 25%,transparent)", zIndex: 20, pointerEvents: "none" }} />
-                  <div style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: "13%", background: "linear-gradient(to left,#0a0a0c 25%,transparent)", zIndex: 20, pointerEvents: "none" }} />
+                  <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: "13%", background: "linear-gradient(to right,rgba(10,10,12,1) 0%,rgba(10,10,12,.92) 30%,rgba(10,10,12,.5) 65%,transparent 100%)", zIndex: 20, pointerEvents: "none" }} />
+                  <div style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: "13%", background: "linear-gradient(to left,rgba(10,10,12,1) 0%,rgba(10,10,12,.92) 30%,rgba(10,10,12,.5) 65%,transparent 100%)", zIndex: 20, pointerEvents: "none" }} />
 
                   {/* Card track */}
                   <div style={{ position: "relative", height: "clamp(180px,31vw,420px)" }}>
@@ -1610,8 +1610,8 @@ export default function LandingPage() {
                   supaya gradasinya benar-benar landai tanpa ada "tepi" yang terasa, dan opacity awal
                   diturunkan sedikit (dari solid 100% jadi mulai ~92%) supaya transisi masuknya juga lembut. */}
               <div style={{ position: "relative", overflow: "hidden" }}>
-                <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: "30%", background: "linear-gradient(to right,#0a0a0c 0%,#0a0a0cee 25%,#0a0a0caa 50%,#0a0a0c55 75%,#0a0a0c1a 90%,transparent 100%)", zIndex: 30, pointerEvents: "none" }} />
-                <div style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: "30%", background: "linear-gradient(to left,#0a0a0c 0%,#0a0a0cee 25%,#0a0a0caa 50%,#0a0a0c55 75%,#0a0a0c1a 90%,transparent 100%)", zIndex: 30, pointerEvents: "none" }} />
+                <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: "30%", background: "linear-gradient(to right,rgba(10,10,12,1) 0%,rgba(10,10,12,.93) 25%,rgba(10,10,12,.67) 50%,rgba(10,10,12,.33) 75%,rgba(10,10,12,.1) 90%,transparent 100%)", zIndex: 30, pointerEvents: "none" }} />
+                <div style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: "30%", background: "linear-gradient(to left,rgba(10,10,12,1) 0%,rgba(10,10,12,.93) 25%,rgba(10,10,12,.67) 50%,rgba(10,10,12,.33) 75%,rgba(10,10,12,.1) 90%,transparent 100%)", zIndex: 30, pointerEvents: "none" }} />
 
                 <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                   {crewGalleryRows.map((rowPhotos, rowIdx) => {
@@ -1665,7 +1665,7 @@ export default function LandingPage() {
       })()}
 
       {/* ══════ FOOTER ══════ */}
-      <footer style={{ borderTop: "1px solid rgba(255,255,255,.07)", background: "rgba(0,0,0,.45)", backdropFilter: "blur(24px)" }}>
+      <footer style={{ borderTop: "1px solid rgba(255,255,255,.07)", background: "rgba(10,10,12,.15)", backdropFilter: "blur(28px)" }}>
         <div className="footer-grid pxs" style={{ maxWidth: 1280, margin: "0 auto", padding: "64px 28px 48px", display: "grid", gridTemplateColumns: "2.2fr 1fr 1fr 1.2fr", gap: 44 }}>
           {/* Brand */}
           <div>
