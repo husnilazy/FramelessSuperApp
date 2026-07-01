@@ -9,6 +9,7 @@ import {
   Star, Clock, TrendingUp, Volume2, VolumeX,
   Linkedin, Twitter, Globe,
   Clapperboard, Music2, Camera, Tv, Heart, Smartphone, Building2, PartyPopper,
+  Check, Download, Wrench,
 } from "lucide-react";
 import { formatCurrency } from "@/lib/formatters";
 
@@ -581,6 +582,24 @@ export default function LandingPage() {
   }, [crewGalleryPhotos.length]);
 
   const pubCourses = courses.filter(c => c.isPublished !== false && c.packages?.length > 0);
+
+  // Academy stats — baca dari localStorage (disimpan admin di courses-admin settings)
+  // Fallback ke CMS stats atau hardcoded default
+  const [academyStats, setAcademyStats] = useState({ alumni: "500+", rating: "4.9/5", tagline: "Kuasai videografi dari sineas profesional" });
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("frameless_academy_stats");
+      if (raw) { const parsed = JSON.parse(raw); setAcademyStats(p => ({ ...p, ...parsed })); }
+    } catch { /* ignore */ }
+    // Juga coba dari API
+    fetch("/api/cms/academy_stats").then(r => r.ok ? r.json() : null).then(d => {
+      if (!d) return;
+      try {
+        const val = typeof d.value === "string" ? JSON.parse(d.value) : d.value;
+        if (val && typeof val === "object") setAcademyStats(p => ({ ...p, ...val }));
+      } catch { /* ignore */ }
+    }).catch(() => {});
+  }, []);
   const pubAssets = assets.filter(a => a.isActive).slice(0, 6);
 
   const waMsg = "Halo%20Admin%20Frameless%20Creative!%20%F0%9F%91%8B%20Saya%20ingin%20menanyakan%20mengenai%20project%20video.%20Bisa%20dibantu%3F";
@@ -1299,119 +1318,476 @@ export default function LandingPage() {
 
       {/* ══════ ACADEMY ══════ */}
       <section id="courses" className="pxs" style={{ padding: "120px 28px", position: "relative", overflow: "hidden" }}>
-        <div style={{ position: "absolute", inset: 0, background: `radial-gradient(ellipse 85% 65% at 50% 0%,${OR}12,transparent 65%)`, pointerEvents: "none" }} />
-        <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 1, background: `linear-gradient(to right,transparent,${OR}44,transparent)` }} />
-        <div data-px="0.1" style={{ position: "absolute", bottom: "-20%", right: "-8%", width: "55%", height: "70%", background: `radial-gradient(ellipse at center,${c2}10,transparent 70%)`, filter: "blur(80px)", willChange: "transform" }} />
+        {/* Background glows */}
+        <div style={{ position: "absolute", inset: 0, background: `radial-gradient(ellipse 80% 60% at 50% 0%,${OR}14,transparent 65%)`, pointerEvents: "none" }} />
+        <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 1, background: `linear-gradient(to right,transparent,${OR}55,transparent)` }} />
+        <div style={{ position: "absolute", bottom: "-15%", right: "-5%", width: "50%", height: "65%", background: `radial-gradient(ellipse at center,${c2}0d,transparent 70%)`, filter: "blur(90px)", pointerEvents: "none" }} />
 
-        <div style={{ maxWidth: 1280, margin: "0 auto", position: "relative" }}>
-          <div style={{ textAlign: "center", marginBottom: 72 }}>
-            <div style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "6px 18px", borderRadius: 100, background: `${OR}18`, border: `1px solid ${OR}35`, marginBottom: 24 }}>
+        <div style={{ maxWidth: 1320, margin: "0 auto", position: "relative" }}>
+
+          {/* ── Section label ── */}
+          <div style={{ textAlign: "center", marginBottom: 20 }}>
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "6px 18px", borderRadius: 100, background: `${OR}18`, border: `1px solid ${OR}40`, marginBottom: 28 }}>
               <BookOpen size={13} color={OR} />
-              <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: ".2em", color: OR, textTransform: "uppercase" }}>FRAMELESS ACADEMY</span>
-            </div>
-            <h2 style={{ fontSize: "clamp(36px,5.5vw,72px)", fontWeight: 900, letterSpacing: "-.045em", color: "#fff", margin: "0 0 20px", lineHeight: .98 }}>
-              Kuasai Videografi.<br /><span style={{ color: OR }}>Bersama Sineas Pro.</span>
-            </h2>
-            <p style={{ color: "rgba(255,255,255,.4)", fontSize: 18, lineHeight: 1.7, maxWidth: 520, margin: "0 auto 36px" }}>
-              Bukan sekadar kursus online — pengalaman belajar langsung dari sineas industri.
-            </p>
-            <div style={{ display: "flex", justifyContent: "center", gap: 32, flexWrap: "wrap" }}>
-              {[{ icon: <Users size={14} color={OR} />, v: "500+", l: "Alumni" }, { icon: <Star size={14} color={OR} />, v: "4.9/5", l: "Rating" }, { icon: <Award size={14} color={OR} />, v: "100%", l: "Sertifikat" }, { icon: <Film size={14} color={OR} />, v: `${pubCourses.length || "3"}+`, l: "Kelas" }].map(s => (
-                <div key={s.l} style={{ display: "flex", alignItems: "center", gap: 7 }}>{s.icon}<span style={{ fontSize: 14, color: "rgba(255,255,255,.46)" }}><strong style={{ color: "#fff", fontWeight: 800 }}>{s.v}</strong> {s.l}</span></div>
-              ))}
+              <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: ".22em", color: OR, textTransform: "uppercase" }}>Frameless Academy</span>
             </div>
           </div>
 
-          {/* Course cards — real links */}
+          {/* ── Hero: dua kolom — copy kiri, video kanan ── */}
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            gap: 56,
+            alignItems: "center",
+            marginBottom: 80,
+          }} className="g2">
+
+            {/* Left: copywriting */}
+            <div>
+              <h2 style={{
+                fontSize: "clamp(34px,4.5vw,64px)",
+                fontWeight: 900, letterSpacing: "-.045em",
+                color: "#fff", margin: "0 0 22px", lineHeight: .96,
+              }}>
+                Bukan sekadar<br />kursus online.<br />
+                <span style={{ color: OR }}>Ini investasi karir.</span>
+              </h2>
+              <p style={{ color: "rgba(255,255,255,.5)", fontSize: 16, lineHeight: 1.75, maxWidth: 480, margin: "0 0 32px" }}>
+                Belajar langsung dari sineas aktif industri — bukan teori doang. Dari teknik kamera, storytelling, hingga editing pro — semua dalam satu ekosistem belajar.
+              </p>
+
+              {/* Benefit pills */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 36 }}>
+                {[
+                  { icon: <Wrench size={14} color={OR} />,    title: "Filmmaking Tools Gratis",        desc: "Shot list, rundown, production bible — langsung bisa dipakai." },
+                  { icon: <Download size={14} color={OR} />,  title: "Aset Digital Gratis",            desc: "LUT, preset, dan template dari Frameless Creative — eksklusif untuk member." },
+                  { icon: <Award size={14} color={OR} />,     title: "Sertifikat Resmi",               desc: "Sertifikat yang bisa dipajang di portfolio dan LinkedIn kamu." },
+                  { icon: <Users size={14} color={OR} />,     title: "Komunitas Alumni Aktif",         desc: "Network dengan 500+ sineas — peer review, kolaborasi, dan job referral." },
+                  { icon: <Zap size={14} color={OR} />,       title: "Trial Gratis Tersedia",          desc: "Coba dulu sebelum commit — tanpa kartu kredit, tanpa syarat." },
+                ].map((b, i) => (
+                  <div
+                    key={i}
+                    style={{
+                      display: "flex", gap: 14, alignItems: "flex-start",
+                      padding: "14px 18px", borderRadius: 16,
+                      border: "1px solid rgba(255,255,255,.07)",
+                      background: "rgba(255,255,255,.025)",
+                      transition: "border-color .2s",
+                      animation: `fadeUp .5s ease ${i * 0.08}s both`,
+                    }}
+                  >
+                    <div style={{
+                      width: 34, height: 34, borderRadius: 11, flexShrink: 0,
+                      background: `${OR}18`, border: `1px solid ${OR}30`,
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                    }}>
+                      {b.icon}
+                    </div>
+                    <div>
+                      <p style={{ margin: "0 0 3px", fontSize: 13, fontWeight: 800, color: "#fff" }}>{b.title}</p>
+                      <p style={{ margin: 0, fontSize: 12, color: "rgba(255,255,255,.42)", lineHeight: 1.55 }}>{b.desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Stats row */}
+              <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
+                {[
+                  { v: academyStats.alumni,    l: "Alumni" },
+                  { v: academyStats.rating,    l: "Rating" },
+                  { v: `${pubCourses.length || 3}+`, l: "Kelas Aktif" },
+                  { v: "100%",                 l: "Bersertifikat" },
+                ].map(s => (
+                  <div key={s.l}>
+                    <p style={{ margin: 0, fontSize: 24, fontWeight: 900, color: "#fff", letterSpacing: "-.03em" }}>{s.v}</p>
+                    <p style={{ margin: "2px 0 0", fontSize: 11, color: "rgba(255,255,255,.38)", textTransform: "uppercase", letterSpacing: ".1em" }}>{s.l}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Right: highlight video dari course pertama yang punya highlightVideoUrl */}
+            {(() => {
+              const featuredCourse = pubCourses.find(c => c.highlightVideoUrl) || pubCourses[0];
+              if (!featuredCourse) return (
+                <div style={{
+                  aspectRatio: "16/10", borderRadius: 28,
+                  border: "2px dashed rgba(255,255,255,.1)",
+                  display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+                  gap: 12, color: "rgba(255,255,255,.25)",
+                }}>
+                  <Film size={44} />
+                  <p style={{ margin: 0, fontSize: 13, fontWeight: 600 }}>Tambah course untuk menampilkan highlight video</p>
+                </div>
+              );
+
+              const hl          = featuredCourse.highlightVideoUrl || "";
+              const poster      = getThumbnail(hl, featuredCourse.thumbnail);
+              const directVid   = isDirectVideo(hl);
+              const ytId_match  = hl.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|shorts\/))([\w-]{11})/)?.[1];
+              const vmId_match  = hl.match(/vimeo\.com\/(\d+)/)?.[1];
+
+              return (
+                <div style={{ position: "relative" }}>
+                  {/* Decorative glow behind video */}
+                  <div style={{
+                    position: "absolute", inset: -20,
+                    background: `radial-gradient(ellipse at center,${OR}20,transparent 70%)`,
+                    filter: "blur(40px)", zIndex: 0,
+                  }} />
+
+                  {/* Video container */}
+                  <div
+                    style={{
+                      position: "relative", zIndex: 1,
+                      borderRadius: 24, overflow: "hidden",
+                      border: `1.5px solid ${OR}44`,
+                      aspectRatio: "16/10",
+                      background: "#0d0d10",
+                      boxShadow: `0 32px 80px rgba(0,0,0,.6), 0 0 0 1px ${OR}22`,
+                    }}
+                  >
+                    {/* Poster / video background */}
+                    {poster && (
+                      <img
+                        src={poster}
+                        alt={featuredCourse.title}
+                        style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}
+                      />
+                    )}
+                    {directVid && (
+                      <video
+                        src={hl}
+                        poster={poster || undefined}
+                        autoPlay muted loop playsInline
+                        style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}
+                      />
+                    )}
+
+                    {/* Gradient overlay */}
+                    <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(10,10,12,.75) 0%, rgba(0,0,0,.2) 50%, transparent 100%)" }} />
+
+                    {/* Play button */}
+                    {hl && (
+                      <button
+                        onClick={() => setModal(hl)}
+                        style={{
+                          position: "absolute", inset: 0, width: "100%", height: "100%",
+                          background: "transparent", border: "none", cursor: "pointer",
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          zIndex: 3,
+                        }}
+                      >
+                        <div style={{
+                          width: 72, height: 72, borderRadius: "50%",
+                          background: "rgba(255,255,255,.1)", backdropFilter: "blur(12px)",
+                          border: "2px solid rgba(255,255,255,.3)",
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          transition: "all .22s",
+                          boxShadow: "0 8px 32px rgba(0,0,0,.4)",
+                        }}
+                          onMouseEnter={(e) => {
+                            (e.currentTarget as HTMLDivElement).style.background = OR;
+                            (e.currentTarget as HTMLDivElement).style.borderColor = OR;
+                            (e.currentTarget as HTMLDivElement).style.transform = "scale(1.1)";
+                          }}
+                          onMouseLeave={(e) => {
+                            (e.currentTarget as HTMLDivElement).style.background = "rgba(255,255,255,.1)";
+                            (e.currentTarget as HTMLDivElement).style.borderColor = "rgba(255,255,255,.3)";
+                            (e.currentTarget as HTMLDivElement).style.transform = "scale(1)";
+                          }}
+                        >
+                          <Play size={28} fill="#fff" color="#fff" />
+                        </div>
+                      </button>
+                    )}
+
+                    {/* Bottom overlay: course name + badge */}
+                    <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "20px 22px", zIndex: 3 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                        <span style={{ fontSize: 9, fontWeight: 700, padding: "3px 10px", borderRadius: 100, background: `${OR}30`, border: `1px solid ${OR}55`, color: OR, textTransform: "uppercase", letterSpacing: ".1em" }}>
+                          {featuredCourse.level}
+                        </span>
+                        {featuredCourse.category && (
+                          <span style={{ fontSize: 9, fontWeight: 700, padding: "3px 10px", borderRadius: 100, background: "rgba(0,0,0,.4)", color: "rgba(255,255,255,.55)", backdropFilter: "blur(8px)" }}>
+                            {featuredCourse.category}
+                          </span>
+                        )}
+                        {hl && (
+                          <span style={{ fontSize: 9, fontWeight: 700, padding: "3px 10px", borderRadius: 100, background: "rgba(0,0,0,.5)", color: "rgba(255,255,255,.6)", backdropFilter: "blur(8px)", display: "flex", alignItems: "center", gap: 4 }}>
+                            <Play size={8} fill="currentColor" /> Highlight
+                          </span>
+                        )}
+                      </div>
+                      <p style={{ margin: "0 0 4px", fontSize: 16, fontWeight: 800, color: "#fff", letterSpacing: "-.02em", lineHeight: 1.2 }}>
+                        {featuredCourse.title}
+                      </p>
+                      {featuredCourse.subtitle && (
+                        <p style={{ margin: 0, fontSize: 12, color: "rgba(255,255,255,.5)" }}>
+                          {featuredCourse.subtitle}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* CTA under video */}
+                  <div style={{ marginTop: 16, display: "flex", gap: 10, justifyContent: "center" }}>
+                    <a
+                      href={courseHref(featuredCourse.slug)}
+                      className="og-btn"
+                      style={{
+                        display: "inline-flex", alignItems: "center", gap: 7,
+                        padding: "11px 22px", borderRadius: 100,
+                        background: OR, color: "#fff",
+                        textDecoration: "none", fontSize: 13, fontWeight: 700,
+                        boxShadow: `0 8px 24px ${OR}40`,
+                      }}
+                    >
+                      Lihat Detail Kelas <ChevronRight size={14} />
+                    </a>
+                    {pubCourses.length > 1 && (
+                      <a
+                        href="/courses"
+                        style={{
+                          display: "inline-flex", alignItems: "center", gap: 7,
+                          padding: "11px 20px", borderRadius: 100,
+                          border: "1px solid rgba(255,255,255,.15)",
+                          color: "rgba(255,255,255,.65)",
+                          textDecoration: "none", fontSize: 13, fontWeight: 600,
+                        }}
+                      >
+                        +{pubCourses.length - 1} kelas lainnya
+                      </a>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+
+          {/* ── Course cards ── */}
           {pubCourses.length > 0 ? (
             <>
+              {/* Subheader */}
+              <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginBottom: 28, flexWrap: "wrap", gap: 16 }}>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: "clamp(22px,3vw,34px)", fontWeight: 900, letterSpacing: "-.04em", lineHeight: 1.1 }}>
+                    Kelas yang tersedia
+                  </h3>
+                  <p style={{ margin: "6px 0 0", fontSize: 14, color: "rgba(255,255,255,.4)" }}>
+                    {academyStats.tagline}
+                  </p>
+                </div>
+                {pubCourses.length > 3 && (
+                  <a href="/courses" style={{ display: "inline-flex", alignItems: "center", gap: 7, fontSize: 13, fontWeight: 700, color: OR, textDecoration: "none" }}>
+                    Lihat semua {pubCourses.length} kelas <ChevronRight size={14} />
+                  </a>
+                )}
+              </div>
+
+              {/* Cards grid */}
               <div
                 className="g3"
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,320px),380px))",
-                  justifyContent: "center",
-                  gap: 22,
-                  marginBottom: 48,
+                  gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,300px),1fr))",
+                  gap: 20,
+                  marginBottom: 56,
                 }}
               >
                 {pubCourses.slice(0, 3).map((c, idx) => {
-                  const pkgs = c.packages.filter(p => p.isActive !== false);
-                  const trial = pkgs.find(p => p.isTrial), paid = pkgs.filter(p => !p.isTrial);
-                  const minPr = paid.length ? Math.min(...paid.map(p => Number(p.price))) : 0;
-                  const pop = idx === 0 && pubCourses.length > 1;
-                  const highlightUrl = c.highlightVideoUrl || "";
-                  const hasHighlight = !!highlightUrl;
-                  const directHighlight = isDirectVideo(highlightUrl);
-                  const poster = getThumbnail(highlightUrl, c.thumbnail);
+                  const pkgs    = c.packages?.filter(p => p.isActive !== false) ?? [];
+                  const trial   = pkgs.find(p => p.isTrial);
+                  const paid    = pkgs.filter(p => !p.isTrial);
+                  const minPr   = paid.length ? Math.min(...paid.map(p => Number(p.price))) : 0;
+                  const hl      = c.highlightVideoUrl || "";
+                  const poster  = getThumbnail(hl, c.thumbnail);
+                  const directV = isDirectVideo(hl);
+                  const isFirst = idx === 0;
+
                   return (
-                    <a key={c.id} href={courseHref(c.slug)} className="course-card" style={{ textDecoration: "none", display: "flex", flexDirection: "column", borderRadius: 24, overflow: "hidden", border: `1.5px solid ${pop ? OR + "55" : "rgba(255,255,255,.08)"}`, background: "rgba(255,255,255,.022)", position: "relative", transition: "all .3s cubic-bezier(0.23, 1, 0.320, 1)" }}>
-                      {pop && <div style={{ position: "absolute", top: 14, right: 14, background: OR, color: "#fff", fontSize: 10, padding: "6px 16px", borderRadius: 100, fontWeight: 700, textTransform: "uppercase", zIndex: 2, boxShadow: `0 8px 24px ${OR}33` }}>Popular</div>}
-                      <div style={{ aspectRatio: "16/9", background: poster ? `url(${poster}) center/cover` : "linear-gradient(135deg,#1a0800,#3d1500)", display: "flex", alignItems: "center", justifyContent: "center", position: "relative", overflow: "hidden", transition: "transform .4s" }}>
-                        {directHighlight ? (
-                          <video src={highlightUrl} poster={poster || undefined} autoPlay muted loop playsInline style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
-                        ) : poster ? (
-                          <img src={poster} alt={c.title} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
-                        ) : (
-                          <Film size={40} color="rgba(255,255,255,.28)" />
-                        )}
-                        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top,rgba(0,0,0,.65) 0%,transparent 60%)" }} />
-                        <div style={{ position: "absolute", bottom: 12, left: 14, display: "flex", gap: 6, flexWrap: "wrap", zIndex: 2 }}>
-                          <span style={{ background: `${OR}22`, border: `1px solid ${OR}44`, color: OR, fontSize: 10, padding: "3px 10px", borderRadius: 100, fontWeight: 700, backdropFilter: "blur(8px)" }}>{c.level}</span>
-                          {c.category && <span style={{ background: "rgba(0,0,0,.35)", color: "rgba(255,255,255,.6)", fontSize: 10, padding: "3px 10px", borderRadius: 100, backdropFilter: "blur(8px)" }}>{c.category}</span>}
+                    <a
+                      key={c.id}
+                      href={courseHref(c.slug)}
+                      className="course-card"
+                      style={{
+                        textDecoration: "none", display: "flex", flexDirection: "column",
+                        borderRadius: 22, overflow: "hidden",
+                        border: `1.5px solid ${isFirst ? OR + "55" : "rgba(255,255,255,.08)"}`,
+                        background: isFirst ? `rgba(240,56,32,.04)` : "rgba(255,255,255,.022)",
+                        position: "relative",
+                        animationDelay: `${idx * 0.1}s`,
+                      }}
+                    >
+                      {isFirst && (
+                        <div style={{
+                          position: "absolute", top: 14, left: 14, zIndex: 3,
+                          background: OR, color: "#fff", fontSize: 9, padding: "4px 12px",
+                          borderRadius: 100, fontWeight: 800, textTransform: "uppercase",
+                          letterSpacing: ".1em", boxShadow: `0 4px 16px ${OR}44`,
+                        }}>
+                          ⭐ Unggulan
                         </div>
-                        {hasHighlight && <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setModal(highlightUrl); }} style={{ position: "absolute", right: 14, bottom: 12, display: "inline-flex", alignItems: "center", gap: 7, padding: "8px 12px", borderRadius: 100, border: "1px solid rgba(255,255,255,.16)", background: "rgba(10,10,12,.48)", color: "#fff", fontSize: 11, fontWeight: 700, cursor: "pointer", backdropFilter: "blur(10px)", zIndex: 2 }}><Play size={12} fill="#fff" /> Highlight</button>}
-                      </div>
-                      <div style={{ padding: "22px 20px 24px", flex: 1, display: "flex", flexDirection: "column" }}>
-                        <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: ".18em", color: "rgba(255,255,255,.26)", textTransform: "uppercase", margin: "0 0 10px" }}>Kelas Online Frameless</p>
-                        <h3 style={{ fontSize: 20, fontWeight: 800, color: "#fff", margin: "0 0 8px", letterSpacing: "-.025em", lineHeight: 1.15 }}>{c.title}</h3>
-                        {c.subtitle && <p style={{ fontSize: 13, color: "rgba(255,255,255,.42)", margin: "0 0 14px", lineHeight: 1.6 }}>{c.subtitle}</p>}
-                        {c.instructor && <p style={{ fontSize: 12, color: "rgba(255,255,255,.32)", margin: "0 0 18px" }}>Instruktur: <strong style={{ color: "rgba(255,255,255,.62)" }}>{c.instructor}</strong></p>}
-                        <div style={{ marginTop: "auto", borderTop: "1px solid rgba(255,255,255,.06)", paddingTop: 16, display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 14 }}>
-                          <div>
-                            <p style={{ fontSize: 9, color: "rgba(255,255,255,.27)", margin: "0 0 4px", textTransform: "uppercase", letterSpacing: ".08em" }}>Harga mulai</p>
-                            <p style={{ fontSize: 22, fontWeight: 900, color: OR, margin: 0 }}>{minPr > 0 ? formatCurrency(minPr) : trial ? "GRATIS" : "Hubungi Kami"}</p>
-                            <p style={{ fontSize: 11, color: "rgba(255,255,255,.34)", margin: "6px 0 0" }}>{trial ? "Trial tersedia, detail paket ada di halaman course." : "Detail paket lengkap ada di halaman course."}</p>
+                      )}
+
+                      {/* Thumbnail / video */}
+                      <div style={{
+                        aspectRatio: "16/9", position: "relative", overflow: "hidden",
+                        background: poster ? `url(${poster}) center/cover` : "linear-gradient(135deg,#1a0800,#3d1500)",
+                      }}>
+                        {directV ? (
+                          <video src={hl} poster={poster || undefined} autoPlay muted loop playsInline
+                            style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
+                        ) : poster ? (
+                          <img src={poster} alt={c.title}
+                            style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
+                        ) : (
+                          <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                            <Film size={40} color="rgba(255,255,255,.2)" />
                           </div>
-                          <div style={{ display: "flex", alignItems: "center", gap: 5, padding: "10px 16px", borderRadius: 100, background: OR, color: "#fff", fontSize: 12, fontWeight: 700, whiteSpace: "nowrap" }}>Lihat Detail <ChevronRight size={12} /></div>
+                        )}
+                        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top,rgba(0,0,0,.7) 0%,transparent 55%)" }} />
+
+                        {/* Level/category badges */}
+                        <div style={{ position: "absolute", bottom: 12, left: 14, display: "flex", gap: 5, zIndex: 2 }}>
+                          <span style={{ background: `${OR}28`, border: `1px solid ${OR}44`, color: OR, fontSize: 9, padding: "2px 8px", borderRadius: 100, fontWeight: 700, backdropFilter: "blur(8px)" }}>{c.level}</span>
+                          {c.category && <span style={{ background: "rgba(0,0,0,.4)", color: "rgba(255,255,255,.6)", fontSize: 9, padding: "2px 8px", borderRadius: 100, backdropFilter: "blur(8px)" }}>{c.category}</span>}
+                          {trial && <span style={{ background: "rgba(34,197,94,.18)", border: "1px solid rgba(34,197,94,.3)", color: "#4ade80", fontSize: 9, padding: "2px 8px", borderRadius: 100, fontWeight: 700, backdropFilter: "blur(8px)" }}>Trial</span>}
+                        </div>
+
+                        {/* Play highlight button */}
+                        {hl && (
+                          <button
+                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); setModal(hl); }}
+                            style={{
+                              position: "absolute", right: 12, bottom: 10, zIndex: 3,
+                              display: "inline-flex", alignItems: "center", gap: 5,
+                              padding: "6px 11px", borderRadius: 100,
+                              border: "1px solid rgba(255,255,255,.2)",
+                              background: "rgba(10,10,12,.5)", backdropFilter: "blur(10px)",
+                              color: "#fff", fontSize: 10, fontWeight: 700, cursor: "pointer",
+                            }}
+                          >
+                            <Play size={10} fill="#fff" /> Highlight
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Card body */}
+                      <div style={{ padding: "18px 18px 20px", flex: 1, display: "flex", flexDirection: "column" }}>
+                        <p style={{ fontSize: 9, fontWeight: 700, letterSpacing: ".2em", color: "rgba(255,255,255,.24)", textTransform: "uppercase", margin: "0 0 8px" }}>
+                          Frameless Academy
+                        </p>
+                        <h3 style={{ fontSize: 17, fontWeight: 800, color: "#fff", margin: "0 0 6px", letterSpacing: "-.02em", lineHeight: 1.2 }}>{c.title}</h3>
+                        {c.subtitle && <p style={{ fontSize: 12, color: "rgba(255,255,255,.4)", margin: "0 0 10px", lineHeight: 1.6 }}>{c.subtitle}</p>}
+                        {c.instructor && <p style={{ fontSize: 11, color: "rgba(255,255,255,.3)", margin: "0 0 14px" }}>by <strong style={{ color: "rgba(255,255,255,.55)" }}>{c.instructor}</strong></p>}
+
+                        {/* Feature bullets — first 3 features of first paid package */}
+                        {(() => {
+                          const firstPkg = paid[0] || trial;
+                          if (!firstPkg?.features) return null;
+                          let feats: string[] = [];
+                          try { feats = JSON.parse(firstPkg.features); } catch { feats = firstPkg.features.split("\n").filter(Boolean); }
+                          if (!feats.length) return null;
+                          return (
+                            <div style={{ display: "flex", flexDirection: "column", gap: 5, marginBottom: 14, flex: 1 }}>
+                              {feats.slice(0, 3).map((f, fi) => (
+                                <div key={fi} style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 11, color: "rgba(255,255,255,.45)" }}>
+                                  <Check size={10} color={OR} strokeWidth={2.5} style={{ flexShrink: 0 }} /> {f}
+                                </div>
+                              ))}
+                            </div>
+                          );
+                        })()}
+
+                        {/* Price + CTA */}
+                        <div style={{ marginTop: "auto", borderTop: "1px solid rgba(255,255,255,.06)", paddingTop: 14, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+                          <div>
+                            <p style={{ fontSize: 9, color: "rgba(255,255,255,.25)", margin: "0 0 3px", textTransform: "uppercase", letterSpacing: ".1em" }}>Mulai dari</p>
+                            <p style={{ fontSize: 20, fontWeight: 900, color: OR, margin: 0, letterSpacing: "-.03em" }}>
+                              {minPr > 0 ? formatCurrency(minPr) : trial ? "GRATIS" : "Lihat Paket"}
+                            </p>
+                          </div>
+                          <div style={{
+                            display: "flex", alignItems: "center", gap: 5,
+                            padding: "9px 15px", borderRadius: 100,
+                            background: isFirst ? OR : "rgba(255,255,255,.08)",
+                            color: "#fff", fontSize: 11, fontWeight: 800,
+                            whiteSpace: "nowrap",
+                          }}>
+                            Daftar <ChevronRight size={12} />
+                          </div>
                         </div>
                       </div>
                     </a>
                   );
                 })}
               </div>
-              {pubCourses.length > 3 && (
-                <div style={{ textAlign: "center", marginBottom: 48 }}>
-                  <a href="/courses" style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "12px 28px", borderRadius: 100, border: "1px solid rgba(255,255,255,.15)", color: "rgba(255,255,255,.7)", textDecoration: "none", fontSize: 14, fontWeight: 600 }}>
-                    Lihat semua {pubCourses.length} kursus <ChevronRight size={15} />
-                  </a>
-                </div>
-              )}
             </>
           ) : (
-            <div style={{ textAlign: "center", padding: "40px", borderRadius: 20, border: "2px dashed rgba(255,255,255,.08)", marginBottom: 48 }}>
-              <p style={{ color: "rgba(255,255,255,.33)", fontSize: 14 }}>Kursus segera hadir. <a href="/courses-admin" style={{ color: OR, textDecoration: "none", fontWeight: 700 }}>Tambah kursus di admin →</a></p>
+            <div style={{ textAlign: "center", padding: "48px", borderRadius: 20, border: "2px dashed rgba(255,255,255,.08)", marginBottom: 56 }}>
+              <Film size={36} color={`${OR}55`} style={{ marginBottom: 12 }} />
+              <p style={{ color: "rgba(255,255,255,.35)", fontSize: 14, margin: "0 0 12px" }}>Kelas videografi segera hadir.</p>
+              <a href="/courses-admin" style={{ color: OR, textDecoration: "none", fontSize: 13, fontWeight: 700 }}>Tambah kelas di admin →</a>
             </div>
           )}
 
-          {/* Academy CTA */}
-          <div style={{ padding: "48px 40px", borderRadius: 26, background: `linear-gradient(135deg,${OR}14,rgba(124,58,237,.1))`, border: `1px solid ${OR}28`, position: "relative", overflow: "hidden" }}>
-            <div style={{ position: "absolute", top: -60, right: -60, width: 240, height: 240, borderRadius: "50%", background: `${OR}08`, filter: "blur(50px)" }} />
-            <div className="g2" style={{ position: "relative", display: "grid", gridTemplateColumns: "1fr auto", gap: 32, alignItems: "center" }}>
+          {/* ── Bottom CTA banner ── */}
+          <div style={{
+            padding: "44px 40px",
+            borderRadius: 28,
+            background: `linear-gradient(135deg,${OR}16,rgba(124,58,237,.1))`,
+            border: `1px solid ${OR}30`,
+            position: "relative", overflow: "hidden",
+          }}>
+            {/* Decorative blobs */}
+            <div style={{ position: "absolute", top: -50, right: -50, width: 220, height: 220, borderRadius: "50%", background: `${OR}10`, filter: "blur(60px)" }} />
+            <div style={{ position: "absolute", bottom: -40, left: -40, width: 180, height: 180, borderRadius: "50%", background: `${c2}10`, filter: "blur(60px)" }} />
+
+            <div className="g2" style={{ position: "relative", display: "grid", gridTemplateColumns: "1fr auto", gap: 36, alignItems: "center" }}>
               <div>
-                <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: ".22em", color: OR, textTransform: "uppercase", marginBottom: 10 }}>MULAI SEKARANG</p>
-                <h3 style={{ fontSize: "clamp(20px,3vw,32px)", fontWeight: 900, color: "#fff", letterSpacing: "-.03em", marginBottom: 8, lineHeight: 1.1 }}>Siap Mulai Perjalananmu?</h3>
-                <p style={{ color: "rgba(255,255,255,.41)", fontSize: 14, maxWidth: 400, lineHeight: 1.65 }}>Trial gratis tersedia. Tidak perlu kartu kredit. 500+ alumni.</p>
+                <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: ".22em", color: OR, textTransform: "uppercase", marginBottom: 12 }}>
+                  Mulai Sekarang
+                </p>
+                <h3 style={{ fontSize: "clamp(22px,3vw,36px)", fontWeight: 900, color: "#fff", letterSpacing: "-.04em", marginBottom: 10, lineHeight: 1.1 }}>
+                  Siap jadi sineas profesional?
+                </h3>
+                <p style={{ color: "rgba(255,255,255,.45)", fontSize: 14, maxWidth: 440, lineHeight: 1.7, marginBottom: 0 }}>
+                  Trial gratis · Filmmaking tools eksklusif · Aset digital · Sertifikat resmi · Komunitas 500+ alumni
+                </p>
               </div>
-              <div style={{ display: "flex", gap: 10, flexDirection: "column", flexShrink: 0 }}>
-                <a href="/courses" className="og-btn" style={{ padding: "13px 26px", borderRadius: 100, background: OR, color: "#fff", textDecoration: "none", fontSize: 14, fontWeight: 700, whiteSpace: "nowrap", textAlign: "center" }}>Lihat Semua Kelas →</a>
-                <a href="#contact" style={{ padding: "11px 20px", borderRadius: 100, border: "1px solid rgba(255,255,255,.14)", color: "rgba(255,255,255,.63)", textDecoration: "none", fontSize: 13, fontWeight: 600, textAlign: "center" }}>Konsultasi dulu</a>
+              <div style={{ display: "flex", gap: 10, flexDirection: "column", flexShrink: 0, minWidth: 180 }}>
+                <a
+                  href="/courses"
+                  className="og-btn"
+                  style={{
+                    padding: "14px 28px", borderRadius: 100,
+                    background: OR, color: "#fff",
+                    textDecoration: "none", fontSize: 14, fontWeight: 800,
+                    whiteSpace: "nowrap", textAlign: "center",
+                    boxShadow: `0 8px 28px ${OR}44`,
+                  }}
+                >
+                  Mulai Belajar Sekarang →
+                </a>
+                <a
+                  href="#contact"
+                  style={{
+                    padding: "12px 22px", borderRadius: 100,
+                    border: "1px solid rgba(255,255,255,.15)",
+                    color: "rgba(255,255,255,.6)",
+                    textDecoration: "none", fontSize: 13, fontWeight: 600,
+                    textAlign: "center",
+                  }}
+                >
+                  Konsultasi dulu
+                </a>
               </div>
             </div>
           </div>
         </div>
       </section>
-
       {/* ══════ DIGITAL ASSETS STORE ══════ */}
       <section id="store" className="pxs" style={{ padding: "110px 28px", position: "relative", overflow: "hidden" }}>
         <div data-px="0.08" style={{ position: "absolute", inset: 0, background: `radial-gradient(ellipse 70% 60% at 80% 50%,${c3}10,transparent 70%)`, willChange: "transform" }} />

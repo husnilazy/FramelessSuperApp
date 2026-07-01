@@ -19,6 +19,7 @@ import CoursePage        from "@/pages/course-page";
 import CoursesPage       from "@/pages/courses";
 import DigitalAssetsPage from "@/pages/digital-assets";
 import PortalPage        from "@/pages/portal";
+import AcademyLoginPage  from "@/pages/academy-login";
 
 // Crew
 import CrewLoginPage     from "@/pages/crew-login";
@@ -94,6 +95,8 @@ function Router() {
       <Route path="/course/:slug"  component={CoursePage} />
       <Route path="/store"         component={DigitalAssetsPage} />
       <Route path="/portal/:id"    component={PortalPage} />
+      <Route path="/academy/login" component={AcademyLoginPage} />
+      <Route path="/academy-login" component={AcademyLoginPage} />
 
       {/* Crew */}
       <Route path="/crew/login"     component={CrewLoginPage} />

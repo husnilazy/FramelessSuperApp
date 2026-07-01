@@ -110,27 +110,55 @@ export default function PaymentSettingsPage() {
   async function save() {
     setSaving(true);
     try {
+      const payload = settings.map(s => ({
+        provider:  s.provider,
+        label:     s.label,
+        isEnabled: !!s.isEnabled,
+        config:    typeof s.config === "string" ? s.config : JSON.stringify(s.config),
+      }));
       const res = await fetch("/api/payment-settings", {
-        method: "PUT",
+        method:  "PUT",
         headers: { "Content-Type": "application/json", ...authHeader() } as any,
-        body: JSON.stringify(settings.map(s => ({ ...s, isEnabled: !!s.isEnabled }))),
+        body:    JSON.stringify(payload),
       });
-      if (res.ok) toast({ title: "Payment settings saved" });
-      else toast({ variant: "destructive", title: "Failed to save" });
-    } finally { setSaving(false); }
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        toast({ title: `${data.saved ?? payload.length} metode pembayaran disimpan`, className: "border-emerald-500/25 bg-[#08150e] text-white" });
+      } else {
+        toast({ variant: "destructive", title: "Gagal menyimpan", description: data.error || `HTTP ${res.status}` });
+      }
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "Network error", description: err?.message });
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function saveMidtrans() {
     setMidtransSaving(true);
     try {
+      const payload = [{
+        provider:  "midtrans",
+        label:     "Midtrans",
+        isEnabled: true,
+        config:    JSON.stringify(midtrans),
+      }];
       const res = await fetch("/api/payment-settings", {
-        method: "PUT",
+        method:  "PUT",
         headers: { "Content-Type": "application/json", ...authHeader() } as any,
-        body: JSON.stringify([{ provider: "midtrans", label: "Midtrans", isEnabled: true, config: JSON.stringify(midtrans) }]),
+        body:    JSON.stringify(payload),
       });
-      if (res.ok) toast({ title: "Midtrans settings saved" });
-      else toast({ variant: "destructive", title: "Failed to save Midtrans" });
-    } finally { setMidtransSaving(false); }
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        toast({ title: "Midtrans settings disimpan", description: `Mode: ${midtrans.isProduction === "true" ? "Production 🔴" : "Sandbox 🟡"}`, className: "border-emerald-500/25 bg-[#08150e] text-white" });
+      } else {
+        toast({ variant: "destructive", title: "Gagal menyimpan Midtrans", description: data.error || `HTTP ${res.status}` });
+      }
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "Network error", description: err?.message });
+    } finally {
+      setMidtransSaving(false);
+    }
   }
 
   const enabledCount = settings.filter(s => s.isEnabled).length;

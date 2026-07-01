@@ -10,6 +10,7 @@ import timeTrackingRouter from "./time-tracking.js";
 import clientsRouter from "./clients.js";
 import cmsRouter from "./cms.js";
 import coursesRouter from "./courses.js";
+import courseMembersRouter from "./course-members.js";
 import crewRouter from "./crew.js";
 import dashboardRouter from "./dashboard.js";
 import digitalAssetsRouter from "./digital-assets.js";
@@ -30,6 +31,8 @@ import filmmakingCollaboratorsRouter from "./filmmaking-collaborators.js";
 import filmmakingSubmissionsRouter from "./filmmaking-submissions.js";
 import filmmakingCollaborationRouter from "./filmmaking-collaboration.js";
 import filmmakingExportRouter from "./filmmaking-export.js";
+import incomeRouter from "./income.js";
+import equipmentRouter from "./equipment.js";
 
 const router: IRouter = Router();
 
@@ -46,6 +49,7 @@ router.use(timeTrackingRouter);
 router.use(clientsRouter);
 router.use(cmsRouter);
 router.use(coursesRouter);
+router.use(courseMembersRouter);
 router.use(crewRouter);
 router.use(dashboardRouter);
 router.use(digitalAssetsRouter);
@@ -66,6 +70,8 @@ router.use(filmmakingCollaboratorsRouter);
 router.use(filmmakingSubmissionsRouter);
 router.use(filmmakingCollaborationRouter);
 router.use(filmmakingExportRouter);
+router.use(incomeRouter);
+router.use(equipmentRouter);
 
 // 404 fallback
 router.use((req, res) => {

@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { db, pool, projectsTable, clientsTable, teamMembersTable, invoicesTable, expensesTable, activityLogsTable } from "@workspace/db";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, sql } from "drizzle-orm";
 import { logger } from "../lib/logger.js";
 
 const router: IRouter = Router();
@@ -16,6 +16,7 @@ type InvoiceRow = {
   dueDate?: string | Date | null;
   paidAt?: string | Date | null;
   updatedAt?: string | Date | null;
+  createdAt?: string | Date | null;
 };
 
 type ExpenseRow = {
@@ -40,6 +41,7 @@ router.get("/dashboard/stats", async (_req, res): Promise<void> => {
     let team: any[] = [];
     let invoices: any[] = [];
     let expenses: any[] = [];
+    let incomeEntries: any[] = [];
 
     if (pool) {
       // Safe raw queries using only guaranteed columns to survive schema drift
@@ -70,7 +72,7 @@ router.get("/dashboard/stats", async (_req, res): Promise<void> => {
       }
 
       try {
-        const i = await pool.query('SELECT status, total, "paidAmount", "dueDate", "paidAt", "updatedAt" FROM invoices');
+        const i = await pool.query('SELECT status, total, "paidAmount", "dueDate", "paidAt", "updatedAt", "createdAt" FROM invoices');
         invoices = i.rows;
       } catch (e) { logger.error({ err: e }, 'dashboard.invoices.raw.fail'); }
 
@@ -78,6 +80,13 @@ router.get("/dashboard/stats", async (_req, res): Promise<void> => {
         const e = await pool.query('SELECT amount, date FROM expenses');
         expenses = e.rows;
       } catch (e) { logger.error({ err: e }, 'dashboard.expenses.raw.fail'); }
+
+      try {
+        const inc = await pool.query('SELECT amount, date, category FROM income_entries');
+        incomeEntries = inc.rows;
+      } catch (e) {
+        incomeEntries = [];
+      }
     } else {
       // Fallback to drizzle (may fail on drift)
       try {
@@ -86,6 +95,10 @@ router.get("/dashboard/stats", async (_req, res): Promise<void> => {
         team = await db.select({ id: teamMembersTable.id }).from(teamMembersTable).where(eq(teamMembersTable.isActive, true));
         invoices = await db.select().from(invoicesTable);
         expenses = await db.select().from(expensesTable);
+        try {
+          const incResult: any = await db.execute(sql`SELECT amount, date, category FROM income_entries`);
+          incomeEntries = incResult.rows || incResult || [];
+        } catch { incomeEntries = []; }
       } catch (e) { logger.error({ err: e }, 'dashboard.drizzle.fallback.fail'); }
     }
 
@@ -96,15 +109,22 @@ router.get("/dashboard/stats", async (_req, res): Promise<void> => {
       return !completed.includes(st);
     }).length;
 
-    // Use actual collected (paidAmount) for revenue/net profit.
+    // Use actual collected (paidAmount) for revenue/net profit, PLUS manual income entries.
     // This way only real payments count (including partial/DP), not full invoice totals 
     // or "total semua project" budgets. Unpaid invoices don't inflate the profit.
-    const totalRevenue = invoices.reduce((s: number, i: any) => s + Number(i.paidAmount || 0), 0);
+    const invoiceRevenue = invoices.reduce((s: number, i: any) => s + Number(i.paidAmount || 0), 0);
+    const manualRevenue = incomeEntries.reduce((s: number, e: any) => s + Number(e.amount || 0), 0);
+    const totalRevenue = invoiceRevenue + manualRevenue;
     const totalExpenses = expenses.reduce((s: number, e: any) => s + Number(e.amount || 0), 0);
 
     const pendingInvoices = invoices.filter((i: any) => i.status === "DRAFT" || i.status === "SENT" || (i.status !== "PAID" && Number(i.paidAmount || 0) < Number(i.total || 0)));
     const now = new Date();
+    const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
     const overdueInvoices = invoices.filter((i: any) => i.status !== "PAID" && i.dueDate && new Date(i.dueDate) < now).length;
+    const dueSoonInvoices = invoices.filter((i: any) =>
+      i.status !== "PAID" && i.dueDate &&
+      new Date(i.dueDate) >= now && new Date(i.dueDate) <= sevenDaysFromNow
+    ).length;
 
     // Leads from clients (prospect or inquiry notes) - for dashboard info
     const leads = clients.filter((c: any) =>
@@ -117,16 +137,70 @@ router.get("/dashboard/stats", async (_req, res): Promise<void> => {
       totalClients: clients.length,
       totalTeam: team.length,
       totalRevenue,
+      invoiceRevenue,
+      manualRevenue,
       totalExpenses,
       netProfit: totalRevenue - totalExpenses,
       pendingInvoices: pendingInvoices.length,
       overdueInvoices,
+      dueSoonInvoices,
       pendingInvoiceAmount: pendingInvoices.reduce((s: number, i: any) => s + Number(i.total || 0), 0),
       leads,
     });
   } catch (err) {
     logger.error({ err }, "dashboard.stats.error");
     res.status(500).json({ error: "Failed to fetch dashboard stats" });
+  }
+});
+
+router.get("/invoices/notifications", async (_req, res): Promise<void> => {
+  try {
+    const invoices = await db.select().from(invoicesTable) as InvoiceRow[] & { id: any; number: any; clientId: any }[];
+    const now = new Date();
+    const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+    const unpaid = (invoices as any[]).filter(i => i.status !== "PAID" && i.dueDate);
+
+    const overdue = unpaid
+      .filter(i => new Date(i.dueDate) < now)
+      .map(i => ({
+        id: i.id,
+        number: i.number,
+        clientId: i.clientId,
+        total: Number(i.total),
+        paidAmount: Number(i.paidAmount || 0),
+        dueDate: i.dueDate,
+        daysOverdue: Math.floor((now.getTime() - new Date(i.dueDate).getTime()) / (1000 * 60 * 60 * 24)),
+        type: "overdue" as const,
+      }))
+      .sort((a, b) => b.daysOverdue - a.daysOverdue);
+
+    const dueSoon = unpaid
+      .filter(i => {
+        const d = new Date(i.dueDate);
+        return d >= now && d <= sevenDaysFromNow;
+      })
+      .map(i => ({
+        id: i.id,
+        number: i.number,
+        clientId: i.clientId,
+        total: Number(i.total),
+        paidAmount: Number(i.paidAmount || 0),
+        dueDate: i.dueDate,
+        daysUntilDue: Math.ceil((new Date(i.dueDate).getTime() - now.getTime()) / (1000 * 60 * 60 * 24)),
+        type: "due_soon" as const,
+      }))
+      .sort((a, b) => a.daysUntilDue - b.daysUntilDue);
+
+    res.json({
+      overdue,
+      dueSoon,
+      totalOverdueAmount: overdue.reduce((s, i) => s + (i.total - i.paidAmount), 0),
+      totalDueSoonAmount: dueSoon.reduce((s, i) => s + (i.total - i.paidAmount), 0),
+    });
+  } catch (err) {
+    logger.error({ err }, "invoices.notifications.error");
+    res.status(500).json({ error: "Failed to fetch invoice notifications" });
   }
 });
 
@@ -161,13 +235,18 @@ router.get("/finance/summary", async (req, res): Promise<void> => {
   const startDate = new Date(year, 0, 1);
   const endDate = new Date(year + 1, 0, 1);
 
-  const [invoices, expenses] = await Promise.all([
+  const [invoices, expenses, incomeRows] = await Promise.all([
     db.select().from(invoicesTable),
     db.select().from(expensesTable),
-  ]) as [InvoiceRow[], ExpenseRow[]];
+    db.execute(sql`SELECT amount, category, date FROM income_entries`).then(
+      (r: any) => r.rows || r,
+      () => [],
+    ),
+  ]) as [InvoiceRow[], ExpenseRow[], { amount: any; category: string; date: any }[]];
 
-  // Use actual paidAmount for totalIncome (consistent with dashboard net profit)
-  const totalIncome = invoices.reduce((s: number, i: InvoiceRow) => s + Number(i.paidAmount || 0), 0);
+  const invoiceIncome = invoices.reduce((s: number, i: InvoiceRow) => s + Number(i.paidAmount || 0), 0);
+  const manualIncome = (incomeRows || []).reduce((s: number, e: any) => s + Number(e.amount || 0), 0);
+  const totalIncome = invoiceIncome + manualIncome;
   const totalExpenses = expenses.reduce((s: number, e: ExpenseRow) => s + Number(e.amount), 0);
   const invoicedAmount = invoices.reduce((s: number, i: InvoiceRow) => s + Number(i.total), 0);
   const paidAmount = invoices.reduce((s: number, i: InvoiceRow) => s + Number(i.paidAmount), 0);
@@ -179,6 +258,8 @@ router.get("/finance/summary", async (req, res): Promise<void> => {
 
   res.json({
     totalIncome,
+    invoiceIncome,
+    manualIncome,
     totalExpenses,
     netProfit: totalIncome - totalExpenses,
     profitMargin: totalIncome > 0 ? ((totalIncome - totalExpenses) / totalIncome) * 100 : 0,
@@ -227,10 +308,14 @@ router.get("/activity", async (req, res): Promise<void> => {
 });
 
 async function getCashFlowData(months: number) {
-  const [invoices, expenses] = await Promise.all([
+  const [invoices, expenses, incomeRows] = await Promise.all([
     db.select().from(invoicesTable),
     db.select().from(expensesTable),
-  ]) as [InvoiceRow[], ExpenseRow[]];
+    db.execute(sql`SELECT amount, date FROM income_entries`).then(
+      (r: any) => r.rows || r,
+      () => [],
+    ),
+  ]) as [InvoiceRow[], ExpenseRow[], { amount: any; date: any }[]];
 
   const result: { month: string; income: number; expenses: number; net: number; profit: number }[] = [];
   const now = new Date();
@@ -240,13 +325,19 @@ async function getCashFlowData(months: number) {
     const nextDate = new Date(now.getFullYear(), now.getMonth() - i + 1, 1);
     const monthLabel = date.toLocaleString("default", { month: "short", year: "numeric" });
 
-    const income = invoices
+    const invoiceIncome = invoices
       .filter((inv: InvoiceRow) => {
         if (inv.status !== "PAID") return false;
-        const ref = inv.paidAt ? new Date(inv.paidAt) : inv.updatedAt ? new Date(inv.updatedAt) : null;
+        const ref = inv.paidAt ? new Date(inv.paidAt) : inv.updatedAt ? new Date(inv.updatedAt) : inv.createdAt ? new Date(inv.createdAt) : null;
         return !!ref && ref >= date && ref < nextDate;
       })
       .reduce((s: number, inv: InvoiceRow) => s + Number(inv.paidAmount || inv.total), 0);
+
+    const manualIncome = (incomeRows || [])
+      .filter((e: any) => e.date && new Date(e.date) >= date && new Date(e.date) < nextDate)
+      .reduce((s: number, e: any) => s + Number(e.amount || 0), 0);
+
+    const income = invoiceIncome + manualIncome;
 
     const expense = expenses
       .filter((e: ExpenseRow) => e.date && new Date(e.date) >= date && new Date(e.date) < nextDate)

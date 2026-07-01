@@ -229,6 +229,21 @@ router.put(
       items,
     } = req.body ?? {};
 
+    // Fetch current invoice first so we can detect a DRAFT/SENT → PAID transition
+    // and backfill paidAt — without this, invoices marked PAID directly via this
+    // generic update route (rather than the dedicated payments endpoint) never get
+    // a paidAt timestamp, which silently breaks any report that filters by payment date.
+    const [existingInvoice] = await db
+      .select()
+      .from(invoicesTable)
+      .where(eq(invoicesTable.id, id))
+      .limit(1);
+
+    const transitioningToPaid =
+      status !== undefined &&
+      toStr(status) === "PAID" &&
+      existingInvoice?.status !== "PAID";
+
     const [invoice] = await db
       .update(invoicesTable)
       .set({
@@ -255,6 +270,7 @@ router.put(
         ...(shipTo !== undefined && {
           shipTo: toStr(shipTo),
         }),
+        ...(transitioningToPaid && !existingInvoice?.paidAt && { paidAt: new Date() }),
         updatedAt: new Date(),
       })
       .where(eq(invoicesTable.id, id))
@@ -395,7 +411,57 @@ router.post(
         .where(eq(invoicesTable.id, invoiceId));
     }
 
+    await logActivity(
+      "payment.recorded",
+      `Pembayaran ${toStr(method)} sebesar ${toNumStr(amount)} diterima untuk invoice ${invoice?.number || invoiceId}`,
+    );
+
     res.status(201).json(mapPayment(payment));
+  },
+);
+
+// ── POST /invoices/backfill-paid-at ──────────────────────────────────────────
+// One-time migration: for every invoice that is PAID but has paidAt = null,
+// backfill paidAt using updatedAt (best proxy for when the status was last set),
+// falling back to createdAt if updatedAt is also missing.
+// Safe to call multiple times — only touches invoices where paidAt IS NULL.
+// Intended for the admin to call once via curl / the API explorer to fix legacy data.
+router.post(
+  "/invoices/backfill-paid-at",
+  async (_req: Request, res: Response): Promise<void> => {
+    try {
+      const allInvoices = await db
+        .select()
+        .from(invoicesTable);
+
+      const toFix = allInvoices.filter(
+        (i: any) => i.status === "PAID" && !i.paidAt
+      );
+
+      if (toFix.length === 0) {
+        res.json({ fixed: 0, message: "Semua invoice PAID sudah punya paidAt — tidak ada yang perlu diperbaiki." });
+        return;
+      }
+
+      let fixed = 0;
+      for (const inv of toFix) {
+        const fallbackDate = (inv as any).updatedAt ?? (inv as any).createdAt ?? new Date();
+        await db
+          .update(invoicesTable)
+          .set({ paidAt: new Date(fallbackDate) })
+          .where(eq(invoicesTable.id, (inv as any).id));
+        fixed++;
+      }
+
+      res.json({
+        fixed,
+        message: `${fixed} invoice diperbaiki — paidAt diisi dari updatedAt/createdAt sebagai fallback.`,
+        invoiceNumbers: toFix.map((i: any) => i.number),
+      });
+    } catch (err) {
+      console.error("[invoices/backfill-paid-at]", err);
+      res.status(500).json({ error: "Backfill gagal" });
+    }
   },
 );
 
@@ -414,6 +480,7 @@ function mapInvoice(i: any) {
     paidAmount: Number(i.paidAmount),
     dueDate: i.dueDate,
     paidAt: i.paidAt,
+    updatedAt: i.updatedAt,
     notes: i.notes,
     terms: i.terms,
     createdAt: i.createdAt,

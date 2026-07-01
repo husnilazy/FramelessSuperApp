@@ -142,7 +142,7 @@ router.put("/expenses/:id", async (req, res): Promise<void> => {
         }),
 
         ...(date !== undefined && {
-          date: date ? new Date(date) : null,
+          date: date ? new Date(date) : undefined,
         }),
       })
       .where(eq(expensesTable.id, id))

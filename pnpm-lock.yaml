@@ -261,6 +261,9 @@ importers:
       jspdf:
         specifier: ^4.2.1
         version: 4.2.1
+      multer:
+        specifier: ^2.1.1
+        version: 2.1.1
     devDependencies:
       '@hookform/resolvers':
         specifier: ^3.10.0
@@ -364,6 +367,9 @@ importers:
       '@tanstack/react-query':
         specifier: 'catalog:'
         version: 5.100.10(react@19.1.0)
+      '@types/multer':
+        specifier: ^2.1.0
+        version: 2.1.0
       '@types/node':
         specifier: 'catalog:'
         version: 25.7.0

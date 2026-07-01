@@ -74,7 +74,7 @@ router.get("/projects", async (req, res): Promise<void> => {
             .from(projectsTable)
             .orderBy(projectsTable.createdAt);
 
-    res.json(projects.map((p: ProjectRecord) => mapProject(p)));
+    res.json(projects.map((p) => mapProject(p as ProjectRecord)));
   } catch (err) {
     logger.error({ err }, "projects.get.error");
     res.status(500).json({ error: "Failed to fetch projects" });
@@ -118,7 +118,7 @@ router.post("/projects", async (req, res): Promise<void> => {
         notes,
         driveFolderUrl: driveUrl,
         assignedMemberId,
-      })
+      } as any)
       .returning();
 
     await logActivity(

@@ -291,4 +291,133 @@ router.delete(
   }
 );
 
+// ── POST /digital-assets/:id/purchase ────────────────────────────────────────
+// Initiate payment for a paid asset via Midtrans Snap
+router.post(
+  "/digital-assets/:id/purchase",
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const id = String(req.params.id);
+      const { name, email, phone } = req.body as Record<string, string | undefined>;
+
+      if (!name?.trim() || !email?.trim()) {
+        res.status(400).json({ error: "Nama dan email wajib diisi" });
+        return;
+      }
+
+      const [asset] = await db
+        .select()
+        .from(digitalAssetsTable)
+        .where(eq(digitalAssetsTable.id, id))
+        .limit(1);
+
+      if (!asset || !asset.isActive) {
+        res.status(404).json({ error: "Aset tidak ditemukan" });
+        return;
+      }
+
+      const price = Number(asset.price);
+
+      // Free asset — return download URL directly
+      if (price === 0) {
+        // Increment download count
+        await db
+          .update(digitalAssetsTable)
+          .set({ downloadCount: (asset.downloadCount ?? 0) + 1 })
+          .where(eq(digitalAssetsTable.id, id));
+        res.json({ free: true, fileUrl: asset.fileUrl });
+        return;
+      }
+
+      // Paid asset — check Midtrans config
+      const { db: _db, paymentSettingsTable } = await import("@workspace/db");
+      const { eq: _eq }  = await import("drizzle-orm");
+      const [row] = await _db
+        .select()
+        .from(paymentSettingsTable)
+        .where(_eq(paymentSettingsTable.provider, "midtrans"))
+        .limit(1);
+
+      if (!row?.isEnabled) {
+        res.json({ noGateway: true });
+        return;
+      }
+
+      const cfg = JSON.parse(row.config || "{}");
+      if (!cfg.serverKey?.trim()) {
+        res.json({ noGateway: true });
+        return;
+      }
+
+      const isProduction = cfg.isProduction === true || cfg.isProduction === "true";
+      const serverKey    = cfg.serverKey.trim() as string;
+      const clientKey    = (cfg.clientKey || "").trim() as string;
+      const orderId      = `DA-${id.slice(0, 8)}-${Date.now()}`;
+
+      const snapBody = {
+        transaction_details: { order_id: orderId, gross_amount: Math.round(price) },
+        customer_details:    { first_name: name.trim(), email: email.trim(), phone: phone?.trim() || undefined },
+        item_details: [{ id: asset.id, price: Math.round(price), quantity: 1, name: asset.title }],
+        callbacks: { finish: `${process.env.APP_URL || ""}/store` },
+      };
+
+      // Use native https to avoid importing the payments router
+      const https   = (await import("https")).default;
+      const auth    = Buffer.from(serverKey + ":").toString("base64");
+      const payload = JSON.stringify(snapBody);
+      const host    = isProduction ? "app.midtrans.com" : "app.sandbox.midtrans.com";
+
+      const snapResult = await new Promise<any>((resolve, reject) => {
+        const req2 = https.request(
+          { hostname: host, port: 443, path: "/snap/v1/transactions", method: "POST",
+            headers: { "Content-Type": "application/json", "Authorization": `Basic ${auth}`, "Content-Length": Buffer.byteLength(payload) } },
+          (r) => { let d = ""; r.on("data", c => d += c); r.on("end", () => { try { resolve(JSON.parse(d)); } catch { resolve(d); } }); }
+        );
+        req2.on("error", reject);
+        req2.write(payload);
+        req2.end();
+      });
+
+      if (!snapResult?.token) {
+        console.error("[DA purchase] No snap token:", snapResult);
+        res.json({ noGateway: true });
+        return;
+      }
+
+      res.json({ snapToken: snapResult.token, clientKey, isProduction, orderId });
+    } catch (err) {
+      console.error("[POST /digital-assets/:id/purchase]", err);
+      res.status(500).json({ error: "Gagal membuat transaksi" });
+    }
+  }
+);
+
+// ── POST /digital-assets/:id/download ────────────────────────────────────────
+// Called after successful payment to get download URL and increment counter
+router.post(
+  "/digital-assets/:id/download",
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const id = String(req.params.id);
+      const [asset] = await db
+        .select()
+        .from(digitalAssetsTable)
+        .where(eq(digitalAssetsTable.id, id))
+        .limit(1);
+
+      if (!asset) { res.status(404).json({ error: "Not found" }); return; }
+
+      await db
+        .update(digitalAssetsTable)
+        .set({ downloadCount: (asset.downloadCount ?? 0) + 1 })
+        .where(eq(digitalAssetsTable.id, id));
+
+      res.json({ fileUrl: asset.fileUrl, title: asset.title });
+    } catch (err) {
+      console.error("[POST /digital-assets/:id/download]", err);
+      res.status(500).json({ error: "Failed" });
+    }
+  }
+);
+
 export default router;
