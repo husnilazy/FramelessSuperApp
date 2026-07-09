@@ -33,6 +33,11 @@ import filmmakingCollaborationRouter from "./filmmaking-collaboration.js";
 import filmmakingExportRouter from "./filmmaking-export.js";
 import incomeRouter from "./income.js";
 import equipmentRouter from "./equipment.js";
+import accountsRouter from "./accounts.js";
+import journalRouter from "./journal.js";
+import accountMappingRouter from "./account-mapping.js";
+import autoPosterRouter from "./auto-poster.js";
+import quotationsRouter from "./quotations.js";
 
 const router: IRouter = Router();
 
@@ -72,6 +77,11 @@ router.use(filmmakingCollaborationRouter);
 router.use(filmmakingExportRouter);
 router.use(incomeRouter);
 router.use(equipmentRouter);
+router.use(accountsRouter);
+router.use(journalRouter);
+router.use(accountMappingRouter);
+router.use(autoPosterRouter);
+router.use(quotationsRouter);
 
 // 404 fallback
 router.use((req, res) => {

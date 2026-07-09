@@ -923,6 +923,7 @@ function TestiCard({ name, role, text, stars = 5 }: { name: string; role: string
         borderRadius: 22, border: `1px solid ${BORDER}`, background: SURFACE,
         padding: "24px 22px", display: "flex", flexDirection: "column", gap: 14,
       }}
+      className="cp-testi-card"
     >
       <div style={{ display: "flex", gap: 3 }}>
         {Array.from({ length: stars }).map((_, i) => (
@@ -1116,8 +1117,10 @@ export default function CoursePage() {
     * { box-sizing: border-box; }
     @keyframes spin { to { transform: rotate(360deg); } }
     @keyframes fadeUp { from { opacity:0; transform:translateY(18px); } to { opacity:1; transform:translateY(0); } }
-    @keyframes scaleIn { from { opacity:0; transform:scale(.96); } to { opacity:1; transform:scale(1); } }
+    @keyframes scaleIn { from { opacity:0; transform:scale(.94) translateY(8px); } to { opacity:1; transform:scale(1) translateY(0); } }
     @keyframes ping { 0% { transform:scale(1); opacity:.8; } 100% { transform:scale(2.2); opacity:0; } }
+    @keyframes shimmer { 0% { background-position:-200% center; } 100% { background-position:200% center; } }
+    @keyframes cpGlow  { 0%,100% { box-shadow:0 0 24px ${ORANGE}44; } 50% { box-shadow:0 0 52px ${ORANGE}88; } }
 
     .cp-hero { display: grid; grid-template-columns: 1fr 380px; gap: 48px; max-width: 1240px; margin: 0 auto; padding: 52px 28px 40px; align-items: start; }
     .cp-sidebar { position: sticky; top: 24px; }
@@ -1140,8 +1143,26 @@ export default function CoursePage() {
     .pkg-compare { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px,1fr)); gap: 20px; align-items: start; }
     .pkg-card-v2 { border-radius: 28px; border: 1.5px solid ${BORDER}; background: rgba(255,255,255,.028); padding: 32px 26px 26px; cursor: pointer; font-family: ${font}; color: #fff; transition: all .28s cubic-bezier(.4,0,.2,1); position: relative; overflow: hidden; text-align: left; width: 100%; }
     .pkg-card-v2::before { content: ""; position: absolute; inset: 0; background: linear-gradient(135deg, rgba(255,255,255,.04) 0%, transparent 60%); pointer-events: none; }
-    .pkg-card-v2:hover { border-color: ${ORANGE_BORDER}; transform: translateY(-6px); box-shadow: 0 28px 56px rgba(0,0,0,.5), 0 0 0 1px rgba(240,56,32,.15); }
+    .pkg-card-v2:hover { border-color: ${ORANGE_BORDER}; transform: translateY(-6px); box-shadow: 0 28px 64px rgba(0,0,0,.5), 0 0 0 1px rgba(240,56,32,.15); }
     .pkg-card-v2.selected { border-color: ${ORANGE}; background: rgba(240,56,32,.09); box-shadow: 0 0 0 1px ${ORANGE}55, 0 28px 56px rgba(240,56,32,.2); transform: translateY(-8px); }
+
+    /* Section eyebrow pill */
+    .cp-eyebrow { display:inline-flex; align-items:center; gap:7px; padding:5px 14px; border-radius:100px; margin-bottom:14px; background:${ORANGE}14; border:1px solid ${ORANGE}33; font-size:10px; font-weight:700; letter-spacing:.22em; color:${ORANGE}; text-transform:uppercase; }
+    /* Headline shimmer */
+    .cp-shimmer { background:linear-gradient(90deg,${ORANGE} 0%,hsl(30,100%,65%) 40%,${ORANGE} 80%); background-size:200% auto; -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; animation:shimmer 5s linear infinite; }
+    /* Section glow divider */
+    .cp-section-line { position:absolute; top:0; left:0; right:0; height:1px; background:linear-gradient(to right,transparent,${ORANGE}38,transparent); }
+    /* Button upgrade */
+    .cp-btn-primary { transition: opacity .18s, transform .22s cubic-bezier(.34,1.56,.64,1), box-shadow .22s !important; }
+    .cp-btn-primary:hover { opacity:.92 !important; transform:translateY(-2px) scale(1.02) !important; box-shadow:0 14px 40px ${ORANGE}55 !important; }
+    .cp-btn-primary:active { transform:scale(.96) !important; transition-duration:.07s !important; }
+    /* Why + testi cards hover */
+    .cp-why-card { transition:transform .28s cubic-bezier(.16,1,.3,1),border-color .22s,box-shadow .22s !important; }
+    .cp-why-card:hover { transform:translateY(-4px) !important; border-color:${ORANGE_BORDER}!important; box-shadow:0 12px 36px rgba(0,0,0,.4),0 0 18px ${ORANGE}14 !important; }
+    .cp-testi-card { transition:transform .28s cubic-bezier(.16,1,.3,1),border-color .22s !important; }
+    .cp-testi-card:hover { transform:translateY(-3px) !important; border-color:rgba(255,255,255,.18)!important; }
+    .material-row { transition: background .22s, border-color .22s, transform .25s !important; }
+    .material-row:hover { background:rgba(255,255,255,.045)!important; border-color:rgba(255,255,255,.14)!important; transform:translateX(3px) !important; }
     .pkg-card-v2.selected::before { background: linear-gradient(135deg, rgba(240,56,32,.12) 0%, transparent 60%); }
     .pkg-card-v2.has-discount { border-color: rgba(239,68,68,.35); }
     .pkg-card-v2.has-discount.selected { border-color: #ef4444; box-shadow: 0 0 0 1px rgba(239,68,68,.5), 0 28px 56px rgba(239,68,68,.18); }
@@ -2539,11 +2560,11 @@ export default function CoursePage() {
 
       {/* ── What you'll get (why section) ── */}
       <div className="cp-shell" style={{ paddingBottom: 40 }}>
-        <p style={{ margin: "0 0 8px", fontSize: 10, fontWeight: 700, letterSpacing: ".2em", textTransform: "uppercase", color: ORANGE }}>
-          Kenapa Course Ini
+        <p className="cp-eyebrow">
+          <Zap size={10} /> Kenapa Course Ini
         </p>
-        <h2 style={{ margin: "0 0 20px", fontSize: "clamp(22px,3vw,34px)", fontWeight: 900, letterSpacing: "-0.04em" }}>
-          Dirancang buat yang serius belajar
+        <h2 style={{ margin: "0 0 28px", fontSize: "clamp(22px,3vw,36px)", fontWeight: 900, letterSpacing: "-0.045em" }}>
+          Dirancang buat yang <span className="cp-shimmer">serius belajar</span>
         </h2>
         <div className="cp-why-grid">
           {[
@@ -2556,7 +2577,7 @@ export default function CoursePage() {
           ].map((item) => (
             <div
               key={item.title}
-              className="cp-surface"
+              className="cp-surface cp-why-card"
               style={{ padding: "24px 22px" }}
             >
               <div
@@ -2580,10 +2601,10 @@ export default function CoursePage() {
 
       {/* ── Testimonials ── */}
       <div className="cp-shell" style={{ paddingBottom: 40 }}>
-        <p style={{ margin: "0 0 8px", fontSize: 10, fontWeight: 700, letterSpacing: ".2em", textTransform: "uppercase", color: ORANGE }}>
-          Testimoni Alumni
+        <p className="cp-eyebrow">
+          <Star size={10} /> Testimoni Alumni
         </p>
-        <h2 style={{ margin: "0 0 20px", fontSize: "clamp(22px,3vw,34px)", fontWeight: 900, letterSpacing: "-0.04em" }}>
+        <h2 style={{ margin: "0 0 28px", fontSize: "clamp(22px,3vw,36px)", fontWeight: 900, letterSpacing: "-0.045em" }}>
           Kata mereka yang sudah belajar
         </h2>
         <div className="cp-testi-grid">
@@ -2607,10 +2628,10 @@ export default function CoursePage() {
 
       {/* ── FAQ ── */}
       <div className="cp-shell" style={{ paddingBottom: 48 }}>
-        <p style={{ margin: "0 0 8px", fontSize: 10, fontWeight: 700, letterSpacing: ".2em", textTransform: "uppercase", color: ORANGE }}>
-          FAQ
+        <p className="cp-eyebrow">
+          <MessageCircle size={10} /> FAQ
         </p>
-        <h2 style={{ margin: "0 0 20px", fontSize: "clamp(22px,3vw,34px)", fontWeight: 900, letterSpacing: "-0.04em" }}>
+        <h2 style={{ margin: "0 0 28px", fontSize: "clamp(22px,3vw,36px)", fontWeight: 900, letterSpacing: "-0.045em" }}>
           Pertanyaan yang sering ditanya
         </h2>
         <div style={{ display: "flex", flexDirection: "column", gap: 10, maxWidth: 820 }}>

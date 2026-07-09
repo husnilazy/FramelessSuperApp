@@ -437,50 +437,87 @@ export default function DigitalAssetsPage() {
       <div style={{ maxWidth:1200, margin:"0 auto", padding:"100px 28px 80px", position:"relative", zIndex:1 }}>
 
         {/* Hero */}
-        <div style={{ textAlign:"center", marginBottom:64 }}>
-          <div style={{ display:"inline-flex", alignItems:"center", gap:7, padding:"5px 14px", borderRadius:100, border:"1px solid rgba(255,255,255,.09)", background:"rgba(255,255,255,.04)", fontSize:11, color:"rgba(255,255,255,.45)", fontWeight:600, letterSpacing:".12em", textTransform:"uppercase", marginBottom:20 }}>
-            <Package size={12} color={OR} /> Frameless Store
+        <div style={{ textAlign:"center", marginBottom:72, position:"relative" }}>
+          {/* Mesh blobs */}
+          <div style={{ position:"absolute", inset:0, pointerEvents:"none", overflow:"hidden" }}>
+            <div style={{ position:"absolute", width:"50%", height:"200%", top:"-50%", left:"-10%", background:`radial-gradient(ellipse at center,${OR}14 0%,transparent 68%)`, filter:"blur(80px)" }} />
+            <div style={{ position:"absolute", width:"40%", height:"200%", top:"-50%", right:"-5%", background:"radial-gradient(ellipse at center,rgba(124,58,237,.1) 0%,transparent 70%)", filter:"blur(90px)" }} />
           </div>
-          <h1 style={{ fontSize:"clamp(38px,6vw,68px)", fontWeight:900, letterSpacing:"-.045em", color:"#fff", margin:"0 0 14px", lineHeight:1 }}>
-            Digital <span style={{ color:OR }}>Assets</span>
+
+          {/* Eyebrow */}
+          <div style={{
+            display:"inline-flex", alignItems:"center", gap:8, position:"relative",
+            padding:"5px 16px", borderRadius:100, marginBottom:20,
+            background:`${OR}14`, border:`1px solid ${OR}33`,
+            fontSize:10, fontWeight:700, letterSpacing:".22em", color:OR, textTransform:"uppercase",
+          }}>
+            <Package size={10} color={OR} /> Frameless Store
+          </div>
+
+          {/* Headline */}
+          <h1 style={{ position:"relative", fontSize:"clamp(40px,6.5vw,76px)", fontWeight:900, letterSpacing:"-.048em", margin:"0 0 16px", lineHeight:.95 }}>
+            Digital{" "}
+            <span style={{
+              background:`linear-gradient(90deg,${OR} 0%,hsl(30,100%,65%) 40%,${OR} 80%)`,
+              backgroundSize:"200% auto",
+              WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent",
+              backgroundClip:"text",
+              animation:"daShimmer 5s linear infinite",
+            }}>Assets</span>
           </h1>
-          <p style={{ fontSize:15, color:"rgba(255,255,255,.42)", maxWidth:420, margin:"0 auto", lineHeight:1.7 }}>
+          <p style={{ position:"relative", fontSize:15, color:"rgba(255,255,255,.42)", maxWidth:440, margin:"0 auto", lineHeight:1.75 }}>
             Presets, LUTs, templates, dan tools kreatif dari tim Frameless Creative.
           </p>
+          <style>{`@keyframes daShimmer{0%{background-position:-200% center;}100%{background-position:200% center;}}`}</style>
         </div>
 
         {/* Featured */}
         {featured.length > 0 && (
-          <section style={{ marginBottom:52 }}>
-            <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:18 }}>
-              <Star size={14} color={OR} />
-              <span style={{ fontSize:10, fontWeight:800, color:"rgba(255,255,255,.5)", letterSpacing:".18em", textTransform:"uppercase" }}>Featured</span>
+          <section style={{ marginBottom:56 }}>
+            <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:20 }}>
+              <div style={{ width:28, height:28, borderRadius:9, background:`${OR}18`, border:`1px solid ${OR}2c`, display:"flex", alignItems:"center", justifyContent:"center" }}>
+                <Star size={13} color={OR} />
+              </div>
+              <span style={{ fontSize:11, fontWeight:800, color:"rgba(255,255,255,.55)", letterSpacing:".18em", textTransform:"uppercase" }}>Featured</span>
             </div>
-            <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))", gap:16 }}>
+            <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(300px,1fr))", gap:18 }}>
               {featured.slice(0,2).map(a => (
                 <div key={a.id} onClick={() => setSelectedAsset(a)} style={{
-                  cursor:"pointer", borderRadius:18, overflow:"hidden",
-                  border:"1px solid rgba(255,255,255,.07)",
+                  cursor:"pointer", borderRadius:20, overflow:"hidden",
+                  border:"1px solid rgba(255,255,255,.08)",
                   background:"rgba(255,255,255,.03)",
-                  transition:"border-color .25s,transform .28s,box-shadow .28s",
+                  transition:"border-color .28s, transform .32s cubic-bezier(.16,1,.3,1), box-shadow .28s",
+                  willChange:"transform",
                 }}
-                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor=`${OR}44`; (e.currentTarget as HTMLElement).style.transform="translateY(-3px)"; (e.currentTarget as HTMLElement).style.boxShadow=`0 12px 36px rgba(0,0,0,.4),0 0 30px ${OR}16`; }}
-                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor="rgba(255,255,255,.07)"; (e.currentTarget as HTMLElement).style.transform="none"; (e.currentTarget as HTMLElement).style.boxShadow="none"; }}>
+                  onMouseEnter={e => {
+                    const el = e.currentTarget as HTMLElement;
+                    el.style.borderColor=`${OR}44`; el.style.transform="translateY(-5px) scale(1.01)";
+                    el.style.boxShadow=`0 16px 48px rgba(0,0,0,.45),0 0 32px ${OR}18`;
+                    const img = el.querySelector("img") as HTMLImageElement;
+                    if (img) img.style.transform = "scale(1.06)";
+                  }}
+                  onMouseLeave={e => {
+                    const el = e.currentTarget as HTMLElement;
+                    el.style.borderColor="rgba(255,255,255,.08)"; el.style.transform=""; el.style.boxShadow="";
+                    const img = el.querySelector("img") as HTMLImageElement;
+                    if (img) img.style.transform = "";
+                  }}>
                   {a.thumbnailUrl && (
                     <div style={{ height:200, overflow:"hidden", position:"relative" }}>
-                      <img src={a.thumbnailUrl} style={{ width:"100%", height:"100%", objectFit:"cover", display:"block", transition:"transform .5s ease" }} />
-                      <div style={{ position:"absolute", inset:0, background:"linear-gradient(to top,rgba(0,0,0,.8) 0%,transparent 50%)" }} />
+                      <img src={a.thumbnailUrl} style={{ width:"100%", height:"100%", objectFit:"cover", display:"block", transition:"transform .5s cubic-bezier(.16,1,.3,1)" }} />
+                      <div style={{ position:"absolute", inset:0, background:"linear-gradient(to top,rgba(0,0,0,.82) 0%,transparent 55%)" }} />
+                      <div style={{ position:"absolute", top:12, right:12, padding:"4px 10px", borderRadius:100, background:`${OR}22`, border:`1px solid ${OR}44`, fontSize:9, fontWeight:800, color:OR, letterSpacing:".12em", textTransform:"uppercase" }}>Featured</div>
                     </div>
                   )}
                   <div style={{ padding:"18px 20px" }}>
-                    <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:6 }}>
-                      <h3 style={{ fontWeight:800, color:"#fff", fontSize:16, letterSpacing:"-.02em" }}>{a.title}</h3>
-                      <span style={{ fontWeight:900, fontSize:16, color:OR }}>{a.price === 0 ? "Free" : formatCurrency(a.price)}</span>
+                    <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
+                      <h3 style={{ fontWeight:800, color:"#fff", fontSize:16, letterSpacing:"-.02em", margin:0 }}>{a.title}</h3>
+                      <span style={{ fontWeight:900, fontSize:17, color:OR, flexShrink:0, marginLeft:10 }}>{a.price === 0 ? "Free" : formatCurrency(a.price)}</span>
                     </div>
-                    <p style={{ fontSize:12.5, color:"rgba(255,255,255,.42)", lineHeight:1.65, marginBottom:12, overflow:"hidden", display:"-webkit-box", WebkitLineClamp:2, WebkitBoxOrient:"vertical" } as any}>{a.description}</p>
+                    <p style={{ fontSize:12.5, color:"rgba(255,255,255,.4)", lineHeight:1.65, marginBottom:14, overflow:"hidden", display:"-webkit-box", WebkitLineClamp:2, WebkitBoxOrient:"vertical" } as any}>{a.description}</p>
                     <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-                      <span style={{ fontSize:10, padding:"3px 8px", borderRadius:6, background:"rgba(255,255,255,.07)", color:"rgba(255,255,255,.4)", fontWeight:600, letterSpacing:".04em", textTransform:"uppercase" }}>{a.category}</span>
-                      <span style={{ fontSize:12, color:"rgba(255,255,255,.3)", marginLeft:"auto", display:"flex", alignItems:"center", gap:3 }}>
+                      <span style={{ fontSize:10, padding:"3px 9px", borderRadius:7, background:"rgba(255,255,255,.07)", color:"rgba(255,255,255,.42)", fontWeight:700, letterSpacing:".06em", textTransform:"uppercase" }}>{a.category}</span>
+                      <span style={{ fontSize:12, color:OR, marginLeft:"auto", display:"flex", alignItems:"center", gap:4, fontWeight:700 }}>
                         {a.price === 0 ? "Ambil gratis" : "Beli sekarang"} <ChevronRight size={12} />
                       </span>
                     </div>
@@ -492,14 +529,16 @@ export default function DigitalAssetsPage() {
         )}
 
         {/* Category filter */}
-        <div style={{ display:"flex", gap:7, flexWrap:"wrap", marginBottom:28 }}>
+        <div style={{ display:"flex", gap:8, flexWrap:"wrap", marginBottom:28 }}>
           {CATEGORIES.map(c => (
             <button key={c} onClick={() => setFilterCat(c)} style={{
-              padding:"7px 16px", borderRadius:100, fontSize:12, fontWeight:700,
-              cursor:"pointer", border:"none", fontFamily:FONT, letterSpacing:".02em",
-              transition:"all .2s",
+              padding:"7px 18px", borderRadius:100, fontSize:12, fontWeight:700,
+              cursor:"pointer", border:"none", fontFamily:FONT, letterSpacing:".03em",
+              transition:"all .22s cubic-bezier(.16,1,.3,1)",
               background: filterCat === c ? OR : "rgba(255,255,255,.06)",
               color: filterCat === c ? "#fff" : "rgba(255,255,255,.45)",
+              boxShadow: filterCat === c ? `0 4px 18px ${OR}44` : "none",
+              transform: filterCat === c ? "translateY(-1px)" : "none",
             }}>
               {CATEGORY_LABELS[c] || c}
             </button>
@@ -515,24 +554,37 @@ export default function DigitalAssetsPage() {
           <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))", gap:14 }}>
             {filtered.map(a => (
               <div key={a.id} onClick={() => setSelectedAsset(a)} style={{
-                cursor:"pointer", borderRadius:16, overflow:"hidden",
-                border:"1px solid rgba(255,255,255,.06)",
+                cursor:"pointer", borderRadius:18, overflow:"hidden",
+                border:"1px solid rgba(255,255,255,.07)",
                 background:"rgba(255,255,255,.03)",
-                transition:"border-color .25s,transform .25s,box-shadow .25s",
+                transition:"border-color .25s, transform .3s cubic-bezier(.16,1,.3,1), box-shadow .25s",
+                willChange:"transform",
               }}
-                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor=`${OR}38`; (e.currentTarget as HTMLElement).style.transform="translateY(-2px)"; (e.currentTarget as HTMLElement).style.boxShadow=`0 8px 24px rgba(0,0,0,.4)`; }}
-                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor="rgba(255,255,255,.06)"; (e.currentTarget as HTMLElement).style.transform="none"; (e.currentTarget as HTMLElement).style.boxShadow="none"; }}>
-                <div style={{ height:140, overflow:"hidden", background:"rgba(255,255,255,.04)", position:"relative" }}>
+                onMouseEnter={e => {
+                  const el = e.currentTarget as HTMLElement;
+                  el.style.borderColor=`${OR}40`; el.style.transform="translateY(-4px) scale(1.01)";
+                  el.style.boxShadow=`0 12px 32px rgba(0,0,0,.45), 0 0 20px ${OR}14`;
+                  const img = el.querySelector("img") as HTMLImageElement;
+                  if (img) img.style.transform="scale(1.07)";
+                }}
+                onMouseLeave={e => {
+                  const el = e.currentTarget as HTMLElement;
+                  el.style.borderColor="rgba(255,255,255,.07)"; el.style.transform=""; el.style.boxShadow="";
+                  const img = el.querySelector("img") as HTMLImageElement;
+                  if (img) img.style.transform="";
+                }}>
+                <div style={{ height:150, overflow:"hidden", background:"rgba(255,255,255,.04)", position:"relative" }}>
                   {a.thumbnailUrl
-                    ? <img src={a.thumbnailUrl} style={{ width:"100%", height:"100%", objectFit:"cover", display:"block" }} />
-                    : <div style={{ width:"100%", height:"100%", display:"flex", alignItems:"center", justifyContent:"center" }}><Package size={28} color="rgba(255,255,255,.12)" /></div>
+                    ? <img src={a.thumbnailUrl} style={{ width:"100%", height:"100%", objectFit:"cover", display:"block", transition:"transform .45s cubic-bezier(.16,1,.3,1)" }} />
+                    : <div style={{ width:"100%", height:"100%", display:"flex", alignItems:"center", justifyContent:"center" }}><Package size={30} color="rgba(255,255,255,.1)" /></div>
                   }
+                  <div style={{ position:"absolute", inset:0, background:"linear-gradient(to top,rgba(0,0,0,.6) 0%,transparent 50%)" }} />
                 </div>
                 <div style={{ padding:"14px 16px" }}>
-                  <h3 style={{ fontWeight:700, color:"#fff", fontSize:13, marginBottom:8, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", letterSpacing:"-.01em" }}>{a.title}</h3>
+                  <h3 style={{ fontWeight:700, color:"#fff", fontSize:13.5, marginBottom:10, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", letterSpacing:"-.01em" }}>{a.title}</h3>
                   <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between" }}>
-                    <span style={{ fontSize:9.5, padding:"2px 7px", borderRadius:5, background:"rgba(255,255,255,.06)", color:"rgba(255,255,255,.35)", fontWeight:600, textTransform:"uppercase", letterSpacing:".06em" }}>{a.category}</span>
-                    <span style={{ fontWeight:900, fontSize:13, color: a.price === 0 ? "#4ade80" : OR }}>
+                    <span style={{ fontSize:9, padding:"3px 8px", borderRadius:6, background:"rgba(255,255,255,.07)", color:"rgba(255,255,255,.38)", fontWeight:700, textTransform:"uppercase", letterSpacing:".08em" }}>{a.category}</span>
+                    <span style={{ fontWeight:900, fontSize:14, color: a.price === 0 ? "#4ade80" : OR }}>
                       {a.price === 0 ? "Free" : formatCurrency(a.price)}
                     </span>
                   </div>
@@ -540,9 +592,12 @@ export default function DigitalAssetsPage() {
               </div>
             ))}
             {filtered.length === 0 && !isLoading && (
-              <div style={{ gridColumn:"1/-1", textAlign:"center", padding:"64px 0", color:"rgba(255,255,255,.22)" }}>
-                <Package size={36} color="rgba(255,255,255,.12)" style={{ marginBottom:12 }} />
-                <p style={{ fontSize:14, margin:0 }}>Belum ada aset di kategori ini.</p>
+              <div style={{ gridColumn:"1/-1", textAlign:"center", padding:"72px 0" }}>
+                <div style={{ width:60, height:60, borderRadius:18, background:`${OR}14`, border:`1px solid ${OR}28`, display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 16px" }}>
+                  <Package size={26} color={OR} />
+                </div>
+                <p style={{ fontSize:15, fontWeight:700, color:"rgba(255,255,255,.6)", margin:"0 0 6px" }}>Belum ada aset</p>
+                <p style={{ fontSize:13, color:"rgba(255,255,255,.25)", margin:0 }}>di kategori ini.</p>
               </div>
             )}
           </div>

@@ -91,9 +91,14 @@ router.post("/expenses", async (req, res): Promise<void> => {
       })
       .returning();
 
-    res.status(201).json(
-      mapExpense(expense as ExpenseRecord)
+    const mapped = mapExpense(expense as ExpenseRecord);
+
+    // Auto-post ke jurnal akuntansi (fire-and-forget, non-blocking)
+    autoPostJournal("expense", mapped.id).catch(e =>
+      console.warn("[expenses POST] auto-post skipped:", e?.message || e)
     );
+
+    res.status(201).json(mapped);
   } catch (err) {
     console.error("[expenses POST]", err);
 
@@ -201,6 +206,19 @@ function mapExpense(e: ExpenseRecord) {
     date: e.date,
     createdAt: e.createdAt ?? null,
   };
+}
+
+async function autoPostJournal(type: "invoice" | "expense" | "income", id: string) {
+  try {
+    const port = process.env.PORT || 3001;
+    const res  = await fetch(`http://localhost:${port}/api/auto-post/${type}/${id}`, { method: "POST" });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({})) as any;
+      console.warn(`[autoPostJournal expenses] ${type}/${id}:`, body?.message || body?.error || res.status);
+    }
+  } catch (e) {
+    console.warn(`[autoPostJournal expenses] failed silently:`, e);
+  }
 }
 
 export default router;

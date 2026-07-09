@@ -1,13 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -23,13 +16,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { CheckCircle, X, MessageSquare, Eye } from "lucide-react";
+import { CheckCircle, MessageSquare, Eye, Inbox, Loader2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 interface Submission {
   id: string;
   documentId: string;
   documentTitle: string;
-  documentType: "concept" | "script" | "shotlist";
+  documentType: "concept" | "script" | "shotlist" | "screenplay";
   crewMemberName: string;
   crewMemberEmail: string;
   submittedAt: string;
@@ -37,7 +31,21 @@ interface Submission {
   adminNotes?: string;
 }
 
+const STATUS_STYLE: Record<string, string> = {
+  pending: "bg-yellow-500/15 text-yellow-300 border border-yellow-500/20",
+  approved: "bg-emerald-500/15 text-emerald-300 border border-emerald-500/20",
+  revision_requested: "bg-orange-500/15 text-orange-300 border border-orange-500/20",
+};
+
+const DOC_TYPE_ICON: Record<string, string> = {
+  concept: "💡",
+  screenplay: "📖",
+  script: "📝",
+  shotlist: "🎬",
+};
+
 export function FilmmakingSubmissionsAdmin() {
+  const { toast } = useToast();
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "pending" | "approved" | "revision_requested">(
@@ -47,6 +55,8 @@ export function FilmmakingSubmissionsAdmin() {
     null
   );
   const [revisionNotes, setRevisionNotes] = useState("");
+  const [approving, setApproving] = useState(false);
+  const [requestingRevision, setRequestingRevision] = useState(false);
 
   useEffect(() => {
     fetchSubmissions();
@@ -66,18 +76,21 @@ export function FilmmakingSubmissionsAdmin() {
       setSubmissions(data);
     } catch (err) {
       console.error("Failed to fetch submissions:", err);
+      toast({ variant: "destructive", title: "Gagal memuat daftar submission" });
     } finally {
       setLoading(false);
     }
   };
 
   const handleApprove = async (submissionId: string) => {
+    setApproving(true);
     try {
       const token = localStorage.getItem("token");
-      await fetch(`/api/filmmaking-submissions/${submissionId}/approve`, {
+      const res = await fetch(`/api/filmmaking-submissions/${submissionId}/approve`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
       });
+      if (!res.ok) throw new Error("Failed to approve");
 
       setSubmissions(
         submissions.map((s) =>
@@ -85,15 +98,20 @@ export function FilmmakingSubmissionsAdmin() {
         )
       );
       setSelectedSubmission(null);
+      toast({ title: "Submission disetujui ✅" });
     } catch (err) {
       console.error("Failed to approve submission:", err);
+      toast({ variant: "destructive", title: "Gagal menyetujui submission" });
+    } finally {
+      setApproving(false);
     }
   };
 
   const handleRequestRevision = async (submissionId: string) => {
+    setRequestingRevision(true);
     try {
       const token = localStorage.getItem("token");
-      await fetch(`/api/filmmaking-submissions/${submissionId}/request-revision`, {
+      const res = await fetch(`/api/filmmaking-submissions/${submissionId}/request-revision`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -101,6 +119,7 @@ export function FilmmakingSubmissionsAdmin() {
         },
         body: JSON.stringify({ adminNotes: revisionNotes }),
       });
+      if (!res.ok) throw new Error("Failed to request revision");
 
       setSubmissions(
         submissions.map((s) =>
@@ -111,102 +130,93 @@ export function FilmmakingSubmissionsAdmin() {
       );
       setRevisionNotes("");
       setSelectedSubmission(null);
+      toast({ title: "Revisi diminta ke crew" });
     } catch (err) {
       console.error("Failed to request revision:", err);
+      toast({ variant: "destructive", title: "Gagal meminta revisi" });
+    } finally {
+      setRequestingRevision(false);
     }
   };
 
-  const getStatusBadge = (status: string) => {
-    const colors = {
-      pending: "bg-yellow-100 text-yellow-800",
-      approved: "bg-green-100 text-green-800",
-      revision_requested: "bg-orange-100 text-orange-800",
-    };
-    return (
-      <span
-        className={`px-3 py-1 rounded-full text-xs font-medium capitalize ${
-          colors[status as keyof typeof colors] || colors.pending
-        }`}
-      >
-        {status.replace("_", " ")}
-      </span>
-    );
-  };
-
-  const getDocTypeIcon = (type: string) => {
-    switch (type) {
-      case "concept":
-        return "💡";
-      case "script":
-        return "📝";
-      case "shotlist":
-        return "🎬";
-      default:
-        return "📄";
-    }
-  };
+  const getStatusBadge = (status: string) => (
+    <span className={`px-3 py-1 rounded-full text-xs font-medium capitalize ${STATUS_STYLE[status] || STATUS_STYLE.pending}`}>
+      {status.replace("_", " ")}
+    </span>
+  );
 
   return (
-    <div className="flex flex-col gap-4 p-6">
+    <div className="flex flex-col gap-4 p-6 bg-zinc-950 text-zinc-100 min-h-full">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Filmmaking Submissions</h1>
+        <div>
+          <h1 className="text-2xl font-bold text-zinc-100">Filmmaking Submissions</h1>
+          <p className="text-sm text-zinc-500 mt-0.5">Review dokumen produksi yang dikirim crew untuk approval.</p>
+        </div>
       </div>
 
-      <div className="flex gap-2">
+      <div className="flex gap-1 border-b border-zinc-800 pb-3">
         {(["all", "pending", "approved", "revision_requested"] as const).map(
           (status) => (
-            <Button
+            <button
               key={status}
-              variant={filter === status ? "default" : "outline"}
               onClick={() => setFilter(status)}
-              className="capitalize"
+              className={`px-4 py-1.5 rounded-lg text-sm font-medium capitalize transition-all whitespace-nowrap ${
+                filter === status
+                  ? "bg-orange-500 text-white shadow-md shadow-orange-500/20"
+                  : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800"
+              }`}
             >
               {status.replace("_", " ")}
-            </Button>
+            </button>
           )
         )}
       </div>
 
       {loading ? (
-        <div className="p-4">Loading submissions...</div>
+        <div className="flex items-center justify-center gap-2 p-10 text-zinc-500">
+          <Loader2 className="w-4 h-4 animate-spin" /> Loading submissions...
+        </div>
       ) : submissions.length === 0 ? (
-        <div className="p-8 text-center text-gray-500">
-          <p>No submissions found</p>
+        <div className="flex flex-col items-center gap-3 p-12 text-center">
+          <div className="w-16 h-16 rounded-2xl bg-zinc-900 border border-zinc-800 flex items-center justify-center">
+            <Inbox className="w-7 h-7 text-zinc-600" />
+          </div>
+          <p className="text-zinc-400">No submissions found</p>
         </div>
       ) : (
-        <div className="border rounded-lg overflow-x-auto">
+        <div className="border border-zinc-800 rounded-2xl overflow-x-auto bg-zinc-900/40">
           <Table>
             <TableHeader>
-              <TableRow className="bg-gray-50">
-                <TableHead className="w-8"></TableHead>
-                <TableHead className="w-40">Document</TableHead>
-                <TableHead className="w-32">Type</TableHead>
-                <TableHead className="w-32">Crew Member</TableHead>
-                <TableHead className="w-32">Submitted</TableHead>
-                <TableHead className="w-24">Status</TableHead>
-                <TableHead className="w-32">Actions</TableHead>
+              <TableRow className="bg-zinc-900/80 hover:bg-zinc-900/80 border-zinc-800">
+                <TableHead className="w-8 text-zinc-500"></TableHead>
+                <TableHead className="w-40 text-zinc-400">Document</TableHead>
+                <TableHead className="w-32 text-zinc-400">Type</TableHead>
+                <TableHead className="w-32 text-zinc-400">Crew Member</TableHead>
+                <TableHead className="w-32 text-zinc-400">Submitted</TableHead>
+                <TableHead className="w-24 text-zinc-400">Status</TableHead>
+                <TableHead className="w-32 text-zinc-400">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {submissions.map((sub) => (
-                <TableRow key={sub.id} className="hover:bg-gray-50">
+                <TableRow key={sub.id} className="hover:bg-zinc-800/40 border-zinc-800">
                   <TableCell className="text-lg">
-                    {getDocTypeIcon(sub.documentType)}
+                    {DOC_TYPE_ICON[sub.documentType] || "📄"}
                   </TableCell>
-                  <TableCell className="font-medium">
+                  <TableCell className="font-medium text-zinc-200">
                     {sub.documentTitle}
                   </TableCell>
-                  <TableCell className="capitalize text-sm">
+                  <TableCell className="capitalize text-sm text-zinc-400">
                     {sub.documentType}
                   </TableCell>
                   <TableCell>
                     <div className="text-sm">
-                      <p className="font-medium">{sub.crewMemberName}</p>
-                      <p className="text-gray-500 text-xs">{sub.crewMemberEmail}</p>
+                      <p className="font-medium text-zinc-200">{sub.crewMemberName}</p>
+                      <p className="text-zinc-500 text-xs">{sub.crewMemberEmail}</p>
                     </div>
                   </TableCell>
-                  <TableCell className="text-sm text-gray-600">
-                    {new Date(sub.submittedAt).toLocaleDateString()}
+                  <TableCell className="text-sm text-zinc-500">
+                    {new Date(sub.submittedAt).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}
                   </TableCell>
                   <TableCell>{getStatusBadge(sub.status)}</TableCell>
                   <TableCell>
@@ -216,73 +226,75 @@ export function FilmmakingSubmissionsAdmin() {
                           size="sm"
                           variant="ghost"
                           onClick={() => setSelectedSubmission(sub)}
-                          className="gap-1"
+                          className="gap-1 text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100"
                         >
                           <Eye className="w-4 h-4" />
                           View
                         </Button>
                       </DialogTrigger>
-                      <DialogContent className="max-w-2xl">
+                      <DialogContent className="max-w-2xl bg-zinc-900 border-zinc-700 text-zinc-100">
                         <DialogHeader>
-                          <DialogTitle>{sub.documentTitle}</DialogTitle>
+                          <DialogTitle className="text-zinc-100">{sub.documentTitle}</DialogTitle>
                         </DialogHeader>
                         <div className="space-y-4 py-4 max-h-96 overflow-auto">
                           <div className="grid grid-cols-2 gap-4 text-sm">
                             <div>
-                              <p className="text-gray-600">Submitted by</p>
-                              <p className="font-medium">{sub.crewMemberName}</p>
+                              <p className="text-zinc-500">Submitted by</p>
+                              <p className="font-medium text-zinc-200">{sub.crewMemberName}</p>
                             </div>
                             <div>
-                              <p className="text-gray-600">Date</p>
-                              <p className="font-medium">
-                                {new Date(sub.submittedAt).toLocaleDateString()}
+                              <p className="text-zinc-500">Date</p>
+                              <p className="font-medium text-zinc-200">
+                                {new Date(sub.submittedAt).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}
                               </p>
                             </div>
                             <div>
-                              <p className="text-gray-600">Type</p>
-                              <p className="font-medium capitalize">
+                              <p className="text-zinc-500">Type</p>
+                              <p className="font-medium text-zinc-200 capitalize">
                                 {sub.documentType}
                               </p>
                             </div>
                             <div>
-                              <p className="text-gray-600">Status</p>
-                              <p className="font-medium">{sub.status}</p>
+                              <p className="text-zinc-500">Status</p>
+                              <p className="font-medium text-zinc-200">{getStatusBadge(sub.status)}</p>
                             </div>
                           </div>
 
                           {sub.adminNotes && (
-                            <div className="border-t pt-4">
-                              <p className="text-sm text-gray-600 mb-2">
+                            <div className="border-t border-zinc-800 pt-4">
+                              <p className="text-sm text-zinc-500 mb-2">
                                 Admin Notes
                               </p>
-                              <p className="text-sm bg-gray-50 p-3 rounded">
+                              <p className="text-sm bg-zinc-800 text-zinc-200 p-3 rounded-xl">
                                 {sub.adminNotes}
                               </p>
                             </div>
                           )}
 
                           {sub.status === "pending" && (
-                            <div className="border-t pt-4 space-y-3">
+                            <div className="border-t border-zinc-800 pt-4 space-y-3">
                               <Dialog>
                                 <DialogTrigger asChild>
-                                  <Button className="w-full gap-2 bg-green-600 hover:bg-green-700">
+                                  <Button className="w-full gap-2 bg-emerald-600 hover:bg-emerald-500 text-white">
                                     <CheckCircle className="w-4 h-4" />
                                     Approve
                                   </Button>
                                 </DialogTrigger>
-                                <DialogContent>
+                                <DialogContent className="bg-zinc-900 border-zinc-700 text-zinc-100">
                                   <DialogHeader>
-                                    <DialogTitle>Approve Submission?</DialogTitle>
+                                    <DialogTitle className="text-zinc-100">Approve Submission?</DialogTitle>
                                   </DialogHeader>
-                                  <p className="text-sm text-gray-600">
+                                  <p className="text-sm text-zinc-400">
                                     Are you sure you want to approve this submission?
                                   </p>
                                   <div className="flex gap-2 justify-end pt-4">
-                                    <Button variant="outline">Cancel</Button>
+                                    <Button variant="outline" className="border-zinc-700 text-zinc-300 hover:bg-zinc-800">Cancel</Button>
                                     <Button
-                                      className="bg-green-600 hover:bg-green-700"
+                                      className="bg-emerald-600 hover:bg-emerald-500 text-white gap-2"
                                       onClick={() => handleApprove(sub.id)}
+                                      disabled={approving}
                                     >
+                                      {approving && <Loader2 className="w-4 h-4 animate-spin" />}
                                       Approve
                                     </Button>
                                   </div>
@@ -293,15 +305,15 @@ export function FilmmakingSubmissionsAdmin() {
                                 <DialogTrigger asChild>
                                   <Button
                                     variant="outline"
-                                    className="w-full gap-2 text-orange-600 border-orange-200 hover:bg-orange-50"
+                                    className="w-full gap-2 text-orange-400 border-orange-500/30 hover:bg-orange-500/10"
                                   >
                                     <MessageSquare className="w-4 h-4" />
                                     Request Revision
                                   </Button>
                                 </DialogTrigger>
-                                <DialogContent>
+                                <DialogContent className="bg-zinc-900 border-zinc-700 text-zinc-100">
                                   <DialogHeader>
-                                    <DialogTitle>Request Revision</DialogTitle>
+                                    <DialogTitle className="text-zinc-100">Request Revision</DialogTitle>
                                   </DialogHeader>
                                   <Textarea
                                     placeholder="Add notes for the crew member..."
@@ -309,16 +321,16 @@ export function FilmmakingSubmissionsAdmin() {
                                     onChange={(e) =>
                                       setRevisionNotes(e.target.value)
                                     }
-                                    className="min-h-24"
+                                    className="min-h-24 bg-zinc-800 border-zinc-700 text-zinc-100 placeholder:text-zinc-500"
                                   />
                                   <div className="flex gap-2 justify-end pt-4">
-                                    <Button variant="outline">Cancel</Button>
+                                    <Button variant="outline" className="border-zinc-700 text-zinc-300 hover:bg-zinc-800">Cancel</Button>
                                     <Button
-                                      className="bg-orange-600 hover:bg-orange-700"
-                                      onClick={() =>
-                                        handleRequestRevision(sub.id)
-                                      }
+                                      className="bg-orange-600 hover:bg-orange-500 text-white gap-2"
+                                      onClick={() => handleRequestRevision(sub.id)}
+                                      disabled={requestingRevision}
                                     >
+                                      {requestingRevision && <Loader2 className="w-4 h-4 animate-spin" />}
                                       Request Revision
                                     </Button>
                                   </div>

@@ -18,6 +18,21 @@ const OR = "#FF6A20";
 const FONT = "'Plus Jakarta Sans',sans-serif";
 const MONTHS_ID = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
 
+// ─── Responsive hook ────────────────────────────────────────────────────────────
+function useIsMobile(breakpoint = 640) {
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== "undefined" ? window.innerWidth < breakpoint : false
+  );
+  useEffect(() => {
+    const mq = window.matchMedia(`(max-width: ${breakpoint - 1}px)`);
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    setIsMobile(mq.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, [breakpoint]);
+  return isMobile;
+}
+
 // ─── API helper ────────────────────────────────────────────────────────────────
 async function api(path: string, opts: RequestInit = {}) {
   const token = getToken();
@@ -103,20 +118,20 @@ function StatCard({
 }) {
   return (
     <div style={{
-      padding: "20px 22px", borderRadius: 16,
+      padding: "14px 14px", borderRadius: 14,
       background: "rgba(255,255,255,.03)", border: "1px solid rgba(255,255,255,.07)",
-      display: "flex", flexDirection: "column", gap: 10,
+      display: "flex", flexDirection: "column", gap: 8,
     }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <p style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,.35)", textTransform: "uppercase", letterSpacing: ".14em", margin: 0 }}>{label}</p>
-        <div style={{ width: 34, height: 34, borderRadius: 10, background: `${color}18`, display: "flex", alignItems: "center", justifyContent: "center", color }}>{icon}</div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 6 }}>
+        <p style={{ fontSize: 9, fontWeight: 700, color: "rgba(255,255,255,.35)", textTransform: "uppercase", letterSpacing: ".1em", margin: 0, lineHeight: 1.3, flex: 1 }}>{label}</p>
+        <div style={{ width: 28, height: 28, borderRadius: 8, background: `${color}18`, display: "flex", alignItems: "center", justifyContent: "center", color, flexShrink: 0 }}>{icon}</div>
       </div>
-      <p style={{ fontSize: 24, fontWeight: 900, color: "#fff", margin: 0, letterSpacing: "-.02em", lineHeight: 1 }}>{value}</p>
+      <p style={{ fontSize: 18, fontWeight: 900, color: "#fff", margin: 0, letterSpacing: "-.02em", lineHeight: 1 }}>{value}</p>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        {sub && <p style={{ fontSize: 11, color: "rgba(255,255,255,.3)", margin: 0 }}>{sub}</p>}
+        {sub && <p style={{ fontSize: 10, color: "rgba(255,255,255,.3)", margin: 0, lineHeight: 1.2 }}>{sub}</p>}
         {delta && (
-          <span style={{ fontSize: 11, fontWeight: 700, color: deltaUp ? "#4ade80" : "#f87171", display: "flex", alignItems: "center", gap: 2 }}>
-            {deltaUp ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />} {delta}
+          <span style={{ fontSize: 10, fontWeight: 700, color: deltaUp ? "#4ade80" : "#f87171", display: "flex", alignItems: "center", gap: 2 }}>
+            {deltaUp ? <ArrowUpRight size={11} /> : <ArrowDownRight size={11} />} {delta}
           </span>
         )}
       </div>
@@ -413,6 +428,7 @@ function PrintPeriodModal({ onClose, onConfirm }: {
 export default function FinancePage() {
   const { toast } = useToast();
   const printRef = useRef<HTMLDivElement>(null);
+  const isMobile = useIsMobile();
 
   const [activeTab, setActiveTab] = useState<"overview" | "income" | "expenses" | "assets">("overview");
   const [period, setPeriod] = useState(new Date().getFullYear().toString());
@@ -882,34 +898,37 @@ ${equipment.length > 0 ? `<div class="section">
     <div ref={printRef} style={{ fontFamily: FONT, color: "#f0f0f0", paddingBottom: 60 }}>
 
       {/* ── Header ── */}
-      <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginBottom: 28, flexWrap: "wrap", gap: 16 }}>
+      <div style={{ display: "flex", alignItems: isMobile ? "flex-start" : "flex-end", justifyContent: "space-between", marginBottom: isMobile ? 20 : 28, flexDirection: isMobile ? "column" : "row", gap: isMobile ? 12 : 16 }}>
         <div>
-          <h1 style={{ fontSize: 34, fontWeight: 900, color: "#fff", letterSpacing: "-.03em", margin: "0 0 4px" }}>Keuangan</h1>
-          <p style={{ fontSize: 12, color: "rgba(255,255,255,.35)", textTransform: "uppercase", letterSpacing: ".14em", fontWeight: 600 }}>Finance & Accounting · Frameless Creative</p>
+          <h1 style={{ fontSize: isMobile ? 26 : 34, fontWeight: 900, color: "#fff", letterSpacing: "-.03em", margin: "0 0 4px" }}>Keuangan</h1>
+          <p style={{ fontSize: 11, color: "rgba(255,255,255,.35)", textTransform: "uppercase", letterSpacing: ".12em", fontWeight: 600 }}>Finance & Accounting · Frameless Creative</p>
         </div>
-        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-          <select value={period} onChange={e => setPeriod(e.target.value)} style={{ ...ipt, cursor: "pointer" }}>
+        <div style={{ display: "flex", gap: 8, alignItems: "center", width: isMobile ? "100%" : "auto" }}>
+          <select value={period} onChange={e => setPeriod(e.target.value)} style={{ ...ipt, cursor: "pointer", flex: isMobile ? 1 : "none", width: isMobile ? "auto" : "auto" }}>
             {years.map(y => <option key={y} value={y} style={{ background: "#111318" }}>{y}</option>)}
           </select>
-          <button onClick={loadData} title="Refresh" style={{ width: 36, height: 36, borderRadius: 10, background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.1)", cursor: "pointer", color: "rgba(255,255,255,.5)", display: "flex", alignItems: "center", justifyContent: "center" }}><RefreshCw size={14} /></button>
-          <button onClick={() => setPrintModal(true)} style={{ ...btnBase, background: OR, color: "#fff" }}><Printer size={14} /> Cetak PDF</button>
+          <button onClick={loadData} title="Refresh" style={{ width: 36, height: 36, borderRadius: 10, background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.1)", cursor: "pointer", color: "rgba(255,255,255,.5)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><RefreshCw size={14} /></button>
+          <button onClick={() => setPrintModal(true)} style={{ ...btnBase, background: OR, color: "#fff", flexShrink: 0, whiteSpace: "nowrap" }}><Printer size={14} /> {isMobile ? "Cetak" : "Cetak PDF"}</button>
         </div>
       </div>
 
       {/* ── KPI Stats ── */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(160px,1fr))", gap: 12, marginBottom: 28 }}>
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(auto-fit,minmax(160px,1fr))", gap: isMobile ? 10 : 12, marginBottom: 24 }}>
         <StatCard label="Total Pemasukan" value={formatCurrency(totalRevenue)} icon={<TrendingUp size={16} />} color="#4ade80" sub={`Invoice: ${formatCurrency(invoiceRevenue)}`} />
         <StatCard label="Total Pengeluaran" value={formatCurrency(totalExpenses)} icon={<TrendingDown size={16} />} color="#f87171" sub={`${expenses.length} transaksi`} />
         <StatCard label="Laba Bersih" value={formatCurrency(netProfit)} icon={<DollarSign size={16} />} color={netProfit >= 0 ? "#4ade80" : "#f87171"} sub={netProfit >= 0 ? "Untung 🎉" : "Rugi ⚠️"} />
         <StatCard label="Profit Margin" value={`${profitMargin}%`} icon={<BarChart2 size={16} />} color={Number(profitMargin) >= 30 ? "#4ade80" : Number(profitMargin) >= 10 ? "#fbbf24" : "#f87171"} sub="Margin bersih" />
-        <StatCard label="Piutang Belum Lunas" value={formatCurrency(unpaidAmount)} icon={<Receipt size={16} />} color="#fbbf24" sub={`${invoices.filter(i => i.status !== "PAID" && Number(i.paidAmount) < Number(i.total)).length} invoice pending`} />
-        <StatCard label="Nilai Buku Aset" value={formatCurrency(totalBookValue)} icon={<Package size={16} />} color={OR} sub={`${equipment.length} item · dep ${formatCurrency(totalAnnualDepr)}/thn`} />
+        <StatCard label="Piutang" value={formatCurrency(unpaidAmount)} icon={<Receipt size={16} />} color="#fbbf24" sub={`${invoices.filter(i => i.status !== "PAID" && Number(i.paidAmount) < Number(i.total)).length} pending`} />
+        <StatCard label="Nilai Buku Aset" value={formatCurrency(totalBookValue)} icon={<Package size={16} />} color={OR} sub={`${equipment.length} item`} />
       </div>
 
-      {/* ── Tabs ── */}
-      <div style={{ display: "flex", gap: 6, marginBottom: 28, flexWrap: "wrap" }}>
+      {/* ── Tabs — horizontal scroll on mobile, no wrap ── */}
+      <div style={{ display: "flex", gap: 6, marginBottom: 24, overflowX: "auto", WebkitOverflowScrolling: "touch", scrollbarWidth: "none", paddingBottom: 4 }}>
         {(["overview", "income", "expenses", "assets"] as const).map(tab => (
-          <TabBtn key={tab} label={{ overview: "📊 Overview", income: "💰 Pemasukan", expenses: "💸 Pengeluaran", assets: "📦 Inventaris Aset" }[tab]} active={activeTab === tab} onClick={() => setActiveTab(tab)} />
+          <TabBtn key={tab}
+            label={{ overview: "📊 Overview", income: "💰 Pemasukan", expenses: "💸 Pengeluaran", assets: "📦 Aset" }[tab]}
+            active={activeTab === tab}
+            onClick={() => setActiveTab(tab)} />
         ))}
       </div>
 
@@ -968,7 +987,7 @@ ${equipment.length > 0 ? `<div class="section">
           </Section>
 
           {/* Laba Rugi + Distribusi */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24, marginBottom: 32 }}>
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: isMobile ? 16 : 24, marginBottom: 32 }}>
             {/* Expense Pie */}
             <Section title="Distribusi Pengeluaran" icon={<Filter size={14} />}>
               <div style={{ background: "rgba(255,255,255,.025)", borderRadius: 18, border: "1px solid rgba(255,255,255,.07)", padding: 20 }}>
@@ -1040,34 +1059,54 @@ ${equipment.length > 0 ? `<div class="section">
               </div>
               {invoices.filter(i => Number(i.paidAmount) > 0).length === 0 ? (
                 <p style={{ color: "rgba(255,255,255,.3)", fontSize: 13, textAlign: "center", padding: "32px 16px" }}>Belum ada invoice yang dibayar.</p>
-              ) : (
-                <div style={{ overflowX: "auto" }}>
-                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
-                    <thead>
-                      <tr>{["No. Invoice", "Klien", "Total Invoice", "Sudah Dibayar", "Sisa", "Status"].map(h => (
-                        <th key={h} style={{ padding: "9px 14px", textAlign: "left", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".1em", color: "rgba(255,255,255,.3)", borderBottom: "1px solid rgba(255,255,255,.07)" }}>{h}</th>
-                      ))}</tr>
-                    </thead>
-                    <tbody>
-                      {invoices.filter(i => Number(i.paidAmount) > 0).map(inv => {
-                        const remaining = Math.max(0, Number(inv.total) - Number(inv.paidAmount));
-                        return (
-                          <tr key={inv.id} style={{ borderBottom: "1px solid rgba(255,255,255,.04)" }}>
-                            <td style={{ padding: "10px 14px", fontWeight: 700, color: "#fff" }}>{inv.number}</td>
-                            <td style={{ padding: "10px 14px", color: "rgba(255,255,255,.6)" }}>{(inv as any).clientName || "—"}</td>
-                            <td style={{ padding: "10px 14px", color: "rgba(255,255,255,.7)" }}>{formatCurrency(Number(inv.total))}</td>
-                            <td style={{ padding: "10px 14px", color: "#4ade80", fontWeight: 700 }}>{formatCurrency(Number(inv.paidAmount))}</td>
-                            <td style={{ padding: "10px 14px", color: remaining > 0 ? "#fbbf24" : "#4ade80", fontWeight: 600 }}>{remaining > 0 ? formatCurrency(remaining) : "✓ Lunas"}</td>
-                            <td style={{ padding: "10px 14px" }}>
-                              <span style={{ fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 6, background: inv.status === "PAID" ? "rgba(74,222,128,.15)" : "rgba(251,191,36,.15)", color: inv.status === "PAID" ? "#4ade80" : "#fbbf24" }}>{inv.status}</span>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              )}
+              ) : isMobile ? (
+                  /* Mobile: card stack */
+                  <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+                    {invoices.filter(i => Number(i.paidAmount) > 0).map(inv => {
+                      const remaining = Math.max(0, Number(inv.total) - Number(inv.paidAmount));
+                      return (
+                        <div key={inv.id} style={{ padding: "12px 16px", borderBottom: "1px solid rgba(255,255,255,.05)", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
+                          <div style={{ minWidth: 0 }}>
+                            <p style={{ fontSize: 13, fontWeight: 700, color: "#fff", margin: 0 }}>{inv.number}</p>
+                            <p style={{ fontSize: 11, color: "rgba(255,255,255,.4)", margin: "2px 0 0" }}>{(inv as any).clientName || "—"}</p>
+                          </div>
+                          <div style={{ textAlign: "right", flexShrink: 0 }}>
+                            <p style={{ fontSize: 13, fontWeight: 700, color: "#4ade80", margin: 0 }}>{formatCurrency(Number(inv.paidAmount))}</p>
+                            <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 6px", borderRadius: 5, background: inv.status === "PAID" ? "rgba(74,222,128,.15)" : "rgba(251,191,36,.15)", color: inv.status === "PAID" ? "#4ade80" : "#fbbf24" }}>{inv.status}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  /* Desktop: full table */
+                  <div style={{ overflowX: "auto" }}>
+                    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+                      <thead>
+                        <tr>{["No. Invoice", "Klien", "Total Invoice", "Sudah Dibayar", "Sisa", "Status"].map(h => (
+                          <th key={h} style={{ padding: "9px 14px", textAlign: "left", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".1em", color: "rgba(255,255,255,.3)", borderBottom: "1px solid rgba(255,255,255,.07)" }}>{h}</th>
+                        ))}</tr>
+                      </thead>
+                      <tbody>
+                        {invoices.filter(i => Number(i.paidAmount) > 0).map(inv => {
+                          const remaining = Math.max(0, Number(inv.total) - Number(inv.paidAmount));
+                          return (
+                            <tr key={inv.id} style={{ borderBottom: "1px solid rgba(255,255,255,.04)" }}>
+                              <td style={{ padding: "10px 14px", fontWeight: 700, color: "#fff" }}>{inv.number}</td>
+                              <td style={{ padding: "10px 14px", color: "rgba(255,255,255,.6)" }}>{(inv as any).clientName || "—"}</td>
+                              <td style={{ padding: "10px 14px", color: "rgba(255,255,255,.7)" }}>{formatCurrency(Number(inv.total))}</td>
+                              <td style={{ padding: "10px 14px", color: "#4ade80", fontWeight: 700 }}>{formatCurrency(Number(inv.paidAmount))}</td>
+                              <td style={{ padding: "10px 14px", color: remaining > 0 ? "#fbbf24" : "#4ade80", fontWeight: 600 }}>{remaining > 0 ? formatCurrency(remaining) : "✓ Lunas"}</td>
+                              <td style={{ padding: "10px 14px" }}>
+                                <span style={{ fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 6, background: inv.status === "PAID" ? "rgba(74,222,128,.15)" : "rgba(251,191,36,.15)", color: inv.status === "PAID" ? "#4ade80" : "#fbbf24" }}>{inv.status}</span>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
             </div>
           </Section>
 
@@ -1081,7 +1120,33 @@ ${equipment.length > 0 ? `<div class="section">
                   <p style={{ color: "rgba(255,255,255,.3)", fontSize: 13 }}>Belum ada pemasukan manual. Gunakan ini untuk mencatat pendapatan di luar invoice.</p>
                   <button onClick={() => setIncomeModal("new")} style={{ ...btnBase, background: OR, color: "#fff", margin: "16px auto 0" }}><Plus size={13} /> Tambah Pemasukan</button>
                 </div>
+              ) : isMobile ? (
+                /* Mobile: card stack */
+                <div>
+                  {incomeEntries.map(inc => (
+                    <div key={inc.id} style={{ padding: "12px 16px", borderBottom: "1px solid rgba(255,255,255,.05)", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
+                      <div style={{ minWidth: 0 }}>
+                        <p style={{ fontSize: 13, fontWeight: 600, color: "#fff", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{inc.description}</p>
+                        <p style={{ fontSize: 10, color: "rgba(255,255,255,.4)", margin: "2px 0 0" }}>
+                          {new Date(inc.date).toLocaleDateString("id-ID", { day: "numeric", month: "short" })} · {inc.category || "—"}
+                        </p>
+                      </div>
+                      <div style={{ textAlign: "right", flexShrink: 0, display: "flex", alignItems: "center", gap: 8 }}>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: "#4ade80" }}>{formatCurrency(Number(inc.amount))}</span>
+                        <div style={{ display: "flex", gap: 3 }}>
+                          <button onClick={() => setIncomeModal(inc)} style={{ width: 26, height: 26, borderRadius: 7, background: "rgba(255,255,255,.06)", border: "none", cursor: "pointer", color: "rgba(255,255,255,.5)", display: "flex", alignItems: "center", justifyContent: "center" }}><Edit3Icon /></button>
+                          <button onClick={() => deleteIncome(inc.id)} style={{ width: 26, height: 26, borderRadius: 7, background: "rgba(248,113,113,.1)", border: "none", cursor: "pointer", color: "#f87171", display: "flex", alignItems: "center", justifyContent: "center" }}><Trash2 size={11} /></button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  <div style={{ padding: "12px 16px", background: `${OR}08`, borderTop: `2px solid ${OR}`, display: "flex", justifyContent: "space-between" }}>
+                    <span style={{ fontSize: 12, fontWeight: 800, color: "#fff" }}>Total Manual</span>
+                    <span style={{ fontSize: 13, fontWeight: 900, color: "#4ade80" }}>{formatCurrency(manualIncome)}</span>
+                  </div>
+                </div>
               ) : (
+                /* Desktop: full table */
                 <div style={{ overflowX: "auto" }}>
                   <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
                     <thead>
@@ -1124,7 +1189,7 @@ ${equipment.length > 0 ? `<div class="section">
       ═══════════════════════════════════════════════════════════════════════ */}
       {activeTab === "expenses" && (
         <>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12, marginBottom: 24 }}>
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3,1fr)", gap: 12, marginBottom: 24 }}>
             <div style={{ padding: "16px 20px", borderRadius: 14, background: "rgba(248,113,113,.08)", border: "1px solid rgba(248,113,113,.2)" }}>
               <p style={{ fontSize: 10, fontWeight: 700, color: "rgba(248,113,113,.7)", textTransform: "uppercase", letterSpacing: ".1em", margin: "0 0 5px" }}>Total Pengeluaran</p>
               <p style={{ fontSize: 22, fontWeight: 900, color: "#f87171", margin: 0 }}>{formatCurrency(totalExpenses)}</p>
@@ -1139,7 +1204,7 @@ ${equipment.length > 0 ? `<div class="section">
             </div>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: isMobile ? 16 : 24 }}>
             {/* Chart */}
             <Section title="Per Kategori" icon={<Filter size={14} />}>
               <div style={{ background: "rgba(255,255,255,.025)", borderRadius: 18, border: "1px solid rgba(255,255,255,.07)", padding: 20 }}>
@@ -1211,7 +1276,7 @@ ${equipment.length > 0 ? `<div class="section">
           action={<button onClick={() => setEqModal("new")} style={{ ...btnBase, background: OR, color: "#fff" }}><Plus size={13} /> Tambah Aset</button>}>
           <div style={{ background: "rgba(255,255,255,.025)", borderRadius: 18, border: "1px solid rgba(255,255,255,.07)", overflow: "hidden" }}>
             {/* Summary bar */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 0, borderBottom: "1px solid rgba(255,255,255,.07)" }}>
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4,1fr)", gap: 0, borderBottom: "1px solid rgba(255,255,255,.07)" }}>
               {[
                 { l: "Total Nilai Beli", v: formatCurrency(totalEquipValue), c: "rgba(255,255,255,.8)" },
                 { l: "Total Nilai Buku", v: formatCurrency(totalBookValue), c: OR },
@@ -1230,7 +1295,52 @@ ${equipment.length > 0 ? `<div class="section">
                 <p style={{ color: "rgba(255,255,255,.3)", fontSize: 13, marginBottom: 16 }}>Belum ada aset terdaftar. Daftarkan peralatan produksi untuk menghitung depresiasi.</p>
                 <button onClick={() => setEqModal("new")} style={{ ...btnBase, background: OR, color: "#fff", margin: "0 auto" }}><Plus size={13} /> Tambah Aset Pertama</button>
               </div>
+            ) : isMobile ? (
+              /* Mobile: expandable asset cards */
+              <div>
+                {equipment.map(eq => {
+                  const d = calcDep(eq);
+                  const condColor = eq.condition === "Baru" || eq.condition === "Baik" ? "#4ade80" : eq.condition === "Perlu Service" ? "#fbbf24" : "#f87171";
+                  return (
+                    <div key={eq.id} style={{ padding: "14px 16px", borderBottom: "1px solid rgba(255,255,255,.05)" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <p style={{ fontSize: 14, fontWeight: 700, color: "#fff", margin: 0 }}>{eq.name}</p>
+                          <div style={{ display: "flex", gap: 6, alignItems: "center", marginTop: 4, flexWrap: "wrap" }}>
+                            {eq.category && <span style={{ fontSize: 10, color: "rgba(255,255,255,.4)" }}>{eq.category}</span>}
+                            <span style={{ fontSize: 10, fontWeight: 700, padding: "1px 6px", borderRadius: 5, background: `${condColor}18`, color: condColor }}>{eq.condition || "—"}</span>
+                          </div>
+                        </div>
+                        <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
+                          <button onClick={() => setEqModal(eq)} style={{ width: 28, height: 28, borderRadius: 7, background: "rgba(255,255,255,.06)", border: "none", cursor: "pointer", color: "rgba(255,255,255,.5)", display: "flex", alignItems: "center", justifyContent: "center" }}><Edit3Icon /></button>
+                          <button onClick={() => deleteEquipment(eq.id)} style={{ width: 28, height: 28, borderRadius: 7, background: "rgba(248,113,113,.1)", border: "none", cursor: "pointer", color: "#f87171", display: "flex", alignItems: "center", justifyContent: "center" }}><Trash2 size={11} /></button>
+                        </div>
+                      </div>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                        {[
+                          { l: "Harga Beli", v: formatCurrency(eq.purchasePrice), c: "rgba(255,255,255,.7)" },
+                          { l: "Nilai Buku", v: formatCurrency(d.bookValue), c: d.bookValue > 0 ? OR : "#f87171" },
+                          { l: "Dep/Tahun", v: formatCurrency(d.annualDep), c: "#fbbf24" },
+                          { l: "Akumulasi", v: formatCurrency(d.accumulated), c: "#f87171" },
+                        ].map(row => (
+                          <div key={row.l} style={{ padding: "8px 10px", borderRadius: 8, background: "rgba(255,255,255,.03)", border: "1px solid rgba(255,255,255,.05)" }}>
+                            <p style={{ fontSize: 9, color: "rgba(255,255,255,.35)", fontWeight: 700, textTransform: "uppercase", letterSpacing: ".1em", margin: "0 0 3px" }}>{row.l}</p>
+                            <p style={{ fontSize: 13, fontWeight: 700, color: row.c, margin: 0 }}>{row.v}</p>
+                          </div>
+                        ))}
+                      </div>
+                      <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 8 }}>
+                        <div style={{ flex: 1, height: 4, borderRadius: 100, background: "rgba(255,255,255,.1)", overflow: "hidden" }}>
+                          <div style={{ height: "100%", width: `${d.deprPct}%`, background: d.deprPct > 80 ? "#f87171" : d.deprPct > 50 ? "#fbbf24" : OR, borderRadius: 100 }} />
+                        </div>
+                        <span style={{ fontSize: 10, color: "rgba(255,255,255,.4)", fontWeight: 600, flexShrink: 0 }}>{d.deprPct.toFixed(0)}% terdepresiasi</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             ) : (
+              /* Desktop: full table */
               <div style={{ overflowX: "auto" }}>
                 <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
                   <thead>

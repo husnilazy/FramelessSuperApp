@@ -19,3 +19,4 @@ export * from "./time_entries";
 export * from "./notifications";
 export * from "./project_files";
 export * from "./filmmaking";
+export * from "./quotations";

@@ -111,94 +111,172 @@ export default function CoursesPage() {
     <div style={{ minHeight: "100vh", background: BG, color: "#fff", fontFamily: font, paddingBottom: 80 }}>
       <style>{`
         body { background: ${BG}; }
-        @keyframes fadeUp  { from { opacity:0; transform:translateY(18px); } to { opacity:1; transform:translateY(0); } }
-        @keyframes spin    { to   { transform:rotate(360deg); } }
-        @keyframes barPulse { from { opacity:.15; transform:scaleY(.6); } to { opacity:1; transform:scaleY(1); } }
+        @keyframes fadeUp    { from { opacity:0; transform:translateY(18px); } to { opacity:1; transform:translateY(0); } }
+        @keyframes spin      { to   { transform:rotate(360deg); } }
+        @keyframes barPulse  { from { opacity:.15; transform:scaleY(.6); } to { opacity:1; transform:scaleY(1); } }
+        @keyframes shimmer   { 0%{background-position:-200% center;} 100%{background-position:200% center;} }
+        @keyframes statPop   { from{opacity:0;transform:translateY(10px) scale(.97);} to{opacity:1;transform:translateY(0) scale(1);} }
+        @keyframes scanline  { 0%{transform:translateY(-100vh);} 100%{transform:translateY(100vh);} }
 
-        .cc { animation: fadeUp 0.5s ease-out backwards; transition: transform .25s, box-shadow .25s, border-color .25s; }
-        .cc:hover { transform: translateY(-7px); box-shadow: 0 24px 48px rgba(0,0,0,.5); border-color: ${ORANGE_BORD} !important; }
-        .cc:hover .cc-cta { background: hsl(20,100%,50%) !important; }
+        /* Cards */
+        .cc {
+          animation: fadeUp 0.5s cubic-bezier(.16,1,.3,1) backwards;
+          transition: transform .32s cubic-bezier(.16,1,.3,1), box-shadow .28s, border-color .22s;
+          will-change: transform;
+        }
+        .cc:hover {
+          transform: translateY(-7px) scale(1.01);
+          box-shadow: 0 24px 56px rgba(0,0,0,.5), 0 0 28px ${ORANGE_DIM};
+          border-color: ${ORANGE_BORD} !important;
+        }
+        .cc:hover .cc-cta {
+          background: hsl(20,100%,50%) !important;
+          box-shadow: 0 6px 20px ${ORANGE_DIM};
+        }
+        .cc:hover .cc-thumb img { transform: scale(1.06); }
 
-        .lvl-btn { padding: 7px 16px; border-radius: 100px; border: 1px solid ${BORDER}; background: transparent; color: ${TEXT_DIM}; font-family: ${font}; font-size: 12px; font-weight: 700; cursor: pointer; transition: all .18s; white-space: nowrap; }
-        .lvl-btn:hover   { color: #fff; border-color: rgba(255,255,255,.22); }
-        .lvl-btn.active  { background: ${ORANGE_DIM}; border-color: ${ORANGE_BORD}; color: ${ORANGE}; }
+        /* Filter pills */
+        .lvl-btn {
+          padding: 7px 18px; border-radius: 100px;
+          border: 1px solid ${BORDER}; background: transparent;
+          color: ${TEXT_DIM}; font-family: ${font};
+          font-size: 12px; font-weight: 700; cursor: pointer;
+          transition: all .22s cubic-bezier(.16,1,.3,1); white-space: nowrap;
+        }
+        .lvl-btn:hover   { color: #fff; border-color: rgba(255,255,255,.28); transform: translateY(-1px); }
+        .lvl-btn.active  {
+          background: ${ORANGE_DIM}; border-color: ${ORANGE_BORD};
+          color: ${ORANGE}; box-shadow: 0 0 14px ${ORANGE_DIM};
+        }
+
+        /* Stat tiles */
+        .stat-tile {
+          transition: transform .28s cubic-bezier(.16,1,.3,1), border-color .22s, box-shadow .22s;
+          animation: statPop .5s cubic-bezier(.16,1,.3,1) backwards;
+        }
+        .stat-tile:hover {
+          transform: translateY(-3px);
+          border-color: ${ORANGE_BORD} !important;
+          box-shadow: 0 10px 32px rgba(0,0,0,.4), 0 0 18px ${ORANGE_DIM};
+        }
+
+        /* Search */
+        .cs-search:focus {
+          outline: none;
+          border-color: ${ORANGE_BORD} !important;
+          box-shadow: 0 0 0 3px ${ORANGE_DIM};
+        }
+
+        /* Headline shimmer */
+        .heading-shimmer {
+          background: linear-gradient(90deg, ${ORANGE} 0%, hsl(30,100%,65%) 40%, ${ORANGE} 80%);
+          background-size: 200% auto;
+          -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+          background-clip: text;
+          animation: shimmer 5s linear infinite;
+        }
+
+        /* Thumb hover */
+        .cc-thumb img { transition: transform .5s cubic-bezier(.16,1,.3,1); }
       `}</style>
 
       {/* ── Header ── */}
-      <div style={{ padding: "48px 24px 36px", textAlign: "center", borderBottom: `1px solid ${BORDER}` }}>
-        <a
-          href="/"
-          style={{
-            display: "inline-flex", alignItems: "center", gap: 8,
-            padding: "8px 16px", borderRadius: 100,
-            background: "rgba(255,255,255,.05)", border: `1px solid ${BORDER}`,
-            color: TEXT_DIM, textDecoration: "none", fontSize: 13, fontWeight: 600, marginBottom: 28,
-            transition: "color .15s",
-          }}
-        >
-          <ArrowLeft size={14} /> Kembali
-        </a>
-
-        <h1 style={{ fontSize: "clamp(34px,5vw,60px)", fontWeight: 900, letterSpacing: "-.04em", margin: "0 0 12px", lineHeight: 1.05 }}>
-          Frameless <span style={{ color: ORANGE }}>Academy</span>
-        </h1>
-        <p style={{ color: TEXT_DIM, fontSize: 15, margin: "0 0 28px", lineHeight: 1.6 }}>
-          {stats.tagline}
-        </p>
-
-        {/* Stats */}
-        <div style={{ display: "inline-flex", gap: 0, border: `1px solid ${BORDER}`, borderRadius: 16, overflow: "hidden", marginBottom: 32 }}>
-          {[
-            { val: pubCourses.length,  lbl: "Kelas" },
-            { val: stats.alumni,       lbl: "Alumni" },
-            { val: stats.rating,       lbl: "Rating" },
-          ].map((s, i) => (
-            <div
-              key={s.lbl}
-              style={{
-                padding: "14px 24px", textAlign: "center",
-                borderLeft: i > 0 ? `1px solid ${BORDER}` : "none",
-                background: i % 2 === 0 ? "rgba(255,255,255,.025)" : "transparent",
-              }}
-            >
-              <div style={{ fontSize: 22, fontWeight: 900, color: "#fff", letterSpacing: "-.03em" }}>{s.val}</div>
-              <div style={{ fontSize: 10, color: TEXT_DIM, textTransform: "uppercase", letterSpacing: ".1em", marginTop: 3 }}>{s.lbl}</div>
-            </div>
-          ))}
+      <div style={{ position: "relative", padding: "72px 24px 48px", textAlign: "center", borderBottom: `1px solid ${BORDER}`, overflow: "hidden" }}>
+        {/* Mesh blobs */}
+        <div style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
+          <div style={{ position: "absolute", width: "60%", height: "60%", top: "-20%", left: "-10%", background: `radial-gradient(ellipse at center, ${ORANGE}18 0%, transparent 70%)`, filter: "blur(72px)", animation: "none" }} />
+          <div style={{ position: "absolute", width: "50%", height: "50%", top: "0%", right: "-15%", background: "radial-gradient(ellipse at center, rgba(124,58,237,.1) 0%, transparent 70%)", filter: "blur(80px)" }} />
+          <div style={{ position: "absolute", left: 0, right: 0, height: "1px", bottom: 0, background: `linear-gradient(to right, transparent, ${ORANGE}3c, transparent)` }} />
         </div>
 
-        {/* Search */}
-        <div style={{ position: "relative", maxWidth: 420, margin: "0 auto 20px" }}>
-          <Search
-            size={15}
-            color={TEXT_DIM}
-            style={{ position: "absolute", left: 16, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}
-          />
-          <input
-            type="text"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="Cari kelas, instruktur..."
+        <div style={{ position: "relative" }}>
+          <a
+            href="/"
             style={{
-              width: "100%", padding: "12px 16px 12px 42px", borderRadius: 100,
-              border: `1px solid ${BORDER}`, background: "rgba(255,255,255,.04)",
-              color: "#fff", fontSize: 14, fontFamily: font, outline: "none",
-              boxSizing: "border-box",
+              display: "inline-flex", alignItems: "center", gap: 8,
+              padding: "7px 16px", borderRadius: 100,
+              background: "rgba(255,255,255,.04)", border: `1px solid ${BORDER}`,
+              color: TEXT_DIM, textDecoration: "none", fontSize: 13, fontWeight: 600, marginBottom: 32,
+              transition: "color .18s, border-color .18s",
             }}
-          />
-        </div>
+            onMouseEnter={e => { e.currentTarget.style.color = "#fff"; e.currentTarget.style.borderColor = "rgba(255,255,255,.2)"; }}
+            onMouseLeave={e => { e.currentTarget.style.color = TEXT_DIM; e.currentTarget.style.borderColor = BORDER; }}
+          >
+            <ArrowLeft size={13} /> Kembali ke Home
+          </a>
 
-        {/* Level filter chips */}
-        <div style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
-          {LEVELS.map(l => (
-            <button
-              key={l}
-              onClick={() => setLevelFilter(l)}
-              className={`lvl-btn${levelFilter === l ? " active" : ""}`}
-            >
-              {l === "Semua" ? "Semua Level" : l.charAt(0).toUpperCase() + l.slice(1)}
-            </button>
-          ))}
+          {/* Eyebrow */}
+          <div style={{
+            display: "inline-flex", alignItems: "center", gap: 7,
+            padding: "5px 16px", borderRadius: 100,
+            background: `${ORANGE}14`, border: `1px solid ${ORANGE}33`,
+            fontSize: 10, fontWeight: 700, letterSpacing: ".22em",
+            color: ORANGE, textTransform: "uppercase", marginBottom: 18,
+          }}>
+            <Film size={10} /> Frameless Academy
+          </div>
+
+          {/* Headline */}
+          <h1 style={{ fontSize: "clamp(38px,5.5vw,68px)", fontWeight: 900, letterSpacing: "-.045em", margin: "0 0 14px", lineHeight: .98 }}>
+            Kelas yang <span className="heading-shimmer">Tersedia</span>
+          </h1>
+          <p style={{ color: TEXT_DIM, fontSize: 15, margin: "0 0 40px", lineHeight: 1.7, maxWidth: 440, marginLeft: "auto", marginRight: "auto" }}>
+            {stats.tagline}
+          </p>
+
+          {/* Stats — premium hover cards */}
+          <div style={{ display: "inline-flex", gap: 10, marginBottom: 36, flexWrap: "wrap", justifyContent: "center" }}>
+            {[
+              { val: pubCourses.length, lbl: "Kelas", delay: "0s" },
+              { val: stats.alumni,      lbl: "Alumni", delay: ".07s" },
+              { val: stats.rating,      lbl: "Rating", delay: ".14s" },
+            ].map((s, i) => (
+              <div
+                key={s.lbl}
+                className="stat-tile"
+                style={{
+                  padding: "16px 28px", textAlign: "center",
+                  background: "rgba(255,255,255,.03)",
+                  border: `1px solid ${BORDER}`,
+                  borderRadius: 18, backdropFilter: "blur(12px)",
+                  animationDelay: s.delay,
+                }}
+              >
+                <div style={{ fontSize: 26, fontWeight: 900, color: "#fff", letterSpacing: "-.04em", lineHeight: 1 }}>{s.val}</div>
+                <div style={{ fontSize: 10, color: TEXT_DIM, textTransform: "uppercase", letterSpacing: ".14em", marginTop: 6, fontWeight: 700 }}>{s.lbl}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Search */}
+          <div style={{ position: "relative", maxWidth: 440, margin: "0 auto 20px" }}>
+            <Search
+              size={15} color={TEXT_DIM}
+              style={{ position: "absolute", left: 18, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}
+            />
+            <input
+              type="text"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Cari kelas, instruktur..."
+              className="cs-search"
+              style={{
+                width: "100%", padding: "13px 18px 13px 46px", borderRadius: 100,
+                border: `1px solid ${BORDER}`, background: "rgba(255,255,255,.045)",
+                color: "#fff", fontSize: 14, fontFamily: font,
+                boxSizing: "border-box", transition: "border-color .18s, box-shadow .18s",
+              }}
+            />
+          </div>
+
+          {/* Level filters */}
+          <div style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
+            {LEVELS.map(l => (
+              <button key={l} onClick={() => setLevelFilter(l)} className={`lvl-btn${levelFilter === l ? " active" : ""}`}>
+                {l === "Semua" ? "Semua Level" : l.charAt(0).toUpperCase() + l.slice(1)}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -240,6 +318,7 @@ export default function CoursesPage() {
               >
                 {/* ── Thumbnail ── */}
                 <div
+                  className="cc-thumb"
                   style={{
                     aspectRatio: "16/9", position: "relative", overflow: "hidden",
                     background: course.thumbnail
@@ -251,24 +330,18 @@ export default function CoursesPage() {
                   {!course.thumbnail && <Film size={44} color="rgba(255,255,255,.12)" />}
 
                   {/* Gradient overlay */}
-                  <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,.72) 0%, rgba(0,0,0,.1) 55%, transparent 100%)" }} />
+                  <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,.78) 0%, rgba(0,0,0,.08) 55%, transparent 100%)" }} />
 
                   {/* Play button if has video */}
                   {course.highlightVideoUrl && (
-                    <div
-                      style={{
-                        position: "absolute", inset: 0,
+                    <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <div style={{
+                        width: 52, height: 52, borderRadius: "50%",
+                        background: "rgba(255,255,255,.12)", backdropFilter: "blur(8px)",
+                        border: "2px solid rgba(255,255,255,.3)",
                         display: "flex", alignItems: "center", justifyContent: "center",
-                      }}
-                    >
-                      <div
-                        style={{
-                          width: 52, height: 52, borderRadius: "50%",
-                          background: "rgba(255,255,255,.12)", backdropFilter: "blur(6px)",
-                          border: "2px solid rgba(255,255,255,.25)",
-                          display: "flex", alignItems: "center", justifyContent: "center",
-                        }}
-                      >
+                        transition: "transform .25s, background .25s",
+                      }}>
                         <Play size={20} fill="#fff" color="#fff" />
                       </div>
                     </div>
@@ -282,7 +355,7 @@ export default function CoursesPage() {
                       </span>
                     )}
                     {course.category && (
-                      <span style={{ background: "rgba(0,0,0,.4)", color: "rgba(255,255,255,.55)", fontSize: 10, padding: "3px 10px", borderRadius: 100, backdropFilter: "blur(8px)" }}>
+                      <span style={{ background: "rgba(0,0,0,.45)", color: "rgba(255,255,255,.6)", fontSize: 10, padding: "3px 10px", borderRadius: 100, backdropFilter: "blur(8px)" }}>
                         {course.category}
                       </span>
                     )}
@@ -343,10 +416,11 @@ export default function CoursesPage() {
                         display: "flex", alignItems: "center", gap: 5,
                         padding: "10px 18px", borderRadius: 100,
                         background: ORANGE, color: "#fff", fontSize: 12, fontWeight: 800,
-                        transition: "background .18s",
+                        transition: "background .18s, box-shadow .18s",
+                        boxShadow: `0 4px 16px ${ORANGE_DIM}`,
                       }}
                     >
-                      Lihat Kelas <ChevronRight size={13} />
+                      Daftar <ChevronRight size={13} />
                     </div>
                   </div>
                 </div>

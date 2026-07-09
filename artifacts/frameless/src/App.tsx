@@ -34,8 +34,11 @@ import TeamPage            from "@/pages/team";
 import ClientsPage         from "@/pages/clients";
 import InvoicesPage        from "@/pages/invoices";
 import InvoiceEditorPage   from "@/pages/invoice-editor";
+import QuotationsPage       from "@/pages/quotations";
+import QuotationEditorPage  from "@/pages/quotation-editor";
 import ExpensesPage        from "@/pages/expenses";
 import FinancePage         from "@/pages/finance";
+import AccountingPage      from "@/pages/accounting";
 import SettingsPage        from "@/pages/settings";
 import CmsEditorPage       from "@/pages/cms-editor";
 import PaymentSettingsPage from "@/pages/payment-settings";
@@ -61,11 +64,15 @@ function ProtectedRoutes() {
           <Route path="/projects"                 component={ProjectsPage} />
           <Route path="/team"                     component={TeamPage} />
           <Route path="/clients"                  component={ClientsPage} />
+          <Route path="/quotations/new"           component={QuotationEditorPage} />
+          <Route path="/quotations/:id"           component={QuotationEditorPage} />
+          <Route path="/quotations"               component={QuotationsPage} />
           <Route path="/invoices/new"             component={InvoiceEditorPage} />
           <Route path="/invoices/:id"             component={InvoiceEditorPage} />
           <Route path="/invoices"                 component={InvoicesPage} />
           <Route path="/expenses"                 component={ExpensesPage} />
           <Route path="/finance"                  component={FinancePage} />
+          <Route path="/accounting"               component={AccountingPage} />
           <Route path="/settings"                 component={SettingsPage} />
           <Route path="/cms"                      component={CmsEditorPage} />
           <Route path="/payment-settings"         component={PaymentSettingsPage} />
@@ -111,11 +118,15 @@ function Router() {
       <Route path="/projects/:id"        component={ProtectedRoutes} />
       <Route path="/team"                component={ProtectedRoutes} />
       <Route path="/clients"             component={ProtectedRoutes} />
+      <Route path="/quotations"       component={ProtectedRoutes} />
+      <Route path="/quotations/new"   component={ProtectedRoutes} />
+      <Route path="/quotations/:id"   component={ProtectedRoutes} />
       <Route path="/invoices"            component={ProtectedRoutes} />
       <Route path="/invoices/new"        component={ProtectedRoutes} />
       <Route path="/invoices/:id"        component={ProtectedRoutes} />
       <Route path="/expenses"            component={ProtectedRoutes} />
       <Route path="/finance"             component={ProtectedRoutes} />
+      <Route path="/accounting"          component={ProtectedRoutes} />
       <Route path="/settings"            component={ProtectedRoutes} />
       <Route path="/cms"                 component={ProtectedRoutes} />
       <Route path="/payment-settings"    component={ProtectedRoutes} />

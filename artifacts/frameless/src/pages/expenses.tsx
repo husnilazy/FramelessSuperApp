@@ -14,6 +14,21 @@ import { BarChart, Bar, Cell, XAxis, YAxis, Tooltip, ResponsiveContainer } from 
 const OR = "#FF6A20";
 const FONT = "'Plus Jakarta Sans',sans-serif";
 
+// ─── Responsive hook ────────────────────────────────────────────────────────────
+function useIsMobile(breakpoint = 640) {
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== "undefined" ? window.innerWidth < breakpoint : false
+  );
+  useEffect(() => {
+    const mq = window.matchMedia(`(max-width: ${breakpoint - 1}px)`);
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    setIsMobile(mq.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, [breakpoint]);
+  return isMobile;
+}
+
 // Kategori dipecah lebih detail — Utilitas (listrik/air/PDAM) dipisah dari
 // Software & Langganan supaya laporan pengeluaran lebih akurat per jenis biaya.
 const EXPENSE_CATS = [
@@ -662,6 +677,7 @@ const ChartTip = ({ active, payload, label }: any) => {
 // ══════════════════════════════════════════════════════════════════════════════
 export default function ExpensesPage() {
   const { toast } = useToast();
+  const isMobile = useIsMobile();
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
@@ -801,34 +817,35 @@ export default function ExpensesPage() {
   return (
     <div style={{ fontFamily: FONT, color: "#f0f0f0", paddingBottom: 60 }}>
 
-      <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginBottom: 28, flexWrap: "wrap", gap: 16 }}>
+      <div style={{ display: "flex", alignItems: isMobile ? "flex-start" : "flex-end", justifyContent: "space-between", marginBottom: isMobile ? 18 : 28, flexDirection: isMobile ? "column" : "row", gap: isMobile ? 12 : 16 }}>
         <div>
-          <h1 style={{ fontSize: 34, fontWeight: 900, color: "#fff", letterSpacing: "-.03em", margin: "0 0 4px" }}>Pengeluaran</h1>
-          <p style={{ fontSize: 12, color: "rgba(255,255,255,.35)", textTransform: "uppercase", letterSpacing: ".14em", fontWeight: 600 }}>Expense Tracker · Frameless Creative</p>
+          <h1 style={{ fontSize: isMobile ? 26 : 34, fontWeight: 900, color: "#fff", letterSpacing: "-.03em", margin: "0 0 4px" }}>Pengeluaran</h1>
+          <p style={{ fontSize: 11, color: "rgba(255,255,255,.35)", textTransform: "uppercase", letterSpacing: ".12em", fontWeight: 600 }}>Expense Tracker · Frameless Creative</p>
         </div>
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <button onClick={loadData} style={{ width: 36, height: 36, borderRadius: 10, background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.1)", cursor: "pointer", color: "rgba(255,255,255,.5)", display: "flex", alignItems: "center", justifyContent: "center" }}><RefreshCw size={14} /></button>
-          <button onClick={() => setPrintModal(true)} style={{ ...btnBase, background: "rgba(255,255,255,.06)", color: "rgba(255,255,255,.7)", border: "1px solid rgba(255,255,255,.1)" }}><Printer size={14} /> Cetak Laporan</button>
-          <button onClick={() => setBatchModal(true)} style={{ ...btnBase, background: OR, color: "#fff" }}><Layers size={14} /> Tambah Banyak</button>
+        <div style={{ display: "flex", gap: 8, width: isMobile ? "100%" : "auto" }}>
+          <button onClick={loadData} style={{ width: 36, height: 36, borderRadius: 10, background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.1)", cursor: "pointer", color: "rgba(255,255,255,.5)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><RefreshCw size={14} /></button>
+          {!isMobile && <button onClick={() => setPrintModal(true)} style={{ ...btnBase, background: "rgba(255,255,255,.06)", color: "rgba(255,255,255,.7)", border: "1px solid rgba(255,255,255,.1)", whiteSpace: "nowrap" }}><Printer size={14} /> Cetak Laporan</button>}
+          {isMobile && <button onClick={() => setPrintModal(true)} style={{ width: 36, height: 36, borderRadius: 10, background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.1)", cursor: "pointer", color: "rgba(255,255,255,.5)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><Printer size={14} /></button>}
+          <button onClick={() => setBatchModal(true)} style={{ ...btnBase, background: OR, color: "#fff", flex: isMobile ? 1 : "none", justifyContent: "center", whiteSpace: "nowrap" }}><Layers size={14} /> {isMobile ? "Tambah" : "Tambah Banyak"}</button>
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(160px,1fr))", gap: 12, marginBottom: 28 }}>
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(auto-fit,minmax(160px,1fr))", gap: isMobile ? 10 : 12, marginBottom: isMobile ? 20 : 28 }}>
         {[
           { l: "Total Pengeluaran", v: formatCurrency(totalAll), c: "#f87171", sub: `${expenses.length} transaksi` },
-          { l: "Kategori Terbanyak", v: catData[0]?.name || "—", c: OR, sub: catData[0] ? formatCurrency(catData[0].value) : "" },
-          { l: "Rata-rata / Transaksi", v: formatCurrency(expenses.length > 0 ? totalAll / expenses.length : 0), c: "#fbbf24", sub: "semua waktu" },
-          { l: "Bulan Ini", v: formatCurrency(monthlyData[monthlyData.length - 1]?.total || 0), c: "#a78bfa", sub: new Date().toLocaleString("id-ID", { month: "long", year: "numeric" }) },
+          { l: "Terbanyak", v: catData[0]?.name || "—", c: OR, sub: catData[0] ? formatCurrency(catData[0].value) : "" },
+          { l: "Rata-rata", v: formatCurrency(expenses.length > 0 ? totalAll / expenses.length : 0), c: "#fbbf24", sub: "per transaksi" },
+          { l: "Bulan Ini", v: formatCurrency(monthlyData[monthlyData.length - 1]?.total || 0), c: "#a78bfa", sub: new Date().toLocaleString("id-ID", { month: "short", year: "numeric" }) },
         ].map(s => (
-          <div key={s.l} style={{ padding: "18px 20px", borderRadius: 16, background: "rgba(255,255,255,.03)", border: "1px solid rgba(255,255,255,.07)" }}>
-            <p style={{ fontSize: 9, fontWeight: 700, color: "rgba(255,255,255,.3)", textTransform: "uppercase", letterSpacing: ".14em", margin: "0 0 8px" }}>{s.l}</p>
+          <div key={s.l} style={{ padding: isMobile ? "14px" : "18px 20px", borderRadius: 14, background: "rgba(255,255,255,.03)", border: "1px solid rgba(255,255,255,.07)" }}>
+            <p style={{ fontSize: 9, fontWeight: 700, color: "rgba(255,255,255,.3)", textTransform: "uppercase", letterSpacing: ".12em", margin: "0 0 6px", lineHeight: 1.3 }}>{s.l}</p>
             <p style={{ fontSize: 20, fontWeight: 900, color: s.c, margin: "0 0 4px", letterSpacing: "-.01em" }}>{s.v}</p>
             {s.sub && <p style={{ fontSize: 11, color: "rgba(255,255,255,.3)", margin: 0 }}>{s.sub}</p>}
           </div>
         ))}
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 28 }}>
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: isMobile ? 14 : 20, marginBottom: isMobile ? 20 : 28 }}>
         <div style={{ background: "rgba(255,255,255,.025)", borderRadius: 18, border: "1px solid rgba(255,255,255,.07)", padding: "20px 22px" }}>
           <p style={{ fontSize: 13, fontWeight: 800, color: "#fff", margin: "0 0 16px" }}>Tren 6 Bulan Terakhir</p>
           <div style={{ height: 160 }}>
@@ -872,7 +889,7 @@ export default function ExpensesPage() {
         </div>
       </div>
 
-      <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
+      <div style={{ display: "flex", gap: 8, marginBottom: 12, flexDirection: isMobile ? "column" : "row", alignItems: isMobile ? "stretch" : "center" }}>
         <div style={{ position: "relative", flex: 1, minWidth: 200 }}>
           <Search size={14} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "rgba(255,255,255,.35)" }} />
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Cari keterangan atau kategori..." style={{ ...ipt, paddingLeft: 36 }} />
@@ -888,7 +905,7 @@ export default function ExpensesPage() {
         </select>
       </div>
 
-      <div style={{ display: "flex", gap: 6, marginBottom: 20, flexWrap: "wrap" }}>
+      <div style={{ display: "flex", gap: 6, marginBottom: 16, overflowX: "auto", WebkitOverflowScrolling: "touch", scrollbarWidth: "none", paddingBottom: 4, flexWrap: isMobile ? "nowrap" : "wrap" }}>
         {["ALL", ...usedCats].map(cat => (
           <button key={cat} onClick={() => setCatFilter(cat)}
             style={{
@@ -922,7 +939,55 @@ export default function ExpensesPage() {
               <button onClick={() => setBatchModal(true)} style={{ ...btnBase, background: OR, color: "#fff", margin: "0 auto" }}><Plus size={14} /> Tambah Pengeluaran</button>
             )}
           </div>
+        ) : isMobile ? (
+          /* ── Mobile: swipeable card list ── */
+          <>
+            {filtered.map((e, idx) => (
+              <div key={e.id} style={{
+                padding: "13px 16px",
+                borderBottom: idx < filtered.length - 1 ? "1px solid rgba(255,255,255,.05)" : "none",
+                display: "flex", alignItems: "center", gap: 12,
+              }}>
+                {/* Left: date badge */}
+                <div style={{ width: 40, flexShrink: 0, textAlign: "center" }}>
+                  <p style={{ fontSize: 16, fontWeight: 800, color: "#fff", margin: 0, lineHeight: 1 }}>
+                    {e.date ? new Date(e.date).getDate() : "—"}
+                  </p>
+                  <p style={{ fontSize: 9, color: "rgba(255,255,255,.35)", fontWeight: 600, textTransform: "uppercase", margin: "2px 0 0" }}>
+                    {e.date ? new Date(e.date).toLocaleDateString("id-ID", { month: "short" }) : ""}
+                  </p>
+                </div>
+                {/* Center: description + category */}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ fontSize: 13, fontWeight: 600, color: "#fff", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{e.description}</p>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 3 }}>
+                    <span style={{ fontSize: 10, fontWeight: 700, padding: "1px 6px", borderRadius: 5, background: "rgba(255,106,32,.12)", color: OR }}>{e.category}</span>
+                    {e.receiptUrl && (
+                      <a href={e.receiptUrl} target="_blank" rel="noopener noreferrer"
+                        style={{ fontSize: 10, color: OR, fontWeight: 600, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 2 }}>
+                        <Receipt size={9} /> Struk
+                      </a>
+                    )}
+                  </div>
+                </div>
+                {/* Right: amount + actions */}
+                <div style={{ flexShrink: 0, textAlign: "right", display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: "#f87171" }}>{formatCurrency(Number(e.amount))}</span>
+                  <div style={{ display: "flex", gap: 3 }}>
+                    <button onClick={() => setEditModal(e)} style={{ width: 26, height: 26, borderRadius: 7, background: "rgba(255,255,255,.06)", border: "none", cursor: "pointer", color: "rgba(255,255,255,.5)", display: "flex", alignItems: "center", justifyContent: "center" }}><Edit2 size={11} /></button>
+                    <button onClick={() => deleteExpense(e.id)} style={{ width: 26, height: 26, borderRadius: 7, background: "rgba(248,113,113,.1)", border: "none", cursor: "pointer", color: "#f87171", display: "flex", alignItems: "center", justifyContent: "center" }}><Trash2 size={11} /></button>
+                  </div>
+                </div>
+              </div>
+            ))}
+            {/* Total row */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 16px", borderTop: `2px solid ${OR}`, background: `${OR}08` }}>
+              <span style={{ fontSize: 12, fontWeight: 800, color: "#fff" }}>TOTAL ({filtered.length})</span>
+              <span style={{ fontSize: 15, fontWeight: 900, color: "#f87171" }}>{formatCurrency(totalFiltered)}</span>
+            </div>
+          </>
         ) : (
+          /* ── Desktop: full grid table ── */
           <>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr 120px 120px 80px 70px", gap: 0, padding: "9px 18px", borderBottom: "1px solid rgba(255,255,255,.07)" }}>
               {["Tanggal", "Keterangan", "Kategori", "Jumlah", "Proyek", ""].map(h => (
@@ -942,7 +1007,6 @@ export default function ExpensesPage() {
                 <span style={{ fontSize: 12, color: "rgba(255,255,255,.45)" }}>
                   {e.date ? new Date(e.date).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" }) : "—"}
                 </span>
-
                 <div>
                   <p style={{ fontSize: 13, fontWeight: 600, color: "#fff", margin: 0 }}>{e.description}</p>
                   {e.receiptUrl && (
@@ -952,28 +1016,16 @@ export default function ExpensesPage() {
                     </a>
                   )}
                 </div>
-
                 <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 8px", borderRadius: 6, background: "rgba(255,106,32,.12)", color: OR, display: "inline-block" }}>
                   {e.category}
                 </span>
-
-                <span style={{ fontSize: 14, fontWeight: 700, color: "#f87171" }}>
-                  {formatCurrency(Number(e.amount))}
-                </span>
-
+                <span style={{ fontSize: 14, fontWeight: 700, color: "#f87171" }}>{formatCurrency(Number(e.amount))}</span>
                 <span style={{ fontSize: 11, color: "rgba(255,255,255,.35)" }}>
                   {e.projectId ? (projects.find(p => p.id === e.projectId)?.title || "—").slice(0, 12) : "—"}
                 </span>
-
                 <div style={{ display: "flex", gap: 4, justifyContent: "flex-end" }}>
-                  <button onClick={() => setEditModal(e)}
-                    style={{ width: 28, height: 28, borderRadius: 8, background: "rgba(255,255,255,.06)", border: "none", cursor: "pointer", color: "rgba(255,255,255,.5)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <Edit2 size={12} />
-                  </button>
-                  <button onClick={() => deleteExpense(e.id)}
-                    style={{ width: 28, height: 28, borderRadius: 8, background: "rgba(248,113,113,.1)", border: "none", cursor: "pointer", color: "#f87171", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <Trash2 size={12} />
-                  </button>
+                  <button onClick={() => setEditModal(e)} style={{ width: 28, height: 28, borderRadius: 8, background: "rgba(255,255,255,.06)", border: "none", cursor: "pointer", color: "rgba(255,255,255,.5)", display: "flex", alignItems: "center", justifyContent: "center" }}><Edit2 size={12} /></button>
+                  <button onClick={() => deleteExpense(e.id)} style={{ width: 28, height: 28, borderRadius: 8, background: "rgba(248,113,113,.1)", border: "none", cursor: "pointer", color: "#f87171", display: "flex", alignItems: "center", justifyContent: "center" }}><Trash2 size={12} /></button>
                 </div>
               </div>
             ))}

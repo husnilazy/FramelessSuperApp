@@ -342,11 +342,20 @@ function Card({ children, style }: { children: React.ReactNode; style?: React.CS
   return (
     <section
       style={{
-        background: "rgba(255,255,255,0.055)",
-        border: `1px solid rgba(255,255,255,0.12)`,
-        borderRadius: 12,
-        padding: 16,
+        background: "rgba(255,255,255,0.048)",
+        border: "1px solid rgba(255,255,255,0.10)",
+        borderRadius: 16,
+        padding: 18,
+        transition: "border-color .25s, box-shadow .25s",
         ...style,
+      }}
+      onMouseEnter={e => {
+        (e.currentTarget as HTMLElement).style.borderColor = "rgba(255,255,255,.16)";
+        (e.currentTarget as HTMLElement).style.boxShadow = "0 8px 32px rgba(0,0,0,.3)";
+      }}
+      onMouseLeave={e => {
+        (e.currentTarget as HTMLElement).style.borderColor = "rgba(255,255,255,.10)";
+        (e.currentTarget as HTMLElement).style.boxShadow = "none";
       }}
     >
       {children}
@@ -374,15 +383,27 @@ function IconButton({
       style={{
         width: 38,
         height: 38,
-        borderRadius: 8,
+        borderRadius: 10,
         border: `1px solid ${active ? DEFAULT_PRIMARY : "rgba(255,255,255,0.10)"}`,
         background: active ? `${DEFAULT_PRIMARY}22` : "rgba(255,255,255,.04)",
         color: active ? DEFAULT_PRIMARY : "rgba(255,255,255,.72)",
-        display: "inline-flex",
-        alignItems: "center",
-        justifyContent: "center",
+        display: "flex", alignItems: "center", justifyContent: "center",
         cursor: "pointer",
+        transition: "background .18s, border-color .18s, transform .22s cubic-bezier(.34,1.56,.64,1), box-shadow .2s",
+        boxShadow: active ? `0 0 14px ${DEFAULT_PRIMARY}33` : "none",
       }}
+      onMouseEnter={e => {
+        const el = e.currentTarget as HTMLButtonElement;
+        el.style.transform = "translateY(-1px) scale(1.08)";
+        el.style.borderColor = active ? DEFAULT_PRIMARY : "rgba(255,255,255,.22)";
+      }}
+      onMouseLeave={e => {
+        const el = e.currentTarget as HTMLButtonElement;
+        el.style.transform = "";
+        el.style.borderColor = active ? DEFAULT_PRIMARY : "rgba(255,255,255,.10)";
+      }}
+      onMouseDown={e => { (e.currentTarget as HTMLButtonElement).style.transform = "scale(.9)"; }}
+      onMouseUp={e => { (e.currentTarget as HTMLButtonElement).style.transform = ""; }}
     >
       {children}
     </button>
@@ -392,8 +413,13 @@ function IconButton({
 function ProgressBar({ value, color = DEFAULT_PRIMARY }: { value?: number | null; color?: string }) {
   const pct = Math.max(0, Math.min(100, Number(value || 0)));
   return (
-    <div style={{ height: 7, borderRadius: 999, background: "rgba(255,255,255,.08)", overflow: "hidden" }}>
-      <div style={{ width: `${pct}%`, height: "100%", background: color, borderRadius: 999 }} />
+    <div style={{ height: 6, borderRadius: 999, background: "rgba(255,255,255,.07)", overflow: "hidden" }}>
+      <div style={{
+        width: `${pct}%`, height: "100%", borderRadius: 999,
+        background: `linear-gradient(90deg, ${color}cc, ${color})`,
+        boxShadow: pct > 0 ? `0 0 8px ${color}66` : "none",
+        transition: "width .6s cubic-bezier(.16,1,.3,1)",
+      }} />
     </div>
   );
 }

@@ -21,8 +21,15 @@ try {
 // ── Export app untuk Vercel serverless ─────────────────────────────────────
 export default app;
 
-// ── Start server hanya di local dev ────────────────────────────────────────
-if (process.env.NODE_ENV !== "production") {
+// ── Start server (unless explicitly in serverless/production) ──────────────
+// Deteksi environment: start server di local/staging, skip di serverless
+const isServerless = !!(
+  process.env.VERCEL ||
+  process.env.AWS_LAMBDA_FUNCTION_NAME ||
+  process.env.LAMBDA_TASK_ROOT
+);
+
+if (!isServerless) {
   const rawPort = process.env.PORT;
   const port = rawPort ? Number(rawPort) : 8080;
 

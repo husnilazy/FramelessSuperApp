@@ -6,11 +6,12 @@ import {
   LayoutDashboard, Film, Users, UsersRound, Receipt, PieChart,
   CreditCard, Settings, LogOut, Globe, BookOpen, Banknote,
   Users2, Sun, Moon, Package, ExternalLink, Menu, X,
-  MessageSquare, ChevronRight, Paintbrush, Activity
+  MessageSquare, ChevronRight, Paintbrush, Activity, FileText
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { useTheme } from "@/lib/theme";
 import { AIChat } from "./ai-chat";
+import { InvoiceNotificationBell } from "./invoice-notifications";
 
 // ── Nav items ─────────────────────────────────────────────────────────────────
 const NAV = [
@@ -19,9 +20,11 @@ const NAV = [
   { href: "/projects", label: "Projects", icon: Film, group: "Operations" },
   { href: "/team", label: "Crew", icon: Users, group: "Operations" },
   { href: "/clients", label: "Clients", icon: UsersRound, group: "Operations" },
+  { href: "/quotations", label: "Penawaran", icon: FileText, group: "Operations" },
   { href: "/invoices", label: "Invoices", icon: Receipt, group: "Operations" },
   { href: "/expenses", label: "Expenses", icon: CreditCard, group: "Operations" },
   { href: "/finance", label: "Finance", icon: PieChart, group: "Operations" },
+  { href: "/accounting", label: "Akuntansi", icon: BookOpen, group: "Operations" },
   { href: "/cms", label: "CMS Editor", icon: Globe, group: "Content" },
   { href: "/courses-admin", label: "Courses", icon: BookOpen, group: "Content" },
   { href: "/digital-assets-admin", label: "Digital Assets", icon: Package, group: "Content" },
@@ -175,6 +178,8 @@ function SidebarContent({ pathname, onNav, c, user, logout }: {
             <p style={{ fontSize: 13, fontWeight: 700, color: c.text, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user?.name || "Admin"}</p>
             <p style={{ fontSize: 10, color: c.muted, margin: 0, textTransform: "uppercase", letterSpacing: ".08em" }}>{user?.role || "Administrator"}</p>
           </div>
+          {/* Notifications */}
+          <InvoiceNotificationBell />
           {/* Theme toggle */}
           <button onClick={toggleTheme}
             style={{ width: 30, height: 30, borderRadius: 8, background: c.hover, border: `1px solid ${c.border}`, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: c.muted, flexShrink: 0 }}>
@@ -282,10 +287,13 @@ export function AppLayout({ children }: { children: ReactNode }) {
             )}
             <span style={{ fontWeight: 700, fontSize: 12, color: c.text }}>Admin</span>
           </div>
-          <button onClick={() => setMobileOpen(true)}
-            style={{ width: 36, height: 36, borderRadius: 10, background: c.hover, border: `1px solid ${c.border}`, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: c.text }}>
-            <Menu size={18} />
-          </button>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <InvoiceNotificationBell />
+            <button onClick={() => setMobileOpen(true)}
+              style={{ width: 36, height: 36, borderRadius: 10, background: c.hover, border: `1px solid ${c.border}`, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: c.text }}>
+              <Menu size={18} />
+            </button>
+          </div>
         </header>
 
         {/* Page content */}

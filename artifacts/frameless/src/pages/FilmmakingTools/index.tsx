@@ -4,6 +4,7 @@ import { DocumentList } from "./DocumentList";
 import { ConceptEditor } from "./ConceptEditor";
 import { ScriptBreakdownEditor } from "./ScriptBreakdownEditor";
 import { ShotlistEditor } from "./ShotlistEditor";
+import { ScreenplayEditor } from "./ScreenplayEditor";
 
 /**
  * FilmmakingTools - Main layout for filmmaking tools
@@ -46,6 +47,7 @@ export function FilmmakingTools() {
             setDocListKey((prev) => prev + 1);
           }}
           onBack={handleBack}
+          onNavigateDoc={handleOpenDoc}
         />
       </div>
     );
@@ -67,14 +69,18 @@ interface EditorContainerProps {
   documentId: string;
   onDocumentSaved: () => void;
   onBack: () => void;
+  /** Loncat ke dokumen lain (dipakai PipelineNav) tanpa perlu balik ke document list dulu */
+  onNavigateDoc: (id: string) => void;
 }
 
-function EditorContainer({ documentId, onDocumentSaved, onBack }: EditorContainerProps) {
+function EditorContainer({ documentId, onDocumentSaved, onBack, onNavigateDoc }: EditorContainerProps) {
   const [docType, setDocType] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   React.useEffect(() => {
     // Fetch document to determine type
+    setLoading(true);
+    setDocType(null);
     const fetchDocType = async () => {
       try {
         const token = localStorage.getItem("crew_token") || localStorage.getItem("token");
@@ -108,15 +114,19 @@ function EditorContainer({ documentId, onDocumentSaved, onBack }: EditorContaine
   switch (docType) {
     case "concept":
       return (
-        <ConceptEditor documentId={documentId} onSaved={onDocumentSaved} onBack={onBack} />
+        <ConceptEditor documentId={documentId} onSaved={onDocumentSaved} onBack={onBack} onNavigateDoc={onNavigateDoc} />
+      );
+    case "screenplay":
+      return (
+        <ScreenplayEditor documentId={documentId} onSaved={onDocumentSaved} onBack={onBack} onNavigateDoc={onNavigateDoc} />
       );
     case "script":
       return (
-        <ScriptBreakdownEditor documentId={documentId} onSaved={onDocumentSaved} onBack={onBack} />
+        <ScriptBreakdownEditor documentId={documentId} onSaved={onDocumentSaved} onBack={onBack} onNavigateDoc={onNavigateDoc} />
       );
     case "shotlist":
       return (
-        <ShotlistEditor documentId={documentId} onSaved={onDocumentSaved} onBack={onBack} />
+        <ShotlistEditor documentId={documentId} onSaved={onDocumentSaved} onBack={onBack} onNavigateDoc={onNavigateDoc} />
       );
     default:
       return <div className="p-4 text-red-500">Unknown document type</div>;

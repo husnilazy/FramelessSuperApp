@@ -306,6 +306,13 @@ router.put(
       .from(invoiceItemsTable)
       .where(eq(invoiceItemsTable.invoiceId, id));
 
+    // Auto-post jurnal bila invoice baru saja menjadi PAID via manual status change
+    if (transitioningToPaid) {
+      autoPostJournal("invoice", id).catch(e =>
+        console.warn("[invoices PUT] auto-post journal skipped:", e?.message || e)
+      );
+    }
+
     res.json({
       ...mapInvoice(invoice),
       items: updatedItems.map((i: any) => mapItem(i)),
@@ -415,6 +422,16 @@ router.post(
       "payment.recorded",
       `Pembayaran ${toStr(method)} sebesar ${toNumStr(amount)} diterima untuk invoice ${invoice?.number || invoiceId}`,
     );
+
+    // Auto-post jurnal jika invoice sekarang PAID
+    if (invoice) {
+      const newPaidTotal = Number(invoice.paidAmount) + Number(amount);
+      if (newPaidTotal >= Number(invoice.total)) {
+        autoPostJournal("invoice", invoiceId).catch(e =>
+          console.warn("[invoices] auto-post journal skipped:", e?.message || e)
+        );
+      }
+    }
 
     res.status(201).json(mapPayment(payment));
   },
@@ -527,6 +544,22 @@ async function logActivity(
       description,
     });
   } catch {}
+}
+
+// Fire-and-forget: call auto-poster endpoint internally
+// Non-blocking — invoice response is not delayed by journal posting
+async function autoPostJournal(type: "invoice" | "expense" | "income", id: string) {
+  try {
+    const port = process.env.PORT || 3001;
+    const url  = `http://localhost:${port}/api/auto-post/${type}/${id}`;
+    const res  = await fetch(url, { method: "POST" });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({})) as any;
+      console.warn(`[autoPostJournal] ${type}/${id}:`, body?.message || body?.error || res.status);
+    }
+  } catch (e) {
+    console.warn(`[autoPostJournal] ${type}/${id} failed silently:`, e);
+  }
 }
 
 export default router;
