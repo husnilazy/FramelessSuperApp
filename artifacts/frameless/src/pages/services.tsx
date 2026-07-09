@@ -2,7 +2,8 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { CheckCircle2, MessageCircle, Mail, X, Play, ArrowRight, ChevronRight } from "lucide-react";
+import { CheckCircle2, MessageCircle, Mail, X, Play, ArrowRight, ChevronRight, Sparkles, Loader2 } from "lucide-react";
+import { AiEstimationForm } from "@/components/AiEstimationForm";
 
 const OR = "#FF6A20";
 const FONT = "'Plus Jakarta Sans',sans-serif";
@@ -10,13 +11,31 @@ const CSS = `
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 html{scroll-behavior:smooth;}
+body{overflow-x:hidden;}
+
+/* Animations for subtle background blobs */
+@keyframes b1{0%,100%{transform:translate(0,0) scale(1);}33%{transform:translate(90px,-70px) scale(1.18);}66%{transform:translate(-50px,90px) scale(0.9);}}
+@keyframes b2{0%,100%{transform:translate(0,0) scale(1);}33%{transform:translate(-100px,70px) scale(0.85);}66%{transform:translate(70px,-100px) scale(1.22);}}
+@keyframes b3{0%,100%{transform:translate(0,0) scale(1);}50%{transform:translate(60px,80px) scale(1.12);}}
 @keyframes fadeUp{from{opacity:0;transform:translateY(18px);}to{opacity:1;transform:translateY(0);}}
-@keyframes b1{0%,100%{transform:translate(0,0);}50%{transform:translate(60px,-40px);}}
-.svc-item{transition:border-color .25s,background .25s,transform .25s;}
-.svc-item:hover{border-color:#FF6A2055!important;transform:translateY(-2px);}
-@media(max-width:768px){
+@keyframes pulse{0%,100%{opacity:.6;}50%{opacity:1;}}
+
+.svc-item{transition:border-color .25s,background .25s,transform .25s,box-shadow .25s;box-shadow:0 18px 40px rgba(0,0,0,.16);}
+.svc-item:hover{border-color:#FF6A2055!important;transform:translateY(-2px);box-shadow:0 24px 52px rgba(0,0,0,.22);}
+.svc-grid{grid-template-columns:repeat(auto-fit,minmax(280px,1fr)) !important;}
+
+/* Responsive adjustments */
+@media(max-width:1024px){
   .svc-grid{grid-template-columns:1fr!important;}
+  .pxs{padding-left:24px!important;padding-right:24px!important;}
+}
+@media(max-width:768px){
   .pxs{padding-left:20px!important;padding-right:20px!important;}
+  .svc-item{padding:22px!important;}
+  .svc-grid{gap:16px!important;}
+}
+@media(max-width:540px){
+  .svc-item{padding:18px!important;}
 }
 `;
 
@@ -82,9 +101,9 @@ const DEFAULTS: ServiceItem[] = [
 
 function VideoModal({ url, onClose }: { url: string; onClose: () => void }) {
     return (
-        <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 999, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,.95)", backdropFilter: "blur(20px)" }}>
+        <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 999, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,.98)", backdropFilter: "blur(28px)" }}>
             <button onClick={onClose} style={{ position: "absolute", top: 20, right: 20, width: 44, height: 44, borderRadius: "50%", background: "rgba(255,255,255,.08)", border: "1px solid rgba(255,255,255,.15)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff" }}><X size={18} /></button>
-            <div onClick={e => e.stopPropagation()} style={{ width: "min(92vw,960px)", aspectRatio: "16/9" }}>
+            <div onClick={e => e.stopPropagation()} style={{ width: "min(92vw,960px)", aspectRatio: "16/9", background: "#000", borderRadius: 18, overflow: "hidden", boxShadow: "0 24px 80px rgba(0,0,0,.5)" }}>
                 <iframe src={watchUrl(url)} style={{ width: "100%", height: "100%", borderRadius: 14, border: "none" }} allow="autoplay;fullscreen" allowFullScreen />
             </div>
         </div>
@@ -95,6 +114,7 @@ export default function ServicesPage() {
     const { toast } = useToast();
     const [modal, setModal] = useState<string | null>(null);
     const [formOpen, setFormOpen] = useState(false);
+    const [aiFormOpen, setAiFormOpen] = useState(false); // New state for AI form
     const [selService, setSelService] = useState<ServiceItem | null>(null);
     const [form, setForm] = useState({ 
       name: "", 
@@ -146,8 +166,10 @@ export default function ServicesPage() {
 
             {/* BG */}
             <div style={{ position: "fixed", inset: 0, overflow: "hidden", pointerEvents: "none", zIndex: 0 }}>
-                <div style={{ position: "absolute", width: "70%", height: "70%", top: "-20%", left: "-15%", background: `radial-gradient(ellipse at center,${OR}45 0%,transparent 65%)`, filter: "blur(80px)", animation: "b1 20s ease-in-out infinite" }} />
-                <div style={{ position: "absolute", inset: 0, backgroundImage: "linear-gradient(rgba(255,255,255,.015) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.015) 1px,transparent 1px)", backgroundSize: "60px 60px" }} />
+                <div style={{ position: "absolute", width: "70%", height: "60%", top: "-12%", left: "-10%", background: `radial-gradient(ellipse at center,${OR}10 0%,transparent 70%)`, filter: "blur(90px)", animation: "b1 20s ease-in-out infinite" }} />
+                <div style={{ position: "absolute", width: "65%", height: "55%", top: "20%", right: "-15%", background: "radial-gradient(ellipse at center,rgba(255,255,255,.06) 0%,transparent 72%)", filter: "blur(100px)", animation: "b2 22s ease-in-out infinite reverse" }} />
+                <div style={{ position: "absolute", width: "60%", height: "55%", bottom: "-10%", left: "10%", background: "radial-gradient(ellipse at center,rgba(255,255,255,.04) 0%,transparent 74%)", filter: "blur(100px)", animation: "b3 24s ease-in-out infinite" }} />
+                <div style={{ position: "absolute", width: "50%", height: "45%", bottom: "20%", right: "5%", background: `radial-gradient(ellipse at center,${OR}08 0%,transparent 70%)`, filter: "blur(90px)", animation: "b1 18s ease-in-out infinite reverse" }} />
             </div>
 
             {/* NAV */}
@@ -171,10 +193,10 @@ export default function ServicesPage() {
             </nav>
 
             {/* HERO */}
-            <section style={{ paddingTop: 62, position: "relative", zIndex: 1 }}>
-                <div className="pxs" style={{ maxWidth: 1280, margin: "0 auto", padding: "80px 28px 70px", textAlign: "center" }}>
+            <section style={{ paddingTop: 62, position: "relative", zIndex: 1, minHeight: "calc(100vh - 62px)", display: "flex", alignItems: "center" }}>
+                <div className="pxs" style={{ maxWidth: 1280, margin: "0 auto", padding: "80px 28px 70px", textAlign: "center", width: "100%" }}>
                     <div style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "5px 16px", borderRadius: 100, background: "rgba(255,255,255,.055)", border: "1px solid rgba(255,255,255,.1)", marginBottom: 24 }}>
-                        <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#4ade80" }} />
+                        <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#4ade80", animation: "pulse 2s ease infinite" }} />
                         <span style={{ fontSize: 11, fontWeight: 600, color: "rgba(255,255,255,.55)", letterSpacing: ".1em", textTransform: "uppercase" }}>Layanan Frameless Creative</span>
                     </div>
                     <h1 style={{ fontSize: "clamp(40px,7vw,82px)", fontWeight: 900, letterSpacing: "-.045em", color: "#fff", margin: "0 0 20px", lineHeight: 1.0 }}>
@@ -186,6 +208,9 @@ export default function ServicesPage() {
                     <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
                         <a href="#service-list" style={{ display: "flex", alignItems: "center", gap: 7, padding: "13px 26px", borderRadius: 100, background: OR, color: "#fff", textDecoration: "none", fontSize: 14, fontWeight: 700 }}>Lihat Semua Layanan <ChevronRight size={14} /></a>
                         <a href="/#contact" style={{ display: "flex", alignItems: "center", gap: 7, padding: "13px 24px", borderRadius: 100, border: "1px solid rgba(255,255,255,.16)", color: "rgba(255,255,255,.75)", textDecoration: "none", fontSize: 14, fontWeight: 600 }}>Konsultasi Gratis</a>
+                        <button onClick={() => setAiFormOpen(true)} style={{ display: "flex", alignItems: "center", gap: 8, padding: "12px 20px", borderRadius: 100, border: "1px solid rgba(255,255,255,.08)", color: "#fff", background: "transparent", cursor: "pointer", fontSize: 14, fontWeight: 700 }}>
+                            <Sparkles size={14} /> Coba Estimasi AI
+                        </button>
                     </div>
                 </div>
             </section>
@@ -198,10 +223,10 @@ export default function ServicesPage() {
                         Semua Layanan<br /><span style={{ color: "rgba(255,255,255,.3)" }}>dalam Satu Atap</span>
                     </h2>
 
-                    <div className="svc-grid" style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 20 }}>
+                    <div className="svc-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))", gap: 20 }}>
                         {services.map((s, i) => {
                             return (
-                                <div key={s.slug || i} id={s.slug} className="svc-item" style={{ background: "rgba(255,255,255,.025)", border: "1px solid rgba(255,255,255,.07)", borderRadius: 24, padding: "28px 26px", scrollMarginTop: 80, display: "flex", flexDirection: "column", gap: 0 }}>
+                                <div key={s.slug || i} id={s.slug} className="svc-item" style={{ background: "rgba(255,255,255,.025)", border: "1px solid rgba(255,255,255,.07)", borderRadius: 24, padding: "28px", scrollMarginTop: 80, display: "flex", flexDirection: "column", gap: 0 }}>
                                     {/* Header */}
                                     <div style={{ display: "flex", alignItems: "flex-start", gap: 16, marginBottom: 16 }}>
                                         <div style={{ width: 50, height: 50, borderRadius: 15, background: `${OR}18`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, flexShrink: 0 }}>{s.icon}</div>
@@ -219,7 +244,7 @@ export default function ServicesPage() {
 
                                     {/* Features grid */}
                                     {s.features && s.features.length > 0 && (
-                                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 20 }}>
+                                        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))", gap: 8, marginBottom: 20 }}>
                                             {s.features.map(f => (
                                                 <div key={f} style={{ display: "flex", alignItems: "flex-start", gap: 7, fontSize: 12, color: "rgba(255,255,255,.55)" }}>
                                                     <CheckCircle2 size={11} color={OR} style={{ flexShrink: 0, marginTop: 1 }} />{f}
@@ -276,10 +301,20 @@ export default function ServicesPage() {
                                                 <p style={{ fontSize: 17, fontWeight: 800, color: OR, margin: 0 }}>{s.price}</p>
                                             </div>
                                         )}
-                                        <button onClick={() => openInquiry(s)}
-                                            style={{ display: "flex", alignItems: "center", gap: 7, padding: "10px 20px", borderRadius: 100, background: OR, border: "none", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: FONT, marginLeft: "auto" }}>
-                                            Hubungi Kami <ArrowRight size={13} />
-                                        </button>
+                                        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                                            <button onClick={() => openInquiry(s)}
+                                                style={{
+                                                    display: "inline-flex", alignItems: "center", gap: 8,
+                                                    padding: "8px 14px", borderRadius: 20, background: `linear-gradient(90deg, ${OR}, #e85a00)`,
+                                                    border: "none", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: FONT,
+                                                    boxShadow: "0 8px 20px rgba(255,106,32,.12)", transition: "transform .12s ease, box-shadow .12s ease"
+                                                }}
+                                                onMouseEnter={(e: any) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 12px 28px rgba(255,106,32,.16)'; }}
+                                                onMouseLeave={(e: any) => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '0 8px 20px rgba(255,106,32,.12)'; }}
+                                            >
+                                                Hubungi Kami <ArrowRight size={13} />
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             );
@@ -289,7 +324,7 @@ export default function ServicesPage() {
             </section>
 
             {/* WHY US */}
-            <section className="pxs" style={{ padding: "80px 28px", background: "rgba(255,255,255,.015)", borderTop: "1px solid rgba(255,255,255,.05)", borderBottom: "1px solid rgba(255,255,255,.05)", position: "relative", zIndex: 1 }}>
+            <section className="pxs" style={{ padding: "80px 28px", background: "rgba(255,255,255,.01)", borderTop: "1px solid rgba(255,255,255,.05)", borderBottom: "1px solid rgba(255,255,255,.05)", position: "relative", zIndex: 1 }}>
                 <div style={{ maxWidth: 1280, margin: "0 auto", textAlign: "center" }}>
                     <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: ".24em", color: OR, textTransform: "uppercase", marginBottom: 14 }}>WHY FRAMELESS</p>
                     <h2 style={{ fontSize: "clamp(28px,4vw,46px)", fontWeight: 900, letterSpacing: "-.04em", color: "#fff", marginBottom: 48, lineHeight: 1.0 }}>Kenapa Pilih<span style={{ color: OR }}> Frameless?</span></h2>
@@ -300,10 +335,10 @@ export default function ServicesPage() {
                             { icon: "⚡", title: "Turnaround Cepat", desc: "Jadwal produksi transparan dan delivery tepat waktu sesuai kontrak." },
                             { icon: "💎", title: "Kualitas Premium", desc: "Equipment profesional, crew terlatih, dan standar produksi tertinggi." },
                         ].map(w => (
-                            <div key={w.title} style={{ padding: "24px 22px", borderRadius: 20, background: "rgba(255,255,255,.025)", border: "1px solid rgba(255,255,255,.07)" }}>
-                                <div style={{ fontSize: 32, marginBottom: 14 }}>{w.icon}</div>
-                                <h3 style={{ fontSize: 15, fontWeight: 700, color: "#fff", marginBottom: 8 }}>{w.title}</h3>
-                                <p style={{ fontSize: 12, color: "rgba(255,255,255,.43)", lineHeight: 1.65 }}>{w.desc}</p>
+                            <div key={w.title} style={{ padding: "28px 24px", borderRadius: 20, background: "rgba(255,255,255,.02)", border: "1px solid rgba(255,255,255,.06)", boxShadow: "0 12px 30px rgba(0,0,0,.1)" }}>
+                                <div style={{ fontSize: 36, marginBottom: 14 }}>{w.icon}</div>
+                                <h3 style={{ fontSize: 16, fontWeight: 700, color: "#fff", marginBottom: 8 }}>{w.title}</h3>
+                                <p style={{ fontSize: 13, color: "rgba(255,255,255,.43)", lineHeight: 1.65 }}>{w.desc}</p>
                             </div>
                         ))}
                     </div>
@@ -312,24 +347,24 @@ export default function ServicesPage() {
 
             {/* CTA Banner */}
             <section className="pxs" style={{ padding: "80px 28px", position: "relative", zIndex: 1 }}>
-                <div style={{ maxWidth: 760, margin: "0 auto", textAlign: "center", padding: "52px 40px", borderRadius: 28, background: `linear-gradient(135deg,${OR}14,rgba(124,58,237,.1))`, border: `1px solid ${OR}28` }}>
+                <div style={{ maxWidth: 760, margin: "0 auto", textAlign: "center", padding: "56px 44px", borderRadius: 32, background: `linear-gradient(135deg,${OR}18,rgba(124,58,237,.14))`, border: `1px solid ${OR}33`, boxShadow: "0 20px 60px rgba(0,0,0,.3)" }}>
                     <h2 style={{ fontSize: "clamp(26px,4vw,42px)", fontWeight: 900, color: "#fff", letterSpacing: "-.03em", marginBottom: 14 }}>Siap Mulai Proyek?</h2>
                     <p style={{ color: "rgba(255,255,255,.45)", fontSize: 15, lineHeight: 1.65, marginBottom: 32, maxWidth: 440, margin: "0 auto 32px" }}>Konsultasi gratis, tanpa komitmen. Tim kami siap diskusi dan buat proposal sesuai kebutuhanmu.</p>
                     <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
-                        {cont.whatsapp && <a href={`https://wa.me/${cont.whatsapp.replace(/\D/g, "")}`} target="_blank" rel="noopener noreferrer" style={{ display: "flex", alignItems: "center", gap: 8, padding: "13px 26px", borderRadius: 100, background: "#25D366", color: "#fff", textDecoration: "none", fontSize: 14, fontWeight: 700 }}><MessageCircle size={16} /> Chat WhatsApp</a>}
-                        {cont.email && <a href={`mailto:${cont.email}`} style={{ display: "flex", alignItems: "center", gap: 8, padding: "13px 24px", borderRadius: 100, border: "1px solid rgba(255,255,255,.15)", color: "rgba(255,255,255,.75)", textDecoration: "none", fontSize: 14, fontWeight: 600 }}><Mail size={15} /> Email Kami</a>}
+                        <a href={`https://wa.me/62859106723181?text=${encodeURIComponent("Halo Frameless, saya ingin konsultasi gratis tentang project video. Bisa bantu?")}`} target="_blank" rel="noopener noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: 10, padding: "14px 28px", borderRadius: 20, background: "#25D366", color: "#fff", textDecoration: "none", fontSize: 15, fontWeight: 800, boxShadow: "0 12px 30px rgba(37,211,102,.12)" }}><MessageCircle size={18} /> Konsultasi Gratis (WA)</a>
+                        {cont.email && <a href={`mailto:${cont.email}`} style={{ display: "inline-flex", alignItems: "center", gap: 10, padding: "12px 22px", borderRadius: 20, border: "1px solid rgba(255,255,255,.12)", color: "rgba(255,255,255,.9)", textDecoration: "none", fontSize: 14, fontWeight: 700, background: "rgba(255,255,255,.02)" }}><Mail size={15} /> Email Kami</a>}
                     </div>
                 </div>
             </section>
 
             {/* Inquiry Modal */}
             {formOpen && (
-                <div onClick={e => { if (e.target === e.currentTarget) { setFormOpen(false); } }} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.85)", backdropFilter: "blur(12px)", zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
-                    <div style={{ background: "#111318", border: "1px solid rgba(255,255,255,.1)", borderRadius: 24, padding: "36px 32px", width: "100%", maxWidth: 440, position: "relative" }}>
-                        <button onClick={() => setFormOpen(false)} style={{ position: "absolute", top: 14, right: 14, width: 30, height: 30, borderRadius: "50%", background: "rgba(255,255,255,.06)", border: "none", cursor: "pointer", color: "rgba(255,255,255,.5)", display: "flex", alignItems: "center", justifyContent: "center" }}><X size={14} /></button>
-                        <h3 style={{ fontSize: 20, fontWeight: 800, color: "#fff", marginBottom: 6 }}>Kirim Inquiry</h3>
+                <div onClick={e => { if (e.target === e.currentTarget) { setFormOpen(false); } }} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.88)", backdropFilter: "blur(16px)", zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+                    <div style={{ background: "#111318", border: "1px solid rgba(255,255,255,.12)", borderRadius: 28, padding: "36px 32px", width: "100%", maxWidth: 460, position: "relative", boxShadow: "0 24px 80px rgba(0,0,0,.4)" }}>
+                        <button onClick={() => setFormOpen(false)} style={{ position: "absolute", top: 16, right: 16, width: 34, height: 34, borderRadius: "50%", background: "rgba(255,255,255,.07)", border: "none", cursor: "pointer", color: "rgba(255,255,255,.5)", display: "flex", alignItems: "center", justifyContent: "center" }}><X size={14} /></button>
+                        <h3 style={{ fontSize: 22, fontWeight: 800, color: "#fff", marginBottom: 8 }}>Kirim Inquiry</h3>
                         {selService && <p style={{ fontSize: 13, color: OR, marginBottom: 20, fontWeight: 600 }}>{selService.icon} {selService.title}</p>}
-                        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                             {[
                               { k: "name", l: "Nama Lengkap *", ph: "Nama kamu" }, 
                               { k: "email", l: "Email *", t: "email", ph: "email@kamu.com" }, 
@@ -387,6 +422,15 @@ export default function ServicesPage() {
             )}
 
             {modal && <VideoModal url={modal} onClose={() => setModal(null)} />}
+            {aiFormOpen && <AiEstimationForm
+                initialPrompt={`Layanan: ${selService?.title || ''}
+Deskripsi: ${selService?.description || ''}
+Estimasi harga saat ini: ${selService?.price || ''}
+Durasi tipikal: ${selService?.duration || ''}
+
+Tolong berikan estimasi biaya (dalam Rupiah), durasi (dalam hari/minggu), dan saran gaya produksi dalam poin-poin singkat.`}
+                onClose={() => setAiFormOpen(false)}
+            />}
         </div>
     );
 }
