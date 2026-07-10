@@ -1,4 +1,5 @@
 // src/routes/index.ts
+import crewLinkInBioRouter from "./crew-linkinbio.js";
 import { Router, type IRouter } from "express";
 import authRouter from "./auth.js";
 import artsRouter from "./arts.js";
@@ -38,6 +39,7 @@ import journalRouter from "./journal.js";
 import accountMappingRouter from "./account-mapping.js";
 import autoPosterRouter from "./auto-poster.js";
 import quotationsRouter from "./quotations.js";
+
 
 const router: IRouter = Router();
 
@@ -82,6 +84,7 @@ router.use(journalRouter);
 router.use(accountMappingRouter);
 router.use(autoPosterRouter);
 router.use(quotationsRouter);
+router.use(crewLinkInBioRouter);
 
 // 404 fallback
 router.use((req, res) => {

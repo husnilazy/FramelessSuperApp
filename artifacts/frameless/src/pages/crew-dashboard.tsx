@@ -1,3 +1,4 @@
+import { CrewLinkInBio } from "@/pages/CrewLinkInBio";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { AIChat } from "@/components/ai-chat";
@@ -12,6 +13,7 @@ import {
   BriefcaseBusiness,
   CalendarDays,
   Check,
+  Globe,
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
@@ -130,7 +132,7 @@ type ChatMsg = {
 };
 
 type CalendarView = "week" | "month" | "agenda";
-type Tab = "overview" | "projects" | "tasks" | "crew" | "files" | "calendar" | "chat" | "brief" | "portfolio" | "filmmaking";
+type Tab = "overview" | "projects" | "tasks" | "crew" | "files" | "calendar" | "chat" | "brief" | "portfolio" | "filmmaking" | "linkinbio";
 
 const FONT = "'Plus Jakarta Sans', sans-serif";
 const DEFAULT_PRIMARY = "#FF6A20";
@@ -1053,6 +1055,7 @@ function CrewDashboard({ user, onLogout }: { user: CrewUser; onLogout: () => voi
     { id: "crew", label: "Crew", icon: <Users size={16} /> },
     { id: "files", label: "Files", icon: <Files size={16} />, count: assets.length },
     { id: "filmmaking", label: "Filmmaking Tools", icon: <PlayCircle size={16} /> },
+    { id: "linkinbio", label: "Link-in-Bio", icon: <Globe size={16} /> },
     { id: "portfolio", label: "My Portfolio", icon: <Film size={16} /> },
     { id: "calendar", label: "Calendar", icon: <CalendarDays size={16} />, count: monthEvents.length },
     { id: "brief", label: "Daily Brief", icon: <ClipboardList size={16} /> },
@@ -1739,6 +1742,9 @@ function CrewDashboard({ user, onLogout }: { user: CrewUser; onLogout: () => voi
           {tab === "filmmaking" && (
             <FilmmakingTools />
           )}
+          {tab === "linkinbio" && (
+  <CrewLinkInBio />
+)}
             </motion.div>
           </AnimatePresence>
         </main>

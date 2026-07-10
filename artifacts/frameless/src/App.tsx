@@ -1,4 +1,5 @@
 // artifacts/frameless/src/App.tsx
+import CrewLinkPage from "@/pages/crew-link-page";
 import { Switch, Route, Router as WouterRouter } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -16,7 +17,7 @@ import LandingPage       from "@/pages/landing";
 import ServicesPage      from "@/pages/services";
 import ServiceDetailPage from "@/pages/service-detail";
 import CoursePage        from "@/pages/course-page";
-import CoursesPage       from "@/pages/courses";
+import CoursesPage       from "@/pages/courses";   
 import DigitalAssetsPage from "@/pages/digital-assets";
 import PortalPage        from "@/pages/portal";
 import AcademyLoginPage  from "@/pages/academy-login";
@@ -104,6 +105,7 @@ function Router() {
       <Route path="/portal/:id"    component={PortalPage} />
       <Route path="/academy/login" component={AcademyLoginPage} />
       <Route path="/academy-login" component={AcademyLoginPage} />
+      <Route path="/crew/link/:username" component={CrewLinkPage} />
 
       {/* Crew */}
       <Route path="/crew/login"     component={CrewLoginPage} />
