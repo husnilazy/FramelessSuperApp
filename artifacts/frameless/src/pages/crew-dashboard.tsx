@@ -1180,28 +1180,30 @@ function CrewDashboard({ user, onLogout }: { user: CrewUser; onLogout: () => voi
         .mobile-toggle{display:none!important}
         .desktop-only{display:flex}
 
-        /* Sidebar overlay backdrop (mobile) */
-        .sidebar-backdrop{display:none;position:fixed;inset:0;z-index:55;background:rgba(0,0,0,0.45);backdrop-filter:blur(2px)}
+        /* Sidebar overlay backdrop (mobile) — NO backdrop-filter blur, it would cover sidebar too */
+        .sidebar-backdrop{display:none;position:fixed;inset:0;z-index:58;background:rgba(0,0,0,0.5)}
 
         @media(max-width:1024px){
           .crew-shell{grid-template-columns:1fr}
           .crew-sidebar{
             display:block!important;
             position:fixed;
-            z-index:60;
+            z-index:62;
             inset:68px auto 0 0;
             width:268px;
-            box-shadow:0 20px 60px rgba(0,0,0,0.4);
+            box-shadow:0 20px 60px rgba(0,0,0,0.5);
             transform:${mobileMenu ? "translateX(0)" : "translateX(-100%)"};
             transition:transform .28s cubic-bezier(0.23,1,0.32,1);
-            background:${isDark ? "rgba(8,8,10,0.97)" : "rgba(255,255,255,0.97)"}!important;
+            background:${isDark ? "rgba(10,10,12,0.98)" : "rgba(255,255,255,0.98)"}!important;
+            backdrop-filter:none!important;
+            -webkit-backdrop-filter:none!important;
           }
           .mobile-toggle{display:flex!important}
           .desktop-only{display:none!important}
           .crew-main{padding:18px 16px;padding-bottom:calc(80px + env(safe-area-inset-bottom,0px))}
           .metric-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
           .content-grid{grid-template-columns:1fr!important}
-          .sidebar-backdrop{display:${mobileMenu ? "block" : "none"}}
+          .sidebar-backdrop{display:${mobileMenu ? "block" : "none"}!important}
 
           /* Mobile bottom nav */
           .mobile-bottom-nav{
@@ -1373,13 +1375,12 @@ function CrewDashboard({ user, onLogout }: { user: CrewUser; onLogout: () => voi
             className="crew-sidebar"
             style={{
               borderRight: `1px solid ${glass.border}`,
+              /* Background solid untuk mobile (CSS override), semi-transparent untuk desktop */
               background: isDark ? "rgba(8,8,10,0.55)" : "rgba(255,255,255,0.55)",
               padding: "18px 14px",
-              backdropFilter: "blur(24px)",
-              WebkitBackdropFilter: "blur(24px)",
               overflowY: "auto",
-              position: "relative",
-              zIndex: 1,
+              /* JANGAN taruh backdropFilter di inline style — akan blur konten di belakang sidebar pada mobile */
+              /* JANGAN taruh zIndex di inline style — CSS class handles ini */
             }}
           >
             <div style={{ display: "grid", gap: 6 }}>
@@ -1433,13 +1434,6 @@ function CrewDashboard({ user, onLogout }: { user: CrewUser; onLogout: () => voi
             </div>
           </aside>
         </AnimatePresence>
-
-        {/* Sidebar backdrop — tap to close on mobile */}
-        <div
-          className="sidebar-backdrop"
-          onClick={() => setMobileMenu(false)}
-          aria-hidden="true"
-        />
 
         {/* Main Content Area */}
         <main className="crew-main">
@@ -1821,6 +1815,15 @@ function CrewDashboard({ user, onLogout }: { user: CrewUser; onLogout: () => voi
           </AnimatePresence>
         </main>
       </div>
+
+      {/* Sidebar backdrop — HARUS di luar crew-shell grid agar fixed position benar */}
+      {/* z-index: 58 (di bawah sidebar 62, di atas konten) */}
+      <div
+        className="sidebar-backdrop"
+        onClick={() => setMobileMenu(false)}
+        aria-hidden="true"
+      />
+
       {/* Mobile Bottom Navigation — hanya tampil di layar ≤1024px via CSS */}
       {(() => {
         const BOTTOM_NAV: Array<{ id: Tab; label: string; icon: React.ReactNode }> = [

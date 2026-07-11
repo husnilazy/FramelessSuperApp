@@ -176,6 +176,7 @@ function LivePreview({ profile }: { profile: Profile }) {
 // ── Link Row ───────────────────────────────────────────────────────────────────
 function LinkRow({ link, onUpdate, onDelete }: { link: LinkItem; onUpdate: (id: string, patch: Partial<LinkItem>) => void; onDelete: (id: string) => void }) {
   const [editing, setEditing] = useState(false);
+  const [isMobile] = useState(() => window.innerWidth < 640);
   const color = getPlatformColor(link.icon);
   return (
     <div style={{ border: `1px solid ${link.isActive ? `${color}44` : LINE}`, borderRadius: 12, background: link.isActive ? `${color}0a` : "rgba(255,255,255,.025)", overflow: "hidden", transition: "all .2s" }}>
@@ -186,14 +187,16 @@ function LinkRow({ link, onUpdate, onDelete }: { link: LinkItem; onUpdate: (id: 
           <div style={{ fontSize: 13, fontWeight: 700, color: "#fff", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{link.label || "Untitled Link"}</div>
           <div style={{ fontSize: 11, color: "rgba(255,255,255,.4)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{link.url || "No URL set"}</div>
         </div>
-        <span style={{ fontSize: 9, fontWeight: 800, letterSpacing: ".06em", color: LINK_TYPE_COLORS[link.type] || OR, background: `${LINK_TYPE_COLORS[link.type] || OR}18`, padding: "3px 7px", borderRadius: 999 }}>{link.type.toUpperCase()}</span>
-        <button onClick={() => onUpdate(link.id, { isActive: !link.isActive })} style={{ width: 28, height: 28, borderRadius: 8, border: "none", background: link.isActive ? `${OR}22` : "rgba(255,255,255,.05)", color: link.isActive ? OR : "rgba(255,255,255,.3)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
-          {link.isActive ? <Eye size={13} /> : <EyeOff size={13} />}
-        </button>
-        <button onClick={() => setEditing(!editing)} style={{ width: 28, height: 28, borderRadius: 8, border: "none", background: editing ? `${OR}22` : "rgba(255,255,255,.05)", color: editing ? OR : "rgba(255,255,255,.4)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
-          {editing ? <ChevronUp size={13} /> : <Edit3 size={13} />}
-        </button>
-        <button onClick={() => onDelete(link.id)} style={{ width: 28, height: 28, borderRadius: 8, border: "none", background: "rgba(239,68,68,.08)", color: "#f87171", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><Trash2 size={13} /></button>
+        {!isMobile && <span style={{ fontSize: 9, fontWeight: 800, letterSpacing: ".06em", color: LINK_TYPE_COLORS[link.type] || OR, background: `${LINK_TYPE_COLORS[link.type] || OR}18`, padding: "3px 7px", borderRadius: 999, flexShrink: 0 }}>{link.type.toUpperCase()}</span>}
+        <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
+          <button onClick={() => onUpdate(link.id, { isActive: !link.isActive })} style={{ width: 30, height: 30, borderRadius: 8, border: "none", background: link.isActive ? `${OR}22` : "rgba(255,255,255,.05)", color: link.isActive ? OR : "rgba(255,255,255,.3)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+            {link.isActive ? <Eye size={13} /> : <EyeOff size={13} />}
+          </button>
+          <button onClick={() => setEditing(!editing)} style={{ width: 30, height: 30, borderRadius: 8, border: "none", background: editing ? `${OR}22` : "rgba(255,255,255,.05)", color: editing ? OR : "rgba(255,255,255,.4)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+            {editing ? <ChevronUp size={13} /> : <Edit3 size={13} />}
+          </button>
+          <button onClick={() => onDelete(link.id)} style={{ width: 30, height: 30, borderRadius: 8, border: "none", background: "rgba(239,68,68,.08)", color: "#f87171", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><Trash2 size={13} /></button>
+        </div>
       </div>
       <AnimatePresence>
         {editing && (
@@ -202,7 +205,7 @@ function LinkRow({ link, onUpdate, onDelete }: { link: LinkItem; onUpdate: (id: 
               <div style={{ paddingTop: 12 }} />
               <div style={{ display: "grid", gap: 5 }}><label style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,.55)" }}>LABEL</label><input value={link.label} onChange={(e) => onUpdate(link.id, { label: e.target.value })} placeholder="e.g. My YouTube Channel" style={inputStyle} /></div>
               <div style={{ display: "grid", gap: 5 }}><label style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,.55)" }}>URL</label><input value={link.url} onChange={(e) => onUpdate(link.id, { url: e.target.value })} placeholder="https://" style={inputStyle} /></div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 10 }}>
                 <div style={{ display: "grid", gap: 5 }}><label style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,.55)" }}>ICON</label>
                   <select value={link.icon} onChange={(e) => onUpdate(link.id, { icon: e.target.value })} style={selectStyle}>{ICON_OPTIONS.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}</select></div>
                 <div style={{ display: "grid", gap: 5 }}><label style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,.55)" }}>TYPE</label>
@@ -219,6 +222,7 @@ function LinkRow({ link, onUpdate, onDelete }: { link: LinkItem; onUpdate: (id: 
 // ── Page Item Row ──────────────────────────────────────────────────────────────
 function PageItemRow({ item, onUpdate, onDelete }: { item: PageItem; onUpdate: (id: string, patch: Partial<PageItem>) => void; onDelete: (id: string) => void }) {
   const [editing, setEditing] = useState(false);
+  const [isMobile] = useState(() => window.innerWidth < 640);
   return (
     <div style={{ border: `1px solid ${item.isActive ? `${OR}44` : LINE}`, borderRadius: 12, background: item.isActive ? `${OR}08` : "rgba(255,255,255,.025)", overflow: "hidden" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px" }}>
@@ -245,7 +249,7 @@ function PageItemRow({ item, onUpdate, onDelete }: { item: PageItem; onUpdate: (
               <div style={{ paddingTop: 12 }} />
               <div style={{ display: "grid", gap: 5 }}><label style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,.55)" }}>JUDUL ITEM</label><input value={item.title} onChange={(e) => onUpdate(item.id, { title: e.target.value })} placeholder="Sony ZV-E10" style={inputStyle} /></div>
               <div style={{ display: "grid", gap: 5 }}><label style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,.55)" }}>DESKRIPSI</label><textarea value={item.description} onChange={(e) => onUpdate(item.id, { description: e.target.value })} placeholder="Kamera andalan untuk vlog harian" rows={2} style={{ ...inputStyle, resize: "vertical" }} /></div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 10 }}>
                 <div style={{ display: "grid", gap: 5 }}><label style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,.55)" }}>LINK URL</label><input value={item.linkUrl} onChange={(e) => onUpdate(item.id, { linkUrl: e.target.value })} placeholder="https://shopee.co.id/..." style={inputStyle} /></div>
                 <div style={{ display: "grid", gap: 5 }}><label style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,.55)" }}>LABEL TOMBOL</label><input value={item.linkLabel} onChange={(e) => onUpdate(item.id, { linkLabel: e.target.value })} placeholder="Beli di Shopee" style={inputStyle} /></div>
               </div>
@@ -266,6 +270,7 @@ function SubPageEditor({ page, username, accentColor, onSave, onDelete, onClose 
   const [draft, setDraft] = useState<SubPage>(page);
   const [saving, setSaving] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [isMobile] = useState(() => window.innerWidth < 640);
   const { toast } = useToast();
 
   const publicUrl = `${window.location.origin}/@${username}/${draft.slug}`;
@@ -306,16 +311,18 @@ function SubPageEditor({ page, username, accentColor, onSave, onDelete, onClose 
       style={{ background: SURFACE, border: `1px solid ${LINE}`, borderRadius: 16, padding: 20, display: "grid", gap: 16 }}>
 
       {/* Editor header */}
-      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-        <button onClick={onClose} style={{ width: 30, height: 30, borderRadius: 8, border: `1px solid ${LINE}`, background: "rgba(255,255,255,.05)", color: "rgba(255,255,255,.6)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><X size={14} /></button>
-        <div style={{ flex: 1, fontSize: 14, fontWeight: 800, color: "#fff" }}>Edit Sub-Page</div>
-        <button onClick={copyUrl} style={{ padding: "6px 12px", borderRadius: 8, border: `1px solid ${LINE}`, background: "rgba(255,255,255,.05)", color: "rgba(255,255,255,.6)", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: FONT, display: "flex", alignItems: "center", gap: 5 }}>
-          {copied ? <Check size={11} color="#34d399" /> : <Copy size={11} />} Salin URL
-        </button>
-        <button onClick={() => onDelete(draft.id)} style={{ padding: "6px 12px", borderRadius: 8, border: "1px solid rgba(239,68,68,.3)", background: "rgba(239,68,68,.08)", color: "#f87171", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: FONT }}>Hapus</button>
-        <button onClick={handleSave} disabled={saving} style={{ padding: "6px 14px", borderRadius: 8, border: "none", background: saving ? `${OR}66` : OR, color: "#fff", fontSize: 11, fontWeight: 800, cursor: "pointer", fontFamily: FONT, display: "flex", alignItems: "center", gap: 5 }}>
-          {saving ? <Loader2 size={11} style={{ animation: "spin .7s linear infinite" }} /> : <Save size={11} />} Simpan
-        </button>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+        <button onClick={onClose} style={{ width: 32, height: 32, borderRadius: 8, border: `1px solid ${LINE}`, background: "rgba(255,255,255,.05)", color: "rgba(255,255,255,.6)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}><X size={14} /></button>
+        <div style={{ flex: 1, fontSize: 14, fontWeight: 800, color: "#fff", minWidth: 80 }}>Edit Sub-Page</div>
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+          <button onClick={copyUrl} style={{ padding: "6px 10px", borderRadius: 8, border: `1px solid ${LINE}`, background: "rgba(255,255,255,.05)", color: "rgba(255,255,255,.6)", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: FONT, display: "flex", alignItems: "center", gap: 5 }}>
+            {copied ? <Check size={11} color="#34d399" /> : <Copy size={11} />} URL
+          </button>
+          {draft.id && <button onClick={() => onDelete(draft.id)} style={{ padding: "6px 10px", borderRadius: 8, border: "1px solid rgba(239,68,68,.3)", background: "rgba(239,68,68,.08)", color: "#f87171", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: FONT }}>Hapus</button>}
+          <button onClick={handleSave} disabled={saving} style={{ padding: "6px 14px", borderRadius: 8, border: "none", background: saving ? `${OR}66` : OR, color: "#fff", fontSize: 11, fontWeight: 800, cursor: "pointer", fontFamily: FONT, display: "flex", alignItems: "center", gap: 5 }}>
+            {saving ? <Loader2 size={11} style={{ animation: "spin .7s linear infinite" }} /> : <Save size={11} />} Simpan
+          </button>
+        </div>
       </div>
 
       {/* URL preview */}
@@ -327,7 +334,7 @@ function SubPageEditor({ page, username, accentColor, onSave, onDelete, onClose 
 
       {/* Page meta */}
       <div style={{ display: "grid", gap: 10 }}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 10 }}>
           <div style={{ display: "grid", gap: 5 }}><label style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,.5)" }}>JUDUL HALAMAN</label>
             <input value={draft.title} onChange={(e) => { patchPage({ title: e.target.value, slug: slugify(e.target.value) }); }} placeholder="My Equipment" style={inputStyle} /></div>
           <div style={{ display: "grid", gap: 5 }}><label style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,.5)" }}>SLUG URL</label>
@@ -381,10 +388,19 @@ export function CrewLinkInBio() {
   const [pages, setPages] = useState<SubPage[]>([]);
   const [loadingPages, setLoadingPages] = useState(false);
   const [editingPage, setEditingPage] = useState<SubPage | null>(null);
+  const [showMobilePreview, setShowMobilePreview] = useState(false);
+  const [isMobile, setIsMobile] = useState(typeof window !== "undefined" ? window.innerWidth < 900 : false);
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const bannerInputRef = useRef<HTMLInputElement>(null);
 
   const publicUrl = profile ? `${window.location.origin}/${profile.username}` : "";
+
+  // Responsive: track screen width
+  useEffect(() => {
+    const handler = () => setIsMobile(window.innerWidth < 900);
+    window.addEventListener("resize", handler);
+    return () => window.removeEventListener("resize", handler);
+  }, []);
 
   // Load profile
   useEffect(() => {
@@ -468,10 +484,19 @@ export function CrewLinkInBio() {
   if (!profile) return null;
 
   const sectionBtnStyle = (active: boolean): React.CSSProperties => ({
-    padding: "8px 16px", borderRadius: 10, border: `1px solid ${active ? OR : LINE}`,
+    padding: isMobile ? "7px 12px" : "8px 16px",
+    borderRadius: 10,
+    border: `1px solid ${active ? OR : LINE}`,
     background: active ? `${OR}18` : "rgba(255,255,255,.04)",
-    color: active ? OR : "rgba(255,255,255,.55)", fontSize: 12, fontWeight: 800,
-    cursor: "pointer", fontFamily: FONT, transition: "all .15s", letterSpacing: ".04em",
+    color: active ? OR : "rgba(255,255,255,.55)",
+    fontSize: isMobile ? 11 : 12,
+    fontWeight: 800,
+    cursor: "pointer",
+    fontFamily: FONT,
+    transition: "all .15s",
+    letterSpacing: ".03em",
+    whiteSpace: "nowrap" as const,
+    flexShrink: 0,
   });
 
   return (
@@ -479,39 +504,111 @@ export function CrewLinkInBio() {
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
 
       {/* Header */}
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, marginBottom: 24, flexWrap: "wrap" }}>
-        <div>
-          <div style={{ fontSize: 20, fontWeight: 900, marginBottom: 4 }}>Link-in-Bio</div>
-          <div style={{ fontSize: 13, color: "rgba(255,255,255,.5)" }}>Kelola halaman personal dan semua link kamu di satu tempat.</div>
-        </div>
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-          <button onClick={() => patch({ isPublic: !profile.isPublic })} style={{ padding: "8px 14px", borderRadius: 10, border: `1px solid ${profile.isPublic ? "#34d39988" : LINE}`, background: profile.isPublic ? "rgba(52,211,153,.12)" : "rgba(255,255,255,.05)", color: profile.isPublic ? "#34d399" : "rgba(255,255,255,.5)", fontSize: 12, fontWeight: 800, cursor: "pointer", fontFamily: FONT, display: "flex", alignItems: "center", gap: 6 }}>
-            {profile.isPublic ? <Eye size={13} /> : <EyeOff size={13} />} {profile.isPublic ? "Publik" : "Privat"}
+      <div style={{ marginBottom: 16 }}>
+        {/* Baris 1: Title + action icons */}
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 20, fontWeight: 900, lineHeight: 1.2 }}>Link-in-Bio</div>
+            {!isMobile && <div style={{ fontSize: 13, color: "rgba(255,255,255,.5)", marginTop: 2 }}>Kelola halaman personal dan semua link kamu di satu tempat.</div>}
+          </div>
+          {/* Icon-only buttons di mobile, full label di desktop */}
+          <button
+            onClick={() => patch({ isPublic: !profile.isPublic })}
+            title={profile.isPublic ? "Publik" : "Privat"}
+            style={{ padding: isMobile ? "8px 10px" : "8px 14px", borderRadius: 10, border: `1px solid ${profile.isPublic ? "#34d39988" : LINE}`, background: profile.isPublic ? "rgba(52,211,153,.12)" : "rgba(255,255,255,.05)", color: profile.isPublic ? "#34d399" : "rgba(255,255,255,.5)", fontSize: 12, fontWeight: 800, cursor: "pointer", fontFamily: FONT, display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+            {profile.isPublic ? <Eye size={14} /> : <EyeOff size={14} />}
+            {!isMobile && (profile.isPublic ? " Publik" : " Privat")}
           </button>
-          {profile.isPublic && <button onClick={copyUrl} style={{ padding: "8px 14px", borderRadius: 10, border: `1px solid ${LINE}`, background: "rgba(255,255,255,.05)", color: "rgba(255,255,255,.7)", fontSize: 12, fontWeight: 800, cursor: "pointer", fontFamily: FONT, display: "flex", alignItems: "center", gap: 6 }}>{copied ? <Check size={13} color="#34d399" /> : <Copy size={13} />} Salin Link</button>}
-          {profile.isPublic && profile.username && <a href={`/${profile.username}`} target="_blank" rel="noreferrer" style={{ padding: "8px 14px", borderRadius: 10, border: `1px solid ${LINE}`, background: "rgba(255,255,255,.05)", color: "rgba(255,255,255,.7)", fontSize: 12, fontWeight: 800, textDecoration: "none", fontFamily: FONT, display: "flex", alignItems: "center", gap: 6 }}><ExternalLink size={13} /> Lihat Halaman</a>}
-          <button onClick={save} disabled={saving} style={{ padding: "8px 18px", borderRadius: 10, border: "none", background: saving ? "rgba(255,106,32,.5)" : `linear-gradient(135deg, ${OR}, #e84d00)`, color: "#fff", fontSize: 12, fontWeight: 800, cursor: saving ? "not-allowed" : "pointer", display: "flex", alignItems: "center", gap: 7, fontFamily: FONT, boxShadow: saving ? "none" : `0 4px 20px ${OR}44` }}>
-            {saving ? <Loader2 size={13} style={{ animation: "spin .7s linear infinite" }} /> : <Save size={13} />} {saving ? "Menyimpan..." : "Simpan"}
+          {profile.isPublic && (
+            <button onClick={copyUrl} title="Salin Link" style={{ padding: isMobile ? "8px 10px" : "8px 14px", borderRadius: 10, border: `1px solid ${LINE}`, background: "rgba(255,255,255,.05)", color: copied ? "#34d399" : "rgba(255,255,255,.7)", fontSize: 12, fontWeight: 800, cursor: "pointer", fontFamily: FONT, display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+              {copied ? <Check size={14} /> : <Copy size={14} />}
+              {!isMobile && " Salin Link"}
+            </button>
+          )}
+          {profile.isPublic && profile.username && (
+            <a href={`/${profile.username}`} target="_blank" rel="noreferrer" title="Lihat Halaman"
+              style={{ padding: isMobile ? "8px 10px" : "8px 14px", borderRadius: 10, border: `1px solid ${LINE}`, background: "rgba(255,255,255,.05)", color: "rgba(255,255,255,.7)", fontSize: 12, fontWeight: 800, textDecoration: "none", fontFamily: FONT, display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+              <ExternalLink size={14} />
+              {!isMobile && " Lihat Halaman"}
+            </a>
+          )}
+        </div>
+
+        {/* Baris 2: Preview (mobile) + Simpan — full width di mobile */}
+        <div style={{ display: "flex", gap: 8 }}>
+          {isMobile && (
+            <button
+              onClick={() => setShowMobilePreview(v => !v)}
+              style={{ flex: 1, padding: "9px 14px", borderRadius: 10, border: `1px solid ${showMobilePreview ? OR+"66" : LINE}`, background: showMobilePreview ? `${OR}18` : "rgba(255,255,255,.05)", color: showMobilePreview ? OR : "rgba(255,255,255,.6)", fontSize: 12, fontWeight: 800, cursor: "pointer", fontFamily: FONT, display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }}>
+              <Smartphone size={14} /> Preview
+            </button>
+          )}
+          <button
+            onClick={save}
+            disabled={saving}
+            style={{ flex: isMobile ? 1 : "none", padding: "9px 20px", borderRadius: 10, border: "none", background: saving ? "rgba(255,106,32,.5)" : `linear-gradient(135deg, ${OR}, #e84d00)`, color: "#fff", fontSize: 12, fontWeight: 800, cursor: saving ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 7, fontFamily: FONT, boxShadow: saving ? "none" : `0 4px 20px ${OR}44` }}>
+            {saving ? <Loader2 size={13} style={{ animation: "spin .7s linear infinite" }} /> : <Save size={13} />}
+            {saving ? "Menyimpan..." : "Simpan"}
           </button>
         </div>
       </div>
 
       {/* URL bar */}
       {profile.isPublic && (
-        <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} style={{ background: "rgba(52,211,153,.08)", border: "1px solid rgba(52,211,153,.2)", borderRadius: 12, padding: "10px 14px", display: "flex", alignItems: "center", gap: 10, marginBottom: 24 }}>
-          <Globe size={14} color="#34d399" />
-          <span style={{ fontSize: 12, color: "rgba(255,255,255,.7)", flex: 1 }}>
-            Halaman kamu live di: <a href={publicUrl} target="_blank" rel="noreferrer" style={{ color: "#34d399", fontWeight: 700 }}>{publicUrl}</a>
-          </span>
+        <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
+          style={{ background: "rgba(52,211,153,.08)", border: "1px solid rgba(52,211,153,.2)", borderRadius: 12, padding: "9px 12px", display: "flex", alignItems: "center", gap: 8, marginBottom: 16, minWidth: 0, overflow: "hidden" }}>
+          <Globe size={13} color="#34d399" style={{ flexShrink: 0 }} />
+          <a href={publicUrl} target="_blank" rel="noreferrer"
+            style={{ color: "#34d399", fontWeight: 700, fontSize: 12, textDecoration: "none", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, minWidth: 0 }}>
+            {publicUrl}
+          </a>
+          <button onClick={copyUrl} style={{ border: "none", background: "none", cursor: "pointer", color: copied ? "#34d399" : "rgba(255,255,255,.4)", padding: 2, flexShrink: 0, display: "flex" }}>
+            {copied ? <Check size={13} /> : <Copy size={13} />}
+          </button>
         </motion.div>
       )}
 
-      {/* Layout */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 28, alignItems: "start" }}>
+      {/* Mobile Preview Sheet — slide up dari bawah */}
+      <AnimatePresence>
+        {isMobile && showMobilePreview && (
+          <motion.div
+            key="mobile-preview-sheet"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setShowMobilePreview(false)}
+            style={{ position: "fixed", inset: 0, zIndex: 999, background: "rgba(0,0,0,.7)", backdropFilter: "blur(6px)", display: "flex", alignItems: "flex-end", justifyContent: "center" }}
+          >
+            <motion.div
+              initial={{ y: 80, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 80, opacity: 0 }}
+              transition={{ type: "spring", stiffness: 360, damping: 32 }}
+              onClick={(e) => e.stopPropagation()}
+              style={{ width: "100%", maxWidth: 420, padding: "0 16px 32px", display: "flex", flexDirection: "column", alignItems: "center", gap: 14 }}
+            >
+              {/* Pull handle */}
+              <div style={{ width: 40, height: 4, borderRadius: 999, background: "rgba(255,255,255,.25)", marginBottom: 4 }} />
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", marginBottom: 4 }}>
+                <span style={{ fontSize: 11, fontWeight: 800, color: "rgba(255,255,255,.4)", letterSpacing: ".06em" }}>PREVIEW LIVE</span>
+                <button onClick={() => setShowMobilePreview(false)} style={{ width: 28, height: 28, borderRadius: 8, border: `1px solid ${LINE}`, background: "rgba(255,255,255,.06)", color: "rgba(255,255,255,.5)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+                  <X size={14} />
+                </button>
+              </div>
+              <LivePreview profile={profile} />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Layout — desktop: 2 kolom (form + preview), mobile: 1 kolom penuh */}
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr auto", gap: isMobile ? 16 : 28, alignItems: "start" }}>
         <div style={{ display: "grid", gap: 16 }}>
 
-          {/* Section tabs */}
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          {/* Section tabs — scroll horizontal di mobile dengan fade mask */}
+          <div style={{ position: "relative" }}>
+          {isMobile && <div style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: 32, background: "linear-gradient(to right, transparent, rgba(8,8,10,0.95))", pointerEvents: "none", zIndex: 2 }} />}
+          <div style={{ display: "flex", gap: 6, overflowX: "auto", flexWrap: "nowrap", paddingBottom: 2, scrollbarWidth: "none", msOverflowStyle: "none" }}>
             <button style={sectionBtnStyle(activeSection === "identity")} onClick={() => setActiveSection("identity")}>
               <span style={{ display: "flex", alignItems: "center", gap: 6 }}><Edit3 size={12} /> Identitas</span>
             </button>
@@ -530,6 +627,7 @@ export function CrewLinkInBio() {
                 {pages.length > 0 && <span style={{ background: "#a78bfa", color: "#fff", borderRadius: 999, padding: "1px 6px", fontSize: 10 }}>{pages.length}</span>}
               </span>
             </button>
+          </div>
           </div>
 
           {/* ── IDENTITY ── */}
@@ -611,11 +709,11 @@ export function CrewLinkInBio() {
             {activeSection === "links" && (
               <motion.div key="links" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}>
                 <div style={{ background: SURFACE, border: `1px solid ${LINE}`, borderRadius: 16, padding: 20, display: "grid", gap: 12 }}>
-                  <div style={{ display: "flex", gap: 12, marginBottom: 4 }}>
+                  <div style={{ display: "flex", gap: 8, marginBottom: 4, flexWrap: "wrap" }}>
                     {(["social","affiliate","portfolio","custom"] as LinkType[]).map((type) => (
-                      <div key={type} style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                        <span style={{ width: 8, height: 8, borderRadius: "50%", background: LINK_TYPE_COLORS[type], flexShrink: 0 }} />
-                        <span style={{ fontSize: 11, color: "rgba(255,255,255,.45)", fontWeight: 700 }}>{type}: {profile.links.filter(l => l.type === type).length}</span>
+                      <div key={type} style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                        <span style={{ width: 7, height: 7, borderRadius: "50%", background: LINK_TYPE_COLORS[type], flexShrink: 0 }} />
+                        <span style={{ fontSize: 10, color: "rgba(255,255,255,.45)", fontWeight: 700 }}>{type}: {profile.links.filter(l => l.type === type).length}</span>
                       </div>
                     ))}
                   </div>
@@ -729,13 +827,15 @@ export function CrewLinkInBio() {
           </AnimatePresence>
         </div>
 
-        {/* Live Preview */}
-        <div style={{ position: "sticky", top: 24 }}>
-          <div style={{ marginBottom: 10, display: "flex", alignItems: "center", gap: 6, color: "rgba(255,255,255,.4)", fontSize: 11, fontWeight: 700, letterSpacing: ".06em" }}>
-            <Smartphone size={12} /> PREVIEW LIVE
+        {/* Live Preview — disembunyikan di mobile, tampil di desktop sidebar kanan */}
+        {!isMobile && (
+          <div style={{ position: "sticky", top: 24 }}>
+            <div style={{ marginBottom: 10, display: "flex", alignItems: "center", gap: 6, color: "rgba(255,255,255,.4)", fontSize: 11, fontWeight: 700, letterSpacing: ".06em" }}>
+              <Smartphone size={12} /> PREVIEW LIVE
+            </div>
+            <LivePreview profile={profile} />
           </div>
-          <LivePreview profile={profile} />
-        </div>
+        )}
       </div>
     </div>
   );
