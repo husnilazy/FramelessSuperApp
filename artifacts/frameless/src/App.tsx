@@ -1,5 +1,6 @@
 // artifacts/frameless/src/App.tsx
 import CrewLinkPage from "@/pages/crew-link-page";
+import CrewLinkSubPage from "@/pages/crew-link-subpage";
 import { Switch, Route, Router as WouterRouter } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -17,7 +18,7 @@ import LandingPage       from "@/pages/landing";
 import ServicesPage      from "@/pages/services";
 import ServiceDetailPage from "@/pages/service-detail";
 import CoursePage        from "@/pages/course-page";
-import CoursesPage       from "@/pages/courses";   
+import CoursesPage       from "@/pages/courses";
 import DigitalAssetsPage from "@/pages/digital-assets";
 import PortalPage        from "@/pages/portal";
 import AcademyLoginPage  from "@/pages/academy-login";
@@ -94,18 +95,23 @@ function Router() {
   return (
     <Switch>
       {/* Public */}
-      <Route path="/"              component={LandingPage} />
-      <Route path="/landing"       component={LandingPage} />
-      <Route path="/login"         component={LoginPage} />
-      <Route path="/services"      component={ServicesPage} />
+      <Route path="/"               component={LandingPage} />
+      <Route path="/landing"        component={LandingPage} />
+      <Route path="/login"          component={LoginPage} />
+      <Route path="/services"       component={ServicesPage} />
       <Route path="/services/:slug" component={ServiceDetailPage} />
-      <Route path="/courses"       component={CoursesPage} />
-      <Route path="/course/:slug"  component={CoursePage} />
-      <Route path="/store"         component={DigitalAssetsPage} />
-      <Route path="/portal/:id"    component={PortalPage} />
-      <Route path="/academy/login" component={AcademyLoginPage} />
-      <Route path="/academy-login" component={AcademyLoginPage} />
+      <Route path="/courses"        component={CoursesPage} />
+      <Route path="/course/:slug"   component={CoursePage} />
+      <Route path="/store"          component={DigitalAssetsPage} />
+      <Route path="/portal/:id"     component={PortalPage} />
+      <Route path="/academy/login"  component={AcademyLoginPage} />
+      <Route path="/academy-login"  component={AcademyLoginPage} />
+
+      {/* Crew Link-in-Bio public pages — MUST be before /crew routes */}
       <Route path="/crew/link/:username" component={CrewLinkPage} />
+
+      {/* Sub-pages: /@username/slug */}
+      <Route path="/@:username/:slug" component={CrewLinkSubPage} />
 
       {/* Crew */}
       <Route path="/crew/login"     component={CrewLoginPage} />
@@ -120,9 +126,9 @@ function Router() {
       <Route path="/projects/:id"        component={ProtectedRoutes} />
       <Route path="/team"                component={ProtectedRoutes} />
       <Route path="/clients"             component={ProtectedRoutes} />
-      <Route path="/quotations"       component={ProtectedRoutes} />
-      <Route path="/quotations/new"   component={ProtectedRoutes} />
-      <Route path="/quotations/:id"   component={ProtectedRoutes} />
+      <Route path="/quotations"          component={ProtectedRoutes} />
+      <Route path="/quotations/new"      component={ProtectedRoutes} />
+      <Route path="/quotations/:id"      component={ProtectedRoutes} />
       <Route path="/invoices"            component={ProtectedRoutes} />
       <Route path="/invoices/new"        component={ProtectedRoutes} />
       <Route path="/invoices/:id"        component={ProtectedRoutes} />
@@ -134,11 +140,11 @@ function Router() {
       <Route path="/payment-settings"    component={ProtectedRoutes} />
       <Route path="/courses-admin"       component={ProtectedRoutes} />
       <Route path="/digital-assets-admin" component={ProtectedRoutes} />
-      <Route path="/appearance"           component={ProtectedRoutes} />
-      <Route path="/filmmaking-tools"     component={ProtectedRoutes} />
+      <Route path="/appearance"          component={ProtectedRoutes} />
+      <Route path="/filmmaking-tools"    component={ProtectedRoutes} />
       <Route path="/filmmaking-tools/documents/:id" component={ProtectedRoutes} />
       <Route path="/admin/filmmaking-submissions" component={ProtectedRoutes} />
-
+      <Route path="/:username" component={CrewLinkPage} />
       <Route component={NotFound} />
     </Switch>
   );

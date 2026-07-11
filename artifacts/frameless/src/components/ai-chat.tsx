@@ -104,7 +104,7 @@ function Typing() {
 }
 
 // ── Main Component ─────────────────────────────────────────────────────────────
-export function AIChat({ dark = true, contextData }: { dark?: boolean; contextData?: any }) {
+export function AIChat({ dark = true, contextData, fabClassName }: { dark?: boolean; contextData?: any; fabClassName?: string }) {
     const [open, setOpen] = useState(false);
     const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState("");
@@ -127,15 +127,26 @@ export function AIChat({ dark = true, contextData }: { dark?: boolean; contextDa
         setLoading(true);
 
         try {
-            let history: ChatHistoryMessage[] = [...messages, userMsg].map(m => ({ role: m.role, content: m.content }));
+            // Hanya kirim role "user" dan "assistant" ke backend
+            // Backend (ai.ts) sudah handle systemPrompt secara terpisah via systemInstruction Gemini
+            const cleanHistory: ChatHistoryMessage[] = [...messages, userMsg]
+                .filter(m => m.role === "user" || m.role === "assistant")
+                .map(m => ({ role: m.role, content: m.content }));
 
-            // Inject context jika ada (khusus crew dashboard)
-            if (contextData) {
+            // Inject context sebagai bagian dari pesan user pertama (bukan sebagai system role)
+            // sehingga compatible dengan Gemini yang tidak terima role "system" di messages array
+            let history: ChatHistoryMessage[] = cleanHistory;
+            if (contextData && cleanHistory.length > 0) {
                 const contextStr = JSON.stringify(contextData, null, 2);
-                history = [
-                    { role: "system", content: `Konteks saat ini dari project Frameless:\n${contextStr}` },
-                    ...history
-                ];
+                // Prepend context ke pesan user pertama saja, jika history masih sedikit
+                if (cleanHistory.length === 1) {
+                    history = [
+                        {
+                            role: "user",
+                            content: `[Konteks Dashboard Frameless]\n${contextStr}\n\n---\n${cleanHistory[0].content}`
+                        }
+                    ];
+                }
             }
 
             const token = localStorage.getItem("token") || localStorage.getItem("crew_token");
@@ -182,7 +193,7 @@ export function AIChat({ dark = true, contextData }: { dark?: boolean; contextDa
     ];
 
     return (
-        <div style={{ position: "fixed", bottom: 24, right: 24, zIndex: 999, fontFamily: FONT }}>
+        <div className={fabClassName} style={{ position: "fixed", bottom: 24, right: 24, zIndex: 999, fontFamily: FONT }}>
             <AnimatePresence>
                 {open && (
                     <motion.div
@@ -215,7 +226,7 @@ export function AIChat({ dark = true, contextData }: { dark?: boolean; contextDa
                                     <p style={{ fontSize: 13, fontWeight: 800, color: dark ? "#fff" : "#1a1d2e", margin: 0, letterSpacing: "-.01em" }}>Frameless AI</p>
                                     <p style={{ fontSize: 10, color: "rgba(74,222,128,.8)", margin: 0, display: "flex", alignItems: "center", gap: 3 }}>
                                         <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#4ade80", display: "inline-block" }} />
-                                        Online · Claude Sonnet
+                                        Online · Gemini Flash
                                     </p>
                                 </div>
                             </div>
@@ -311,7 +322,7 @@ export function AIChat({ dark = true, contextData }: { dark?: boolean; contextDa
                                 </button>
                             </div>
                             <p style={{ fontSize: 9, color: "rgba(255,255,255,.2)", textAlign: "center", marginTop: 8, letterSpacing: ".04em" }}>
-                                Powered by Claude · Frameless Creative Internal Tool
+                                Powered by Gemini · Frameless Creative Internal Tool
                             </p>
                         </div>
                     </motion.div>

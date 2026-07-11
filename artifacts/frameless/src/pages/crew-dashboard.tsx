@@ -1175,8 +1175,73 @@ function CrewDashboard({ user, onLogout }: { user: CrewUser; onLogout: () => voi
         .content-grid{grid-template-columns:minmax(0,1.4fr) minmax(0,1fr)}
         .cal-cell{transition:all .1s ease}
         .cal-cell:hover{border-color:${primary}55!important}
-        @media(max-width:1024px){.crew-shell{grid-template-columns:1fr}.crew-sidebar{display:${mobileMenu ? "block" : "none"};position:fixed;z-index:60;inset:68px auto 0 0;width:268px;box-shadow:0 20px 60px rgba(0,0,0,0.4)}.crew-main{padding:18px 16px}.metric-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}.content-grid{grid-template-columns:1fr!important}}
-        @media(max-width:640px){.metric-grid{grid-template-columns:1fr 1fr!important}.crew-main{padding:14px 12px}.toolbar-wrap{flex-direction:column;align-items:stretch!important;gap:10px!important}}
+
+        /* Mobile toggle: hidden on desktop, visible on mobile */
+        .mobile-toggle{display:none!important}
+        .desktop-only{display:flex}
+
+        /* Sidebar overlay backdrop (mobile) */
+        .sidebar-backdrop{display:none;position:fixed;inset:0;z-index:55;background:rgba(0,0,0,0.45);backdrop-filter:blur(2px)}
+
+        @media(max-width:1024px){
+          .crew-shell{grid-template-columns:1fr}
+          .crew-sidebar{
+            display:block!important;
+            position:fixed;
+            z-index:60;
+            inset:68px auto 0 0;
+            width:268px;
+            box-shadow:0 20px 60px rgba(0,0,0,0.4);
+            transform:${mobileMenu ? "translateX(0)" : "translateX(-100%)"};
+            transition:transform .28s cubic-bezier(0.23,1,0.32,1);
+            background:${isDark ? "rgba(8,8,10,0.97)" : "rgba(255,255,255,0.97)"}!important;
+          }
+          .mobile-toggle{display:flex!important}
+          .desktop-only{display:none!important}
+          .crew-main{padding:18px 16px;padding-bottom:calc(80px + env(safe-area-inset-bottom,0px))}
+          .metric-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+          .content-grid{grid-template-columns:1fr!important}
+          .sidebar-backdrop{display:${mobileMenu ? "block" : "none"}}
+
+          /* Mobile bottom nav */
+          .mobile-bottom-nav{
+            display:flex!important;
+            position:fixed;
+            bottom:0;left:0;right:0;
+            z-index:50;
+            height:calc(64px + env(safe-area-inset-bottom,0px));
+            padding-bottom:env(safe-area-inset-bottom,0px);
+            background:${isDark ? "rgba(8,8,10,0.92)" : "rgba(255,255,255,0.92)"};
+            border-top:1px solid ${glass.border};
+            backdrop-filter:blur(24px);
+            -webkit-backdrop-filter:blur(24px);
+            overflow-x:auto;
+            scrollbar-width:none;
+            align-items:center;
+            gap:0;
+          }
+          .mobile-bottom-nav::-webkit-scrollbar{display:none}
+          .mobile-nav-item{
+            display:flex;flex-direction:column;align-items:center;justify-content:center;
+            gap:3px;min-width:60px;flex:1;padding:6px 4px;
+            cursor:pointer;border:none;background:transparent;
+            color:${glass.muted};font-family:${FONT};font-size:9px;font-weight:700;
+            letter-spacing:.02em;transition:color .15s;position:relative;
+            -webkit-tap-highlight-color:transparent;
+          }
+          .mobile-nav-item.active{color:${primary}}
+          .mobile-nav-item.active::before{
+            content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);
+            width:28px;height:2px;border-radius:999px;background:${primary};
+          }
+          /* AI FAB shifts left on mobile to not overlap bottom nav button */
+          .ai-fab-wrap{bottom:calc(72px + env(safe-area-inset-bottom,0px))!important}
+        }
+        @media(max-width:640px){
+          .metric-grid{grid-template-columns:1fr 1fr!important}
+          .crew-main{padding:14px 12px;padding-bottom:calc(80px + env(safe-area-inset-bottom,0px))}
+          .toolbar-wrap{flex-direction:column;align-items:stretch!important;gap:10px!important}
+        }
         @media(max-width:480px){.metric-grid{grid-template-columns:1fr!important}}
       `}</style>
 
@@ -1195,7 +1260,7 @@ function CrewDashboard({ user, onLogout }: { user: CrewUser; onLogout: () => voi
             type="button"
             className="mobile-toggle"
             onClick={() => setMobileMenu(v => !v)}
-            style={{ ...resetButton, display: "none", padding: 8, color: glass.text }}
+            style={{ ...resetButton, padding: 8, color: glass.text }}
             title="Menu"
           >
             <Menu size={20} />
@@ -1368,6 +1433,13 @@ function CrewDashboard({ user, onLogout }: { user: CrewUser; onLogout: () => voi
             </div>
           </aside>
         </AnimatePresence>
+
+        {/* Sidebar backdrop — tap to close on mobile */}
+        <div
+          className="sidebar-backdrop"
+          onClick={() => setMobileMenu(false)}
+          aria-hidden="true"
+        />
 
         {/* Main Content Area */}
         <main className="crew-main">
@@ -1749,8 +1821,60 @@ function CrewDashboard({ user, onLogout }: { user: CrewUser; onLogout: () => voi
           </AnimatePresence>
         </main>
       </div>
+      {/* Mobile Bottom Navigation — hanya tampil di layar ≤1024px via CSS */}
+      {(() => {
+        const BOTTOM_NAV: Array<{ id: Tab; label: string; icon: React.ReactNode }> = [
+          { id: "overview",  label: "Home",     icon: <Activity size={18} /> },
+          { id: "tasks",     label: "Tasks",    icon: <ListChecks size={18} /> },
+          { id: "projects",  label: "Projects", icon: <Grid2X2 size={18} /> },
+          { id: "calendar",  label: "Kalender", icon: <CalendarDays size={18} /> },
+          { id: "chat",      label: "Chat",     icon: <MessageSquare size={18} /> },
+          { id: "filmmaking",label: "Tools",    icon: <PlayCircle size={18} /> },
+          { id: "crew",      label: "Crew",     icon: <Users size={18} /> },
+          { id: "files",     label: "Files",    icon: <Files size={18} /> },
+          { id: "brief",     label: "Brief",    icon: <ClipboardList size={18} /> },
+          { id: "portfolio", label: "Portfolio",icon: <Film size={18} /> },
+          { id: "linkinbio", label: "Bio",      icon: <Globe size={18} /> },
+        ];
+        return (
+          <nav className="mobile-bottom-nav" style={{ display: "none" }}>
+            {BOTTOM_NAV.map((item) => {
+              const active = tab === item.id;
+              const count = item.id === "tasks"
+                ? tasks.filter((t) => !["done","completed"].includes(normalizeStatus(t.status))).length
+                : item.id === "calendar" ? monthEvents.length
+                : item.id === "projects" ? projectsForDisplay.length
+                : undefined;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  className={`mobile-nav-item${active ? " active" : ""}`}
+                  onClick={() => { setTab(item.id); setMobileMenu(false); }}
+                >
+                  {item.icon}
+                  <span>{item.label}</span>
+                  {typeof count === "number" && count > 0 && (
+                    <span style={{
+                      position: "absolute", top: 4, right: "calc(50% - 18px)",
+                      minWidth: 14, height: 14, borderRadius: 999,
+                      background: active ? primary : "rgba(255,255,255,.25)",
+                      color: active ? "#fff" : glass.muted,
+                      fontSize: 8, fontWeight: 900,
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      padding: "0 3px",
+                    }}>{count > 9 ? "9+" : count}</span>
+                  )}
+                </button>
+              );
+            })}
+          </nav>
+        );
+      })()}
+
       <AIChat 
         dark={true} 
+        fabClassName="ai-fab-wrap"
         contextData={{
           user: user,
           myProjects: projectsForDisplay?.slice(0, 5),

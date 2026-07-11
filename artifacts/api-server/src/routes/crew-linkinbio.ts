@@ -339,4 +339,203 @@ router.get("/public/crew/:username", async (req, res): Promise<void> => {
   }
 });
 
+
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SUB-PAGES ROUTES
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// Auto-create pages table
+let pagesTableReady = false;
+
+async function ensurePagesTable() {
+  if (pagesTableReady) return;
+  try {
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS crew_linkinbio_pages (
+        id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        crew_id     UUID NOT NULL REFERENCES crew_linkinbio(id) ON DELETE CASCADE,
+        slug        TEXT NOT NULL,
+        title       TEXT NOT NULL DEFAULT '',
+        description TEXT NOT NULL DEFAULT '',
+        cover_url   TEXT NOT NULL DEFAULT '',
+        items       TEXT NOT NULL DEFAULT '[]',
+        is_active   BOOLEAN NOT NULL DEFAULT TRUE,
+        created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        UNIQUE(crew_id, slug)
+      )
+    `);
+    pagesTableReady = true;
+    console.log("[crew_linkinbio_pages] Table ready");
+  } catch (err) {
+    console.error("[crew_linkinbio_pages] ensurePagesTable FAILED:", err);
+    throw err;
+  }
+}
+
+function rowToSubPage(row: any): any {
+  let items = [];
+  try { items = JSON.parse(row.items || "[]"); } catch {}
+  return {
+    id: row.id,
+    slug: row.slug,
+    title: row.title,
+    description: row.description,
+    coverUrl: row.cover_url,
+    items,
+    isActive: row.is_active === true || row.is_active === "true",
+  };
+}
+
+// ── GET /api/crew/linkinbio/pages — list all pages for current crew ───────────
+router.get("/crew/linkinbio/pages", requireCrewAuth as any, async (req: any, res): Promise<void> => {
+  try {
+    await ensureTable();
+    await ensurePagesTable();
+    const rows = await db.execute(sql`
+      SELECT * FROM crew_linkinbio_pages
+      WHERE crew_id = ${req.crewMemberId}::uuid
+      ORDER BY created_at ASC
+    `);
+    const list = (rows as any).rows ?? (Array.isArray(rows) ? rows : []);
+    res.json(list.map(rowToSubPage));
+  } catch (err: any) {
+    console.error("[crew/linkinbio/pages GET]", err);
+    res.status(500).json({ error: err.message || "Failed to load pages" });
+  }
+});
+
+// ── POST /api/crew/linkinbio/pages — create new sub-page ─────────────────────
+router.post("/crew/linkinbio/pages", requireCrewAuth as any, async (req: any, res): Promise<void> => {
+  try {
+    await ensureTable();
+    await ensurePagesTable();
+
+    // Ensure crew_linkinbio row exists first (upsert default profile)
+    const { profile } = await getProfile(req.crewMemberId);
+    await upsertProfile(req.crewMemberId, profile);
+
+    const { slug, title, description, coverUrl, items, isActive } = req.body;
+    if (!slug || !title) { res.status(400).json({ error: "slug and title are required" }); return; }
+
+    const itemsJson = JSON.stringify(items ?? []);
+    const rows = await db.execute(sql`
+      INSERT INTO crew_linkinbio_pages (crew_id, slug, title, description, cover_url, items, is_active)
+      VALUES (${req.crewMemberId}::uuid, ${slug}, ${title}, ${description || ""}, ${coverUrl || ""}, ${itemsJson}, ${isActive !== false})
+      RETURNING *
+    `);
+    const row = (rows as any).rows?.[0] ?? (Array.isArray(rows) ? rows[0] : null);
+    res.status(201).json(rowToSubPage(row));
+  } catch (err: any) {
+    console.error("[crew/linkinbio/pages POST]", err);
+    // Unique constraint = duplicate slug
+    if (err.message?.includes("unique") || err.code === "23505") {
+      res.status(409).json({ error: `Slug "${req.body.slug}" sudah dipakai. Gunakan slug lain.` });
+      return;
+    }
+    res.status(500).json({ error: err.message || "Failed to create page" });
+  }
+});
+
+// ── PUT /api/crew/linkinbio/pages/:id — update sub-page ──────────────────────
+router.put("/crew/linkinbio/pages/:id", requireCrewAuth as any, async (req: any, res): Promise<void> => {
+  try {
+    await ensurePagesTable();
+    const { id } = req.params;
+    const { slug, title, description, coverUrl, items, isActive } = req.body;
+    const itemsJson = JSON.stringify(items ?? []);
+
+    const rows = await db.execute(sql`
+      UPDATE crew_linkinbio_pages
+      SET slug        = ${slug},
+          title       = ${title},
+          description = ${description || ""},
+          cover_url   = ${coverUrl || ""},
+          items       = ${itemsJson},
+          is_active   = ${isActive !== false},
+          updated_at  = NOW()
+      WHERE id = ${id}::uuid
+        AND crew_id = ${req.crewMemberId}::uuid
+      RETURNING *
+    `);
+    const row = (rows as any).rows?.[0] ?? (Array.isArray(rows) ? rows[0] : null);
+    if (!row) { res.status(404).json({ error: "Page not found" }); return; }
+    res.json(rowToSubPage(row));
+  } catch (err: any) {
+    console.error("[crew/linkinbio/pages PUT]", err);
+    if (err.message?.includes("unique") || err.code === "23505") {
+      res.status(409).json({ error: `Slug "${req.body.slug}" sudah dipakai.` });
+      return;
+    }
+    res.status(500).json({ error: err.message || "Failed to update page" });
+  }
+});
+
+// ── DELETE /api/crew/linkinbio/pages/:id ─────────────────────────────────────
+router.delete("/crew/linkinbio/pages/:id", requireCrewAuth as any, async (req: any, res): Promise<void> => {
+  try {
+    await ensurePagesTable();
+    await db.execute(sql`
+      DELETE FROM crew_linkinbio_pages
+      WHERE id = ${req.params.id}::uuid
+        AND crew_id = ${req.crewMemberId}::uuid
+    `);
+    res.json({ success: true });
+  } catch (err: any) {
+    console.error("[crew/linkinbio/pages DELETE]", err);
+    res.status(500).json({ error: err.message || "Failed to delete page" });
+  }
+});
+
+// ── GET /api/public/crew/:username/pages/:slug — public sub-page ──────────────
+router.get("/public/crew/:username/pages/:slug", async (req, res): Promise<void> => {
+  try {
+    await ensureTable();
+    await ensurePagesTable();
+    const { username, slug } = req.params;
+
+    // Find the crew member by username (must be public)
+    const profileRows = await db.execute(sql`
+      SELECT id, display_name, username, avatar_url, accent_color, bg_color
+      FROM crew_linkinbio
+      WHERE LOWER(username) = ${username.toLowerCase()}
+        AND is_public = TRUE
+      LIMIT 1
+    `);
+    const profileRow = (profileRows as any).rows?.[0] ?? (Array.isArray(profileRows) ? profileRows[0] : null);
+    if (!profileRow) { res.status(404).json({ error: "Profile not found" }); return; }
+
+    // Find the sub-page
+    const pageRows = await db.execute(sql`
+      SELECT * FROM crew_linkinbio_pages
+      WHERE crew_id = ${profileRow.id}::uuid
+        AND LOWER(slug) = ${slug.toLowerCase()}
+        AND is_active = TRUE
+      LIMIT 1
+    `);
+    const pageRow = (pageRows as any).rows?.[0] ?? (Array.isArray(pageRows) ? pageRows[0] : null);
+    if (!pageRow) { res.status(404).json({ error: "Page not found or not active" }); return; }
+
+    let items = [];
+    try { items = JSON.parse(pageRow.items || "[]"); } catch {}
+
+    res.json({
+      slug: pageRow.slug,
+      title: pageRow.title,
+      description: pageRow.description,
+      coverUrl: pageRow.cover_url,
+      items: items.filter((i: any) => i.isActive).sort((a: any, b: any) => a.sortOrder - b.sortOrder),
+      accentColor: profileRow.accent_color,
+      bgColor: profileRow.bg_color,
+      ownerName: profileRow.display_name,
+      ownerUsername: profileRow.username,
+      ownerAvatarUrl: profileRow.avatar_url,
+    });
+  } catch (err: any) {
+    console.error("[public/crew/:username/pages/:slug]", err);
+    res.status(500).json({ error: err.message || "Server error" });
+  }
+});
+
 export default router;
