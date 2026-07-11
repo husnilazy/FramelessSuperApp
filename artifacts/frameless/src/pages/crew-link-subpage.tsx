@@ -33,7 +33,8 @@ const FONT = "'Plus Jakarta Sans', sans-serif";
 
 export default function CrewLinkSubPage() {
   const params = useParams<{ username: string; slug: string }>();
-  const { username, slug } = params;
+  const username = (params.username || "").replace(/^@/, "");
+  const slug = params.slug || "";
 
   const [page, setPage] = useState<SubPage | null>(null);
   const [loading, setLoading] = useState(true);

@@ -107,11 +107,14 @@ function Router() {
       <Route path="/academy/login"  component={AcademyLoginPage} />
       <Route path="/academy-login"  component={AcademyLoginPage} />
 
-      {/* Crew Link-in-Bio public pages — MUST be before /crew routes */}
+      {/* Crew Link-in-Bio public pages */}
       <Route path="/crew/link/:username" component={CrewLinkPage} />
 
-      {/* Sub-pages: /@username/slug */}
+      {/* Sub-pages dengan @ prefix */}
       <Route path="/@:username/:slug" component={CrewLinkSubPage} />
+
+      {/* Sub-pages tanpa @ (fallback jika @ di-encode/di-strip) */}
+      <Route path="/:username/:slug"  component={CrewLinkSubPage} />
 
       {/* Crew */}
       <Route path="/crew/login"     component={CrewLoginPage} />
@@ -144,7 +147,10 @@ function Router() {
       <Route path="/filmmaking-tools"    component={ProtectedRoutes} />
       <Route path="/filmmaking-tools/documents/:id" component={ProtectedRoutes} />
       <Route path="/admin/filmmaking-submissions" component={ProtectedRoutes} />
+
+      {/* Short profile URL — HARUS paling bawah */}
       <Route path="/:username" component={CrewLinkPage} />
+
       <Route component={NotFound} />
     </Switch>
   );
