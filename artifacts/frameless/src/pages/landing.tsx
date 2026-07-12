@@ -115,239 +115,217 @@ const DEFAULT_SERVICES: Service[] = [
 
 // ── CSS ───────────────────────────────────────────────────────────────────────
 const CSS = `
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800;900&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 html{scroll-behavior:smooth;}
-body{overflow-x:hidden;}
+body{overflow-x:hidden;-webkit-text-size-adjust:100%;}
 
-@keyframes b1{0%,100%{transform:translate(0,0) scale(1);}33%{transform:translate(90px,-70px) scale(1.18);}66%{transform:translate(-50px,90px) scale(0.9);}}
-@keyframes b2{0%,100%{transform:translate(0,0) scale(1);}33%{transform:translate(-100px,70px) scale(0.85);}66%{transform:translate(70px,-100px) scale(1.22);}}
-@keyframes b3{0%,100%{transform:translate(0,0) scale(1);}50%{transform:translate(60px,80px) scale(1.12);}}
-@keyframes marquee{0%{transform:translateX(0);}100%{transform:translateX(-25%);}}
-@keyframes fadeUp{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:translateY(0);}}
+/* ── Keyframes (only what we need, no excess) ── */
+@keyframes b1{0%,100%{transform:translate(0,0)scale(1);}50%{transform:translate(60px,-50px)scale(1.1);}}
+@keyframes b2{0%,100%{transform:translate(0,0)scale(1);}50%{transform:translate(-70px,60px)scale(.92);}}
+@keyframes b3{0%,100%{transform:translate(0,0)scale(1);}50%{transform:translate(40px,60px)scale(1.08);}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:translateY(0);}}
 @keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
-@keyframes pulse{0%,100%{opacity:.6;}50%{opacity:1;}}
-@keyframes float{0%,100%{transform:translateY(0);}50%{transform:translateY(-8px);}}
-@keyframes glow{0%,100%{box-shadow:0 0 20px ${OR}44;}50%{box-shadow:0 0 40px ${OR}88;}}
+@keyframes pulse{0%,100%{opacity:.55;}50%{opacity:1;}}
 @keyframes spin{to{transform:rotate(360deg);}}
-@keyframes pf-pulse-glow{0%,100%{box-shadow:0 32px 96px rgba(0,0,0,.75),0 0 60px ${OR}22,0 0 120px ${OR}08;}50%{box-shadow:0 32px 96px rgba(0,0,0,.75),0 0 100px ${OR}40,0 0 200px ${OR}14;}}
+@keyframes mq-scroll{0%{transform:translateX(0);}100%{transform:translateX(-25%);}}
+@keyframes cg-scroll-l{from{transform:translateX(0);}to{transform:translateX(-50%);}}
+@keyframes cg-scroll-r{from{transform:translateX(-50%);}to{transform:translateX(0);}}
 @keyframes pf-progress{from{width:0%;}to{width:100%;}}
-@keyframes click-glow{0%{box-shadow:0 0 0 0 ${OR}66;}100%{box-shadow:0 0 0 10px ${OR}00;}}
+@keyframes shimmer{0%{background-position:-200% center;}100%{background-position:200% center;}}
+@keyframes statPop{from{opacity:0;transform:translateY(10px)scale(.97);}to{opacity:1;transform:translateY(0)scale(1);}}
 
-.pf-3d-card{transition:all .58s cubic-bezier(.16,1,.3,1);}
-.pf-3d-card:hover img{transform:scale(1.06);}
-.pf-center-card{animation:pf-pulse-glow 3.5s ease-in-out infinite;}
+/* ── Marquee ── */
+.mq-inner{animation:mq-scroll 44s linear infinite;}
+.mq-inner:hover{animation-play-state:paused;}
 
-/* Crew Gallery — 3 baris marquee independen, auto-scroll terus-menerus (linear infinite, tanpa jeda).
-   Baris tengah (.cg-row-reverse) bergerak ke arah BERLAWANAN dari baris atas & bawah, sesuai permintaan.
-   Track digandakan 2x di JSX -> animasi geser dari 0% ke -50% supaya loop-nya seamless tanpa "patah". */
-@keyframes cg-row-scroll-left{from{transform:translateX(0);}to{transform:translateX(-50%);}}
-@keyframes cg-row-scroll-right{from{transform:translateX(-50%);}to{transform:translateX(0);}}
-.cg-row-track{animation:cg-row-scroll-left linear infinite;}
-.cg-row-track.cg-row-reverse{animation:cg-row-scroll-right linear infinite;}
+/* ── Crew Gallery rows ── */
+.cg-row-track{animation:cg-scroll-l linear infinite;}
+.cg-row-track.cg-row-reverse{animation:cg-scroll-r linear infinite;}
 .cg-row-card{transition:transform .3s ease;}
 .cg-row-card:hover{transform:scale(1.04);z-index:5;}
-.cg-row-card:hover img{transform:scale(1.06);transition:transform .4s ease;}
-
-.pf-arrow{transition:background .2s,border-color .2s,box-shadow .2s!important;}
-.pf-arrow:hover{background:${OR}22!important;border-color:${OR}55!important;box-shadow:0 0 20px ${OR}33!important;}
-.pf-arrow:active{animation:click-glow .4s ease-out;}
-.pf-dot{transition:all .35s cubic-bezier(.16,1,.3,1);}
-.pf-thumb{transition:opacity .25s,border-color .25s,box-shadow .25s,transform .22s;}
-.pf-thumb:hover{opacity:.9!important;transform:scale(1.06) translateY(-2px)!important;}
-.pf-progress-bar{animation:pf-progress 4.5s linear forwards;}
-.no-scrollbar::-webkit-scrollbar{display:none;}
-.no-scrollbar{scrollbar-width:none;}
-
-/* Crew Gallery thumbnail caption — hidden by default, fades in on hover/touch */
+.cg-row-card:hover img{transform:scale(1.06);}
 .cg-thumb-caption{transition:opacity .22s ease;}
 .cg-thumb:hover .cg-thumb-caption{opacity:1!important;}
 
-/* ── Spring-physics button animations ─────────────────────────────────── */
+/* ── Portfolio / carousel ── */
+.pf-3d-card{transition:all .5s cubic-bezier(.16,1,.3,1);}
+.pf-3d-card:hover img{transform:scale(1.05);}
+.pf-progress-bar{animation:pf-progress 4.5s linear forwards;}
+.no-scrollbar::-webkit-scrollbar{display:none;}
+.no-scrollbar{scrollbar-width:none;}
+.pf-dot{transition:all .3s cubic-bezier(.16,1,.3,1);}
+.pf-thumb{transition:opacity .22s,border-color .22s,transform .22s cubic-bezier(.16,1,.3,1);}
+.pf-thumb:hover{opacity:.9!important;transform:scale(1.06) translateY(-2px)!important;}
 
-.wa-btn {
-  transition: transform .24s cubic-bezier(.34,1.56,.64,1), box-shadow .22s ease !important;
-  will-change: transform;
-}
-.wa-btn:hover {
-  transform: translateY(-2px) scale(1.05) !important;
-  box-shadow: 0 10px 32px rgba(37,211,102,.45), 0 0 22px rgba(37,211,102,.3) !important;
-}
-.wa-btn:active {
-  transform: scale(0.91) !important;
-  box-shadow: 0 0 0 5px rgba(37,211,102,.35) !important;
-  transition: transform .07s ease, box-shadow .07s ease !important;
-}
+/* ── Arrow buttons ── */
+.pf-arrow{transition:background .18s,border-color .18s,box-shadow .18s,transform .2s cubic-bezier(.34,1.56,.64,1)!important;}
+.pf-arrow:hover{background:${OR}22!important;border-color:${OR}55!important;box-shadow:0 0 18px ${OR}33!important;transform:translateY(-50%) scale(1.12)!important;}
+.pf-arrow:active{transform:translateY(-50%) scale(.88)!important;transition-duration:.07s!important;}
 
-/* Orange primary buttons */
-.og-btn {
-  transition: transform .24s cubic-bezier(.34,1.56,.64,1), box-shadow .22s ease, opacity .15s !important;
-  will-change: transform;
-}
-.og-btn:hover {
-  transform: translateY(-2px) scale(1.05) !important;
-  box-shadow: 0 10px 36px ${OR}55, 0 0 0 1px ${OR}38, 0 0 24px ${OR}35 !important;
-  opacity: 1 !important;
-}
-.og-btn:active {
-  transform: scale(0.91) !important;
-  box-shadow: 0 0 0 5px ${OR}44, 0 0 28px ${OR}66 !important;
-  transition: transform .07s ease, box-shadow .07s ease !important;
-}
+/* ── Spring button system ── */
+.og-btn{transition:transform .22s cubic-bezier(.34,1.56,.64,1),box-shadow .2s,opacity .15s!important;will-change:transform;}
+.og-btn:hover{transform:translateY(-2px) scale(1.04)!important;box-shadow:0 10px 32px ${OR}44,0 0 20px ${OR}28!important;}
+.og-btn:active{transform:scale(.93)!important;transition-duration:.07s!important;}
 
-/* Outline / ghost buttons */
-.outline-btn {
-  transition: transform .24s cubic-bezier(.34,1.56,.64,1), border-color .18s, background .18s, box-shadow .18s !important;
-  will-change: transform;
-}
-.outline-btn:hover {
-  transform: translateY(-1px) scale(1.03) !important;
-  border-color: rgba(255,255,255,.32) !important;
-  background: rgba(255,255,255,.06) !important;
-}
-.outline-btn:active {
-  transform: scale(0.94) !important;
-  box-shadow: 0 0 0 3px rgba(255,255,255,.22) !important;
-  transition: transform .07s ease, box-shadow .07s ease !important;
-}
+.wa-btn{transition:transform .22s cubic-bezier(.34,1.56,.64,1),box-shadow .2s!important;will-change:transform;}
+.wa-btn:hover{transform:translateY(-2px) scale(1.04)!important;box-shadow:0 10px 28px rgba(37,211,102,.4)!important;}
+.wa-btn:active{transform:scale(.93)!important;transition-duration:.07s!important;}
 
-/* Category / pill buttons */
-.pill-btn {
-  transition: transform .2s cubic-bezier(.34,1.56,.64,1), background .18s, border-color .18s, color .18s, box-shadow .18s !important;
-  will-change: transform;
-}
-.pill-btn:hover {
-  transform: translateY(-1px) scale(1.06) !important;
-}
-.pill-btn:active {
-  transform: scale(0.91) !important;
-  transition: transform .07s ease !important;
-}
-.pill-btn.pill-active:active {
-  box-shadow: 0 0 0 4px ${OR}44, 0 0 18px ${OR}55 !important;
-}
+.outline-btn{transition:transform .2s cubic-bezier(.34,1.56,.64,1),border-color .18s,background .18s!important;}
+.outline-btn:hover{transform:translateY(-1px) scale(1.02)!important;border-color:rgba(255,255,255,.28)!important;background:rgba(255,255,255,.06)!important;}
+.outline-btn:active{transform:scale(.95)!important;transition-duration:.07s!important;}
 
-.social-icon {
-  transition: background .2s, border-color .2s, color .2s, transform .22s cubic-bezier(.34,1.56,.64,1), box-shadow .22s !important;
-}
-.social-icon:hover {
-  background: ${OR}22 !important;
-  border-color: ${OR}44 !important;
-  color: ${OR} !important;
-  transform: translateY(-2px) scale(1.1) !important;
-  box-shadow: 0 6px 18px ${OR}33 !important;
-}
-.social-icon:active {
-  transform: scale(0.88) !important;
-  box-shadow: 0 0 0 4px ${OR}44 !important;
-  transition-duration: .07s !important;
-}
+.pill-btn{transition:transform .18s cubic-bezier(.34,1.56,.64,1),background .15s,border-color .15s,color .15s!important;}
+.pill-btn:hover{transform:translateY(-1px) scale(1.05)!important;}
+.pill-btn:active{transform:scale(.92)!important;transition-duration:.07s!important;}
 
-/* Nav links */
-.nav-link {
-  transition: color .18s, transform .2s cubic-bezier(.34,1.56,.64,1) !important;
-}
-.nav-link:hover {
-  color: #fff !important;
-  transform: translateY(-1px) !important;
-}
-.nav-link:active {
-  transform: scale(0.94) !important;
-  transition-duration: .07s !important;
-}
+.social-icon{transition:background .18s,border-color .18s,color .18s,transform .2s cubic-bezier(.34,1.56,.64,1)!important;}
+.social-icon:hover{background:${OR}22!important;border-color:${OR}44!important;color:${OR}!important;transform:translateY(-2px) scale(1.1)!important;}
+.social-icon:active{transform:scale(.9)!important;transition-duration:.07s!important;}
 
-/* Carousel arrows — keep translateY(-50%) in all states */
-.pf-arrow {
-  transition: background .2s, border-color .2s, box-shadow .22s, transform .22s cubic-bezier(.34,1.56,.64,1) !important;
-}
-.pf-arrow:hover {
-  background: ${OR}22 !important;
-  border-color: ${OR}55 !important;
-  box-shadow: 0 0 0 1px ${OR}44, 0 0 20px ${OR}44 !important;
-  transform: translateY(-50%) scale(1.14) !important;
-}
-.pf-arrow:active {
-  transform: translateY(-50%) scale(0.86) !important;
-  box-shadow: 0 0 0 4px ${OR}55, 0 0 28px ${OR}77 !important;
-  transition: transform .07s ease, box-shadow .07s ease !important;
-}
-
-.pf-dot { transition: all .35s cubic-bezier(.16,1,.3,1); }
-.pf-dot:hover { transform: scale(1.3) !important; }
-.pf-dot:active { transform: scale(0.82) !important; transition-duration: .08s !important; }
-
-.pf-thumb { transition: opacity .25s, border-color .25s, box-shadow .25s, transform .22s cubic-bezier(.34,1.56,.64,1); }
-.pf-thumb:hover { opacity: .9 !important; transform: scale(1.07) translateY(-3px) !important; }
-.pf-thumb:active { transform: scale(0.94) !important; transition-duration: .07s !important; }
-
-.pf-progress-bar { animation: pf-progress 4.5s linear forwards; }
-.no-scrollbar::-webkit-scrollbar { display: none; }
-.no-scrollbar { scrollbar-width: none; }
-
-/* Glow on click — applied via animation keyframe on .og-btn:active */
-@keyframes click-ring { 0%{box-shadow:0 0 0 0 ${OR}66,0 0 0 0 ${OR}44;} 100%{box-shadow:0 0 0 14px ${OR}00,0 0 32px ${OR}00;} }
-
-.mq-inner { animation: marquee 40s linear infinite; }
-.mq-inner:hover { animation-play-state: paused; }
-
-.fu { opacity: 0; animation: fadeUp .45s ease forwards; }
-.d1{animation-delay:0s;}.d2{animation-delay:.06s;}.d3{animation-delay:.13s;}.d4{animation-delay:.22s;}
-
-.nav-link{font-size:13px;font-weight:600;color:rgba(255,255,255,.5);text-decoration:none;transition:color .2s;letter-spacing:.01em;padding:6px 0;}
+/* ── Nav ── */
+.nav-link{font-size:13px;font-weight:600;color:rgba(255,255,255,.5);text-decoration:none;letter-spacing:.01em;padding:6px 0;transition:color .18s;}
 .nav-link:hover{color:#fff;}
 
-.svc-card{transition:transform .4s cubic-bezier(.16,1,.3,1),box-shadow .3s,border-color .25s!important;}
-.svc-card:hover img{transform:scale(1.06);transition:transform .5s ease;}
-
-.pf-card{transition:transform .5s cubic-bezier(.16,1,.3,1);}
+/* ── Cards ── */
+.svc-card{transition:transform .4s cubic-bezier(.16,1,.3,1),box-shadow .3s,border-color .22s!important;}
+.pf-card{transition:transform .45s cubic-bezier(.16,1,.3,1);}
 .pf-card:hover{transform:scale(1.03);}
-.pf-card .overlay{opacity:0;transition:opacity .28s;}
+.pf-card .overlay{opacity:0;transition:opacity .25s;}
 .pf-card:hover .overlay{opacity:1;}
-.pf-card img{transition:transform .6s cubic-bezier(.16,1,.3,1);}
+.pf-card img{transition:transform .55s cubic-bezier(.16,1,.3,1);}
 .pf-card:hover img{transform:scale(1.07);}
-
-/* Portrait video cards */
 .reel-card{transition:transform .3s cubic-bezier(.16,1,.3,1),box-shadow .3s;}
-.reel-card:hover{transform:translateY(-8px) scale(1.02);box-shadow:0 24px 64px rgba(0,0,0,.6)!important;}
-.reel-card .reel-overlay{opacity:0;transition:opacity .25s;}
+.reel-card:hover{transform:translateY(-6px) scale(1.02);box-shadow:0 20px 56px rgba(0,0,0,.55)!important;}
+.reel-card .reel-overlay{opacity:0;transition:opacity .22s;}
 .reel-card:hover .reel-overlay{opacity:1;}
+.course-card{transition:transform .3s cubic-bezier(.16,1,.3,1),border-color .22s,box-shadow .25s;}
+.course-card:hover{transform:translateY(-5px);border-color:${OR}40!important;box-shadow:0 18px 48px rgba(0,0,0,.4),0 0 22px ${OR}18!important;}
+.course-card:active{transform:scale(.97)!important;transition-duration:.08s!important;}
+.asset-card{transition:transform .28s cubic-bezier(.16,1,.3,1),border-color .2s;}
+.asset-card:hover{transform:translateY(-3px);border-color:rgba(255,255,255,.18)!important;}
+.asset-card:active{transform:scale(.96)!important;transition-duration:.08s!important;}
+.stat-card{transition:transform .28s cubic-bezier(.16,1,.3,1),border-color .2s,box-shadow .2s;}
+.stat-card:hover{transform:translateY(-3px);border-color:${OR}38!important;box-shadow:0 10px 28px rgba(0,0,0,.38),0 0 16px ${OR}14!important;}
 
-.course-card{transition:transform .3s cubic-bezier(.16,1,.3,1),border-color .25s,box-shadow .28s;}
-.course-card:active{transform:scale(0.97)!important;transition-duration:.08s!important;}
-.course-card:hover{transform:translateY(-5px);}
+/* ── Shimmer headline ── */
+.headline-shimmer{
+  background:linear-gradient(90deg,${OR} 0%,hsl(30,100%,65%) 40%,${OR} 80%);
+  background-size:200% auto;
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  background-clip:text;animation:shimmer 5s linear infinite;
+}
 
-.asset-card{transition:transform .3s cubic-bezier(.16,1,.3,1),border-color .25s;}
-.asset-card:active{transform:scale(0.96)!important;transition-duration:.08s!important;}
-.asset-card:hover{transform:translateY(-3px);}
+/* ── Section eyebrow ── */
+.section-eyebrow{
+  display:inline-flex;align-items:center;gap:7px;
+  padding:5px 14px;border-radius:100px;margin-bottom:16px;
+  background:${OR}14;border:1px solid ${OR}30;
+  font-size:10px;font-weight:700;letter-spacing:.2em;
+  color:${OR};text-transform:uppercase;
+}
+.section-top-line{position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(to right,transparent,${OR}3a,transparent);}
 
+/* ── FadeUp ── */
+.fu{opacity:0;animation:fadeUp .5s cubic-bezier(.16,1,.3,1) forwards;}
+.d1{animation-delay:.04s;}.d2{animation-delay:.12s;}.d3{animation-delay:.22s;}.d4{animation-delay:.34s;}
+
+/* ── Touch: remove highlight, larger tap targets ── */
+a,button{-webkit-tap-highlight-color:transparent;touch-action:manipulation;}
+@media(max-width:640px){button,[role="button"]{min-height:40px;}}
+
+/* ═══════════════════════════════════════
+   MOBILE OVERRIDES — max-width:900px
+   ═══════════════════════════════════════ */
 @media(max-width:900px){
+  /* Nav */
   .nl{display:none!important;}
   .nav-cta-desktop{display:none!important;}
   .hamburger{display:flex!important;}
-  .h1{font-size:clamp(42px,10vw,72px)!important;letter-spacing:-.04em!important;}
-  .sg{gap:28px!important;}
+
+  /* Grid layouts */
+  .g2{grid-template-columns:1fr!important;}
   .g3{grid-template-columns:1fr 1fr!important;}
   .g4{grid-template-columns:1fr 1fr!important;}
   .footer-grid{grid-template-columns:1fr 1fr!important;}
+
+  /* Flex column stacking */
   .col{flex-direction:column!important;align-items:stretch!important;}
+  .col-center{flex-direction:column!important;align-items:center!important;}
+
+  /* Padding normalization */
   .pxs{padding-left:20px!important;padding-right:20px!important;}
+  .pys{padding-top:72px!important;padding-bottom:72px!important;}
+
+  /* Stats */
+  .sg{gap:10px!important;flex-wrap:wrap!important;}
+
+  /* Hero font */
+  .h1{font-size:clamp(40px,9.5vw,68px)!important;letter-spacing:-.04em!important;}
+
+  /* Disable expensive hover transforms on touch devices */
+  .og-btn:hover,.wa-btn:hover,.outline-btn:hover,.pill-btn:hover{transform:none!important;}
+  .course-card:hover,.asset-card:hover,.stat-card:hover{transform:none!important;box-shadow:none!important;border-color:inherit!important;}
+
+  /* Service carousel */
+  .svc-stage{height:clamp(240px,62vw,320px)!important;}
+  .svc-card-w{width:min(86%,360px)!important;}
 }
-@media(max-width:560px){
+
+/* ═══════════════════════════════════════
+   SMALL MOBILE — max-width:480px
+   ═══════════════════════════════════════ */
+@media(max-width:480px){
   .g3{grid-template-columns:1fr!important;}
-  .g4{grid-template-columns:1fr!important;}
+  .g4{grid-template-columns:1fr 1fr!important;}
   .footer-grid{grid-template-columns:1fr!important;}
-  .reel-scroll{gap:14px!important;}
+  .reel-scroll{gap:12px!important;}
+  .pxs{padding-left:16px!important;padding-right:16px!important;}
+  .pys{padding-top:60px!important;padding-bottom:60px!important;}
+  .h1{font-size:clamp(36px,9vw,58px)!important;}
+
+  /* Crew gallery: 2 rows on small mobile */
+  .cg-row-hide-mobile{display:none!important;}
+
+  /* Stats: 2 per row */
+  .sg{gap:8px!important;}
+  .stat-card{padding:20px 18px!important;min-width:calc(50% - 4px)!important;}
+
+  /* Academy CTA block */
+  .academy-cta-row{flex-direction:column!important;gap:10px!important;}
+  .academy-cta-row a{width:100%!important;justify-content:center!important;}
+
+  /* Contact buttons */
+  .contact-btn-row{flex-direction:column!important;align-items:stretch!important;}
+  .contact-btn-row a{justify-content:center!important;}
+
+  /* Contact info cards */
+  .contact-info-row{flex-direction:column!important;}
+  .contact-info-card{min-width:0!important;width:100%!important;}
+
+  /* Section headings */
+  h2{font-size:clamp(26px,7.5vw,40px)!important;letter-spacing:-.04em!important;}
+
+  /* Portfolio thumbnail strip: hide on tiny screens */
+  .pf-thumb-strip{display:none!important;}
+
+  /* Reel cards: bigger on mobile */
+  .reel-card-w{width:clamp(160px,72vw,220px)!important;}
+
+  /* Course card adjustments */
+  .course-feat-grid{grid-template-columns:1fr!important;}
 }
 `;
 
-// ── Animated Mesh ─────────────────────────────────────────────────────────────
+
+// ── Animated Mesh (lighter for mobile) ───────────────────────────────────────
 function Mesh({ c1, c2, c3, opacity = 1 }: { c1: string; c2: string; c3: string; opacity?: number }) {
   return (
     <div style={{ position: "absolute", inset: 0, overflow: "hidden", pointerEvents: "none", opacity }}>
-      <div style={{ position: "absolute", width: "80%", height: "80%", top: "-28%", left: "-22%", background: `radial-gradient(ellipse at center,${c1}62 0%,${c1}26 40%,transparent 68%)`, filter: "blur(56px)", animation: "b1 20s ease-in-out infinite" }} />
-      <div style={{ position: "absolute", width: "72%", height: "72%", top: "3%", right: "-28%", background: `radial-gradient(ellipse at center,${c2}52 0%,${c2}22 46%,transparent 72%)`, filter: "blur(68px)", animation: "b2 24s ease-in-out infinite" }} />
-      <div style={{ position: "absolute", width: "62%", height: "58%", bottom: "-22%", left: "18%", background: `radial-gradient(ellipse at center,${c3}42 0%,${c3}18 52%,transparent 76%)`, filter: "blur(80px)", animation: "b3 28s ease-in-out infinite" }} />
-      <div style={{ position: "absolute", width: "48%", height: "48%", top: "36%", left: "26%", background: `radial-gradient(ellipse at center,${c1}28 0%,transparent 60%)`, filter: "blur(50px)", animation: "b2 16s ease-in-out infinite reverse" }} />
+      <div style={{ position: "absolute", width: "70%", height: "70%", top: "-18%", left: "-15%", background: `radial-gradient(ellipse at center,${c1}50 0%,${c1}1e 40%,transparent 68%)`, filter: "blur(48px)", animation: "b1 22s ease-in-out infinite" }} />
+      <div style={{ position: "absolute", width: "60%", height: "60%", top: "5%", right: "-22%", background: `radial-gradient(ellipse at center,${c2}40 0%,${c2}18 46%,transparent 70%)`, filter: "blur(60px)", animation: "b2 26s ease-in-out infinite" }} />
+      <div style={{ position: "absolute", width: "55%", height: "50%", bottom: "-18%", left: "15%", background: `radial-gradient(ellipse at center,${c3}38 0%,${c3}14 52%,transparent 74%)`, filter: "blur(70px)", animation: "b3 30s ease-in-out infinite" }} />
       <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 140% 110% at 50% 0%,transparent 28%,rgba(10,10,12,.78) 100%)" }} />
       <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom,rgba(10,10,12,0) 18%,rgba(10,10,12,.42) 62%,rgba(10,10,12,1) 100%)" }} />
     </div>
@@ -610,19 +588,11 @@ export default function LandingPage() {
     <div style={{ background: "#0a0a0c", color: "#f0f0f0", fontFamily: FONT, minHeight: "100vh", overflowX: "hidden", position: "relative" }}>
       <style>{CSS}</style>
 
-      {/* ══════ GLOBAL AMBIENT MESH — fixed di belakang SELURUH halaman, tidak ikut scroll ══════
-          Ini menggantikan pendekatan lama (tiap section punya radial-gradient sendiri-sendiri di
-          atas base warna solid #0a0a0c yang identik). Karena base-nya solid datar, mata menangkap
-          tiap "blob" gradient lokal sebagai area terpisah -- itu sebabnya batas antar section dan
-          pojok-pojok section (terutama yang sebelumnya punya layer solid tambahan, seperti Crew
-          Gallery) terasa kaku/berjahit. Dengan satu mesh lembut yang fixed mengisi seluruh viewport
-          di layer paling belakang, semua section -- termasuk yang transparan -- otomatis "melihat"
-          warna ambient yang sama mengalir di belakangnya, sehingga transisi antar section menyatu. */}
+      {/* ══════ GLOBAL AMBIENT MESH ══════ */}
       <div style={{ position: "fixed", inset: 0, zIndex: 0, pointerEvents: "none", overflow: "hidden" }}>
-        <div style={{ position: "absolute", width: "70%", height: "60%", top: "-12%", left: "-10%", background: `radial-gradient(ellipse at center,${OR}10 0%,transparent 70%)`, filter: "blur(90px)" }} />
-        <div style={{ position: "absolute", width: "65%", height: "55%", top: "20%", right: "-15%", background: `radial-gradient(ellipse at center,${c2}0c 0%,transparent 72%)`, filter: "blur(100px)" }} />
-        <div style={{ position: "absolute", width: "60%", height: "55%", bottom: "-10%", left: "10%", background: `radial-gradient(ellipse at center,${c3}0a 0%,transparent 74%)`, filter: "blur(100px)" }} />
-        <div style={{ position: "absolute", width: "50%", height: "45%", bottom: "20%", right: "5%", background: `radial-gradient(ellipse at center,${OR}08 0%,transparent 70%)`, filter: "blur(90px)" }} />
+        <div style={{ position: "absolute", width: "60%", height: "55%", top: "-8%", left: "-8%", background: `radial-gradient(ellipse at center,${OR}0e 0%,transparent 70%)`, filter: "blur(80px)" }} />
+        <div style={{ position: "absolute", width: "55%", height: "50%", top: "22%", right: "-12%", background: `radial-gradient(ellipse at center,${c2}0a 0%,transparent 72%)`, filter: "blur(90px)" }} />
+        <div style={{ position: "absolute", width: "50%", height: "50%", bottom: "-8%", left: "12%", background: `radial-gradient(ellipse at center,${c3}08 0%,transparent 74%)`, filter: "blur(90px)" }} />
       </div>
 
       {/* ══════ MOBILE NAV ══════ */}
@@ -695,16 +665,18 @@ export default function LandingPage() {
             <div style={{ width: 7, height: 7, borderRadius: "50%", background: "#4ade80", animation: "pulse 2s ease infinite" }} />
             <span style={{ fontSize: 11, fontWeight: 600, color: "rgba(255,255,255,.55)", letterSpacing: ".1em", textTransform: "uppercase" }}>Media Agency · Wonosobo, Central Java</span>
           </div>
-          <h1 className="h1 fu d2" style={{ fontSize: "clamp(48px,6.5vw,96px)", fontWeight: 900, lineHeight: 1.0, letterSpacing: "-.045em", color: "#fff", marginBottom: 24, maxWidth: 900 }}>
-            {hl1}{hl2 && <span style={{ color: OR, display: "block" }}>{hl2}</span>}{hl3 && <span style={{ display: "block" }}>{hl3}</span>}
+          <h1 className="h1 fu d2" style={{ fontSize: "clamp(38px,6.5vw,88px)", fontWeight: 900, lineHeight: 1.0, letterSpacing: "-.045em", color: "#fff", marginBottom: "clamp(16px,3vw,24px)", maxWidth: 900 }}>
+            {hl1}
+            {hl2 && <span className="headline-shimmer" style={{ display: "block" }}>{hl2}</span>}
+            {hl3 && <span style={{ display: "block" }}>{hl3}</span>}
           </h1>
-          <p className="fu d3" style={{ fontSize: "clamp(15px,1.8vw,19px)", color: "rgba(255,255,255,.46)", lineHeight: 1.74, maxWidth: 560, marginBottom: 44 }}>{sub}</p>
-          <div className="col fu d4" style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
+          <p className="fu d3" style={{ fontSize: "clamp(14px,1.8vw,17px)", color: "rgba(255,255,255,.46)", lineHeight: 1.74, maxWidth: 520, marginBottom: "clamp(28px,4vw,44px)" }}>{sub}</p>
+          <div className="academy-cta-row fu d4" style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
             {showreel
-              ? <button onClick={() => setModal(showreel.embedUrl)} className="og-btn" style={{ display: "flex", alignItems: "center", gap: 10, padding: "14px 28px", borderRadius: 100, background: OR, color: "#fff", border: "none", fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: FONT }}><Play style={{ width: 15, height: 15, fill: "#fff" }} /> Tonton Showreel</button>
-              : <a href="#services" className="og-btn" style={{ display: "flex", alignItems: "center", gap: 8, padding: "14px 28px", borderRadius: 100, background: OR, color: "#fff", textDecoration: "none", fontSize: 15, fontWeight: 700 }}>Lihat Layanan <ArrowRight size={15} /></a>
+              ? <button onClick={() => setModal(showreel.embedUrl)} className="og-btn" style={{ display: "flex", alignItems: "center", gap: 9, padding: "clamp(12px,2vw,15px) clamp(20px,3vw,28px)", borderRadius: 100, background: OR, color: "#fff", border: "none", fontSize: "clamp(13px,1.5vw,15px)", fontWeight: 700, cursor: "pointer", fontFamily: FONT, boxShadow: `0 6px 22px ${OR}44` }}><Play style={{ width: 14, height: 14, fill: "#fff" }} /> Tonton Showreel</button>
+              : <a href="#services" className="og-btn" style={{ display: "flex", alignItems: "center", gap: 8, padding: "clamp(12px,2vw,15px) clamp(20px,3vw,28px)", borderRadius: 100, background: OR, color: "#fff", textDecoration: "none", fontSize: "clamp(13px,1.5vw,15px)", fontWeight: 700, boxShadow: `0 6px 22px ${OR}44` }}>Lihat Layanan <ArrowRight size={14} /></a>
             }
-            <a href="#courses" className="outline-btn" style={{ display: "flex", alignItems: "center", gap: 8, padding: "14px 28px", borderRadius: 100, border: "1px solid rgba(255,255,255,.16)", color: "rgba(255,255,255,.78)", textDecoration: "none", fontSize: 15, fontWeight: 600 }}><BookOpen size={15} /> Frameless Academy</a>
+            <a href="#courses" className="outline-btn" style={{ display: "flex", alignItems: "center", gap: 8, padding: "clamp(11px,2vw,14px) clamp(16px,2.5vw,24px)", borderRadius: 100, border: "1px solid rgba(255,255,255,.16)", color: "rgba(255,255,255,.78)", textDecoration: "none", fontSize: "clamp(13px,1.5vw,15px)", fontWeight: 600 }}><BookOpen size={14} /> Frameless Academy</a>
           </div>
           {/* Scroll indicator */}
           <div className="float" style={{ position: "absolute", bottom: -48, left: 28, display: "flex", alignItems: "center", gap: 8, opacity: .3, animation: "float 2.5s ease-in-out infinite" }}>
@@ -715,13 +687,26 @@ export default function LandingPage() {
       </section>
 
       {/* ══════ STATS ══════ */}
-      <section style={{ background: "rgba(255,255,255,.013)", borderTop: "1px solid rgba(255,255,255,.05)", borderBottom: "1px solid rgba(255,255,255,.05)", padding: "60px 28px", position: "relative", overflow: "hidden" }}>
-        <div data-px="0.08" style={{ position: "absolute", inset: 0, background: `radial-gradient(ellipse 60% 80% at 20% 50%,${OR}08,transparent 70%)`, willChange: "transform" }} />
-        <div className="sg" style={{ maxWidth: 1280, margin: "0 auto", display: "flex", gap: 48, justifyContent: "center", flexWrap: "wrap", position: "relative" }}>
-          {[{ v: stat.projects || "200+", l: "Proyek Selesai" }, { v: stat.clients || "80+", l: "Klien Puas" }, { v: stat.years || "8+", l: "Tahun Pengalaman" }, { v: stat.alumni || "500+", l: "Alumni Academy" }].map(s => (
-            <div key={s.l} style={{ textAlign: "center" }}>
-              <div style={{ fontSize: "clamp(36px,4vw,56px)", fontWeight: 900, color: "#fff", letterSpacing: "-.04em", lineHeight: 1 }}>{s.v}</div>
-              <div style={{ fontSize: 11, color: "rgba(255,255,255,.32)", marginTop: 10, letterSpacing: ".14em", textTransform: "uppercase", fontWeight: 700 }}>{s.l}</div>
+      <section style={{ borderTop: "1px solid rgba(255,255,255,.055)", borderBottom: "1px solid rgba(255,255,255,.055)", padding: "clamp(48px,8vw,72px) clamp(16px,4vw,28px)", position: "relative", overflow: "hidden" }}>
+        <div style={{ position: "absolute", inset: 0, background: `radial-gradient(ellipse 60% 90% at 15% 50%,${OR}09,transparent 70%)`, pointerEvents: "none" }} />
+        <div className="sg" style={{ maxWidth: 1100, margin: "0 auto", display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap", position: "relative" }}>
+          {[
+            { v: stat.projects || "200+", l: "Proyek Selesai", i: "🎬" },
+            { v: stat.clients  || "80+",  l: "Klien Puas",     i: "🤝" },
+            { v: stat.years    || "8+",   l: "Tahun Pengalaman", i: "⭐" },
+            { v: stat.alumni   || "500+", l: "Alumni Academy",  i: "🎓" },
+          ].map((s, idx) => (
+            <div key={s.l} className="stat-card" style={{
+              textAlign: "center", padding: "clamp(18px,3vw,28px) clamp(20px,4vw,40px)",
+              borderRadius: 20, minWidth: "clamp(130px,28vw,160px)",
+              background: "rgba(255,255,255,.026)", border: "1px solid rgba(255,255,255,.07)",
+              backdropFilter: "blur(14px)",
+              animation: `statPop .45s cubic-bezier(.16,1,.3,1) ${idx * 0.07}s both`,
+              flex: "1 1 clamp(130px,28vw,160px)",
+            }}>
+              <div style={{ fontSize: "clamp(18px,4vw,22px)", marginBottom: 6 }}>{s.i}</div>
+              <div style={{ fontSize: "clamp(28px,5vw,46px)", fontWeight: 900, color: "#fff", letterSpacing: "-.04em", lineHeight: 1 }}>{s.v}</div>
+              <div style={{ fontSize: "clamp(9px,2vw,11px)", color: "rgba(255,255,255,.32)", marginTop: 8, letterSpacing: ".14em", textTransform: "uppercase", fontWeight: 700 }}>{s.l}</div>
             </div>
           ))}
         </div>
@@ -732,16 +717,16 @@ export default function LandingPage() {
         <div data-px="0.1" style={{ position: "absolute", top: "5%", right: "-8%", width: "55%", height: "65%", background: `radial-gradient(ellipse at center,${c2}10,transparent 70%)`, filter: "blur(60px)", willChange: "transform" }} />
         <div style={{ position: "absolute", inset: 0, background: `radial-gradient(ellipse 70% 50% at 50% 0%,${OR}08,transparent 65%)`, pointerEvents: "none" }} />
 
-        <div style={{ maxWidth: 1100, margin: "0 auto", padding: "0 28px", position: "relative" }}>
-          <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginBottom: 48, flexWrap: "wrap", gap: 16 }}>
+        <div style={{ maxWidth: 1100, margin: "0 auto", padding: "0 clamp(16px,4vw,28px)", position: "relative" }}>
+          <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginBottom: "clamp(28px,5vw,48px)", flexWrap: "wrap", gap: 16 }}>
             <div>
-              <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: ".24em", color: OR, textTransform: "uppercase", marginBottom: 14 }}>LAYANAN KAMI</p>
-              <h2 style={{ fontSize: "clamp(28px,4.5vw,52px)", fontWeight: 900, letterSpacing: "-.04em", color: "#fff", margin: 0, lineHeight: 1.0 }}>
-                Produksi Video<br /><span style={{ color: "rgba(255,255,255,.28)" }}>dari Konsep ke Screen</span>
+              <div className="section-eyebrow"><Film size={10} /> Layanan Kami</div>
+              <h2 style={{ fontSize: "clamp(26px,4.5vw,52px)", fontWeight: 900, letterSpacing: "-.045em", color: "#fff", margin: 0, lineHeight: .98 }}>
+                Produksi Video<br /><span style={{ color: "rgba(255,255,255,.24)" }}>dari Konsep ke Screen</span>
               </h2>
             </div>
-            <a href="/services" className="outline-btn" style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "10px 20px", borderRadius: 12, border: `1px solid ${OR}44`, color: OR, textDecoration: "none", fontSize: 13, fontWeight: 700, flexShrink: 0 }}>
-              Lihat semua layanan <ChevronRight size={14} />
+            <a href="/services" className="outline-btn" style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "9px 18px", borderRadius: 12, border: `1px solid ${OR}40`, color: OR, textDecoration: "none", fontSize: 13, fontWeight: 700, flexShrink: 0, backdropFilter: "blur(8px)" }}>
+              Semua <ChevronRight size={14} />
             </a>
           </div>
         </div>
@@ -760,7 +745,7 @@ export default function LandingPage() {
                 <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: "14%", background: "linear-gradient(to right,rgba(10,10,12,1) 0%,rgba(10,10,12,.92) 30%,rgba(10,10,12,.5) 65%,transparent 100%)", zIndex: 20, pointerEvents: "none" }} />
                 <div style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: "14%", background: "linear-gradient(to left,rgba(10,10,12,1) 0%,rgba(10,10,12,.92) 30%,rgba(10,10,12,.5) 65%,transparent 100%)", zIndex: 20, pointerEvents: "none" }} />
 
-                <div style={{ position: "relative", height: "clamp(280px, 36vw, 380px)" }}>
+                <div className="svc-stage" style={{ position: "relative", height: "clamp(260px,38vw,380px)" }}>
                   {services.map((s, idx) => {
                     let rel = ((idx - curIdx) % total + total) % total;
                     if (rel > total / 2) rel -= total;
@@ -771,6 +756,7 @@ export default function LandingPage() {
                     const scale  = ([1, 0.84, 0.68] as const)[ab];
                     const opac   = ([1, 0.55, 0.25] as const)[ab];
                     const zIdx   = ([15, 8, 3] as const)[ab];
+                    const STEP   = 340;
                     const Icon   = getServiceIcon(s.slug);
                     const hv     = s.highlightVideoUrl;
                     const hvEmbed = isC && hv && !isDirectVideo(hv) ? autoEmbed(hv, true) : "";
@@ -786,8 +772,8 @@ export default function LandingPage() {
                           top: "50%",
                           left: `calc(50% + ${rel * STEP}px)`,
                           transform: `translateX(-50%) translateY(-50%) scale(${scale})`,
-                          width: "min(78%, 420px)",
-                          height: "clamp(260px, 33vw, 340px)",
+                          width: "min(84%, 420px)",
+                          height: "clamp(240px,33vw,340px)",
                           borderRadius: 20,
                           overflow: "hidden",
                           textDecoration: "none",
@@ -1317,7 +1303,7 @@ export default function LandingPage() {
       )}
 
       {/* ══════ ACADEMY ══════ */}
-      <section id="courses" className="pxs" style={{ padding: "120px 28px", position: "relative", overflow: "hidden" }}>
+      <section id="courses" className="pxs" style={{ padding: "clamp(72px,10vw,120px) clamp(16px,4vw,28px)", position: "relative", overflow: "hidden" }}>
         {/* Background glows */}
         <div style={{ position: "absolute", inset: 0, background: `radial-gradient(ellipse 80% 60% at 50% 0%,${OR}14,transparent 65%)`, pointerEvents: "none" }} />
         <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 1, background: `linear-gradient(to right,transparent,${OR}55,transparent)` }} />
@@ -1326,10 +1312,9 @@ export default function LandingPage() {
         <div style={{ maxWidth: 1320, margin: "0 auto", position: "relative" }}>
 
           {/* ── Section label ── */}
-          <div style={{ textAlign: "center", marginBottom: 20 }}>
-            <div style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "6px 18px", borderRadius: 100, background: `${OR}18`, border: `1px solid ${OR}40`, marginBottom: 28 }}>
-              <BookOpen size={13} color={OR} />
-              <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: ".22em", color: OR, textTransform: "uppercase" }}>Frameless Academy</span>
+          <div style={{ textAlign: "center", marginBottom: "clamp(16px,3vw,24px)" }}>
+            <div className="section-eyebrow">
+              <BookOpen size={10} color={OR} /> Frameless Academy
             </div>
           </div>
 
@@ -1337,27 +1322,27 @@ export default function LandingPage() {
           <div style={{
             display: "grid",
             gridTemplateColumns: "1fr 1fr",
-            gap: 56,
+            gap: "clamp(28px,5vw,56px)",
             alignItems: "center",
-            marginBottom: 80,
-          }} className="g2">
+            marginBottom: "clamp(48px,8vw,80px)",
+          }} className="g2 course-feat-grid">
 
             {/* Left: copywriting */}
             <div>
               <h2 style={{
-                fontSize: "clamp(34px,4.5vw,64px)",
+                fontSize: "clamp(28px,4.5vw,60px)",
                 fontWeight: 900, letterSpacing: "-.045em",
-                color: "#fff", margin: "0 0 22px", lineHeight: .96,
+                color: "#fff", margin: "0 0 clamp(14px,2vw,22px)", lineHeight: .96,
               }}>
                 Bukan sekadar<br />kursus online.<br />
-                <span style={{ color: OR }}>Ini investasi karir.</span>
+                <span className="headline-shimmer">Ini investasi karir.</span>
               </h2>
-              <p style={{ color: "rgba(255,255,255,.5)", fontSize: 16, lineHeight: 1.75, maxWidth: 480, margin: "0 0 32px" }}>
+              <p style={{ color: "rgba(255,255,255,.5)", fontSize: "clamp(13px,1.5vw,16px)", lineHeight: 1.75, maxWidth: 480, margin: "0 0 clamp(20px,3vw,32px)" }}>
                 Belajar langsung dari sineas aktif industri — bukan teori doang. Dari teknik kamera, storytelling, hingga editing pro — semua dalam satu ekosistem belajar.
               </p>
 
               {/* Benefit pills */}
-              <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 36 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: "clamp(24px,4vw,36px)" }}>
                 {[
                   { icon: <Wrench size={14} color={OR} />,    title: "Filmmaking Tools Gratis",        desc: "Shot list, rundown, production bible — langsung bisa dipakai." },
                   { icon: <Download size={14} color={OR} />,  title: "Aset Digital Gratis",            desc: "LUT, preset, dan template dari Frameless Creative — eksklusif untuk member." },
@@ -1392,7 +1377,7 @@ export default function LandingPage() {
               </div>
 
               {/* Stats row */}
-              <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
+              <div style={{ display: "flex", gap: "clamp(14px,3vw,24px)", flexWrap: "wrap" }}>
                 {[
                   { v: academyStats.alumni,    l: "Alumni" },
                   { v: academyStats.rating,    l: "Rating" },
@@ -1400,8 +1385,8 @@ export default function LandingPage() {
                   { v: "100%",                 l: "Bersertifikat" },
                 ].map(s => (
                   <div key={s.l}>
-                    <p style={{ margin: 0, fontSize: 24, fontWeight: 900, color: "#fff", letterSpacing: "-.03em" }}>{s.v}</p>
-                    <p style={{ margin: "2px 0 0", fontSize: 11, color: "rgba(255,255,255,.38)", textTransform: "uppercase", letterSpacing: ".1em" }}>{s.l}</p>
+                    <p style={{ margin: 0, fontSize: "clamp(18px,3vw,26px)", fontWeight: 900, color: "#fff", letterSpacing: "-.03em" }}>{s.v}</p>
+                    <p style={{ margin: "2px 0 0", fontSize: "clamp(9px,1.5vw,11px)", color: "rgba(255,255,255,.38)", textTransform: "uppercase", letterSpacing: ".1em" }}>{s.l}</p>
                   </div>
                 ))}
               </div>
@@ -1591,9 +1576,9 @@ export default function LandingPage() {
                 className="g3"
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,300px),1fr))",
-                  gap: 20,
-                  marginBottom: 56,
+                  gridTemplateColumns: "repeat(auto-fill,minmax(min(100%,280px),1fr))",
+                  gap: "clamp(12px,2.5vw,20px)",
+                  marginBottom: "clamp(36px,6vw,56px)",
                 }}
               >
                 {pubCourses.slice(0, 3).map((c, idx) => {
@@ -1745,42 +1730,32 @@ export default function LandingPage() {
             <div style={{ position: "absolute", top: -50, right: -50, width: 220, height: 220, borderRadius: "50%", background: `${OR}10`, filter: "blur(60px)" }} />
             <div style={{ position: "absolute", bottom: -40, left: -40, width: 180, height: 180, borderRadius: "50%", background: `${c2}10`, filter: "blur(60px)" }} />
 
-            <div className="g2" style={{ position: "relative", display: "grid", gridTemplateColumns: "1fr auto", gap: 36, alignItems: "center" }}>
+            <div className="g2" style={{ position: "relative", display: "grid", gridTemplateColumns: "1fr auto", gap: "clamp(20px,4vw,36px)", alignItems: "center" }}>
               <div>
-                <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: ".22em", color: OR, textTransform: "uppercase", marginBottom: 12 }}>
+                <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: ".22em", color: OR, textTransform: "uppercase", marginBottom: 10 }}>
                   Mulai Sekarang
                 </p>
-                <h3 style={{ fontSize: "clamp(22px,3vw,36px)", fontWeight: 900, color: "#fff", letterSpacing: "-.04em", marginBottom: 10, lineHeight: 1.1 }}>
+                <h3 style={{ fontSize: "clamp(20px,3vw,36px)", fontWeight: 900, color: "#fff", letterSpacing: "-.04em", marginBottom: 10, lineHeight: 1.1 }}>
                   Siap jadi sineas profesional?
                 </h3>
-                <p style={{ color: "rgba(255,255,255,.45)", fontSize: 14, maxWidth: 440, lineHeight: 1.7, marginBottom: 0 }}>
+                <p style={{ color: "rgba(255,255,255,.45)", fontSize: "clamp(12px,1.4vw,14px)", maxWidth: 440, lineHeight: 1.7, marginBottom: 0 }}>
                   Trial gratis · Filmmaking tools eksklusif · Aset digital · Sertifikat resmi · Komunitas 500+ alumni
                 </p>
               </div>
-              <div style={{ display: "flex", gap: 10, flexDirection: "column", flexShrink: 0, minWidth: 180 }}>
-                <a
-                  href="/courses"
-                  className="og-btn"
-                  style={{
-                    padding: "14px 28px", borderRadius: 100,
-                    background: OR, color: "#fff",
-                    textDecoration: "none", fontSize: 14, fontWeight: 800,
-                    whiteSpace: "nowrap", textAlign: "center",
-                    boxShadow: `0 8px 28px ${OR}44`,
-                  }}
-                >
+              <div className="academy-cta-row" style={{ display: "flex", gap: 10, flexDirection: "column", flexShrink: 0, minWidth: 0 }}>
+                <a href="/courses" className="og-btn" style={{
+                  padding: "13px clamp(18px,3vw,28px)", borderRadius: 100,
+                  background: OR, color: "#fff", textDecoration: "none",
+                  fontSize: "clamp(12px,1.4vw,14px)", fontWeight: 800,
+                  whiteSpace: "nowrap", textAlign: "center", boxShadow: `0 6px 22px ${OR}44`,
+                }}>
                   Mulai Belajar Sekarang →
                 </a>
-                <a
-                  href="#contact"
-                  style={{
-                    padding: "12px 22px", borderRadius: 100,
-                    border: "1px solid rgba(255,255,255,.15)",
-                    color: "rgba(255,255,255,.6)",
-                    textDecoration: "none", fontSize: 13, fontWeight: 600,
-                    textAlign: "center",
-                  }}
-                >
+                <a href="#contact" style={{
+                  padding: "11px clamp(14px,2.5vw,22px)", borderRadius: 100,
+                  border: "1px solid rgba(255,255,255,.15)", color: "rgba(255,255,255,.6)",
+                  textDecoration: "none", fontSize: "clamp(12px,1.4vw,13px)", fontWeight: 600, textAlign: "center",
+                }}>
                   Konsultasi dulu
                 </a>
               </div>
