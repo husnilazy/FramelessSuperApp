@@ -110,18 +110,12 @@ function Router() {
       {/* Crew Link-in-Bio public pages */}
       <Route path="/crew/link/:username" component={CrewLinkPage} />
 
-      {/* Sub-pages dengan @ prefix */}
-      <Route path="/@:username/:slug" component={CrewLinkSubPage} />
-
-      {/* Sub-pages tanpa @ (fallback jika @ di-encode/di-strip) */}
-      <Route path="/:username/:slug"  component={CrewLinkSubPage} />
-
       {/* Crew */}
       <Route path="/crew/login"     component={CrewLoginPage} />
       <Route path="/crew/dashboard" component={CrewDashboard} />
       <Route path="/crew"           component={CrewDashboard} />
 
-      {/* Admin (protected) */}
+      {/* Admin (protected) — SEMUA route spesifik WAJIB di atas catch-all :username di bawah */}
       <Route path="/admin"               component={ProtectedRoutes} />
       <Route path="/dashboard"           component={ProtectedRoutes} />
       <Route path="/command-center"      component={ProtectedRoutes} />
@@ -148,8 +142,12 @@ function Router() {
       <Route path="/filmmaking-tools/documents/:id" component={ProtectedRoutes} />
       <Route path="/admin/filmmaking-submissions" component={ProtectedRoutes} />
 
-      {/* Short profile URL — HARUS paling bawah */}
-      <Route path="/:username" component={CrewLinkPage} />
+      {/* ── Catch-all Link-in-Bio — HARUS PALING BAWAH sebelum NotFound.
+          Kalau nambah route admin baru bentuk "/sesuatu/sesuatu" di masa depan,
+          taruh SEBELUM 3 baris ini, jangan sesudahnya. ── */}
+      <Route path="/@:username/:slug" component={CrewLinkSubPage} />
+      <Route path="/:username/:slug"  component={CrewLinkSubPage} />
+      <Route path="/:username"        component={CrewLinkPage} />
 
       <Route component={NotFound} />
     </Switch>

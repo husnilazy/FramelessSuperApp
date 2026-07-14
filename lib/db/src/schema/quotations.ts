@@ -10,7 +10,7 @@ export const quotationsTable = pgTable("quotations", {
   projectId: text("projectId"),
   projectType: text("projectType"),
   title: text("title").notNull(),
-  status: text("status").notNull().default("DRAFT"), // DRAFT, SENT, ACCEPTED, REJECTED, EXPIRED, CONVERTED
+  status: text("status").notNull().default("DRAFT"),
   validUntil: timestamp("validUntil"),
   subtotal: numeric("subtotal").notNull().default("0"),
   tax: numeric("tax").notNull().default("0"),
@@ -36,17 +36,20 @@ export const quotationsTable = pgTable("quotations", {
 export const quotationItemsTable = pgTable("quotation_items", {
   id: text("id").primaryKey().notNull(),
   quotationId: text("quotationId").notNull().references(() => quotationsTable.id),
-  description: text("description").notNull(),
-  quantity: numeric("quantity").notNull().default("1"),
-  unitPrice: numeric("unitPrice").notNull().default("0"),
-  total: numeric("total").notNull().default("0"),
+  phase: text("phase").notNull().default("lain"), // pra | produksi | pasca | lain
+  label: text("label"),
+  components: text("components"), // JSON stringified string[] (Crew/Alat)
+  description: text("description").notNull(), // composed final text: dipakai buat display & PDF
+  quantity: numeric("quantity").notNull(),
+  unitPrice: numeric("unitPrice").notNull(),
+  total: numeric("total").notNull(),
   sortOrder: numeric("sortOrder").notNull().default("0"),
 });
 
 export const quotationRabItemsTable = pgTable("quotation_rab_items", {
   id: text("id").primaryKey().notNull(),
   quotationId: text("quotationId").notNull().references(() => quotationsTable.id),
-  category: text("category").notNull(), // Crew, Equipment, Lokasi, Logistik, Overhead, Lainnya
+  category: text("category").notNull(),
   itemName: text("itemName").notNull(),
   quantity: numeric("quantity").notNull().default("1"),
   unit: text("unit"),

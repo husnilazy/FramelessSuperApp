@@ -9,6 +9,7 @@ import {
   invoicesTable,
   invoiceItemsTable,
   expensesTable,
+  companyProfileTable,
 } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import crypto from "crypto";
@@ -31,6 +32,15 @@ function toDateOrNull(v: unknown): Date | null {
   const d = new Date(String(v));
   return Number.isNaN(d.getTime()) ? null : d;
 }
+function parseComponents(raw: unknown): string[] {
+  if (!raw) return [];
+  try {
+    const arr = JSON.parse(String(raw));
+    return Array.isArray(arr) ? arr.filter(Boolean).map(String) : [];
+  } catch {
+    return [];
+  }
+}
 
 const PAPER_DIMENSIONS: Record<string, { width: string; height: string }> = {
   A4: { width: "210mm", height: "297mm" },
@@ -38,6 +48,42 @@ const PAPER_DIMENSIONS: Record<string, { width: string; height: string }> = {
   Legal: { width: "216mm", height: "356mm" },
   F4: { width: "215mm", height: "330mm" },
 };
+
+const PHASE_ORDER = ["pra", "produksi", "pasca", "lain"] as const;
+const PHASE_LABELS: Record<string, string> = {
+  pra: "Pra Produksi", produksi: "Produksi", pasca: "Pasca Produksi", lain: "Lainnya",
+};
+
+async function getCompanyProfile() {
+  try {
+    const [row] = await db.select().from(companyProfileTable).where(eq(companyProfileTable.id, "default")).limit(1);
+    if (row) return row;
+  } catch (err) {
+    logger.warn({ err }, "quotations.company_profile_lookup_failed");
+  }
+  return {
+    companyName: "Frameless Creative",
+    tagline: "Creative Production House",
+    address: "Jl. Lurah Sudarto Jlamprang Wonosobo 56319",
+    email: "info@frameless.com",
+    phone: null,
+    website: "www.framelesscreative.com",
+    logoUrl: null,
+  };
+}
+
+function persistItemFields(item: any) {
+  const label = toStr(item?.label) || toStr(item?.description);
+  const componentsArr = Array.isArray(item?.components)
+    ? item.components.filter(Boolean).map(String)
+    : toStr(item?.components).split(",").map((s: string) => s.trim()).filter(Boolean);
+  return {
+    phase: toStr(item?.phase, "lain") || "lain",
+    label,
+    components: JSON.stringify(componentsArr),
+    description: toStr(item?.description) || label,
+  };
+}
 
 // ================= CRUD =================
 
@@ -106,10 +152,14 @@ router.post("/quotations", async (req, res): Promise<void> => {
     if (Array.isArray(items)) {
       for (let i = 0; i < items.length; i++) {
         const item = items[i];
+        const f = persistItemFields(item);
         await db.insert(quotationItemsTable).values({
           id: crypto.randomUUID(),
           quotationId,
-          description: toStr(item?.description),
+          phase: f.phase,
+          label: f.label,
+          components: f.components,
+          description: f.description,
           quantity: toNumStr(item?.quantity, "1"),
           unitPrice: toNumStr(item?.unitPrice),
           total: toNumStr(item?.total),
@@ -210,10 +260,14 @@ router.put("/quotations/:id", async (req: Request<{ id: string }>, res: Response
       await db.delete(quotationItemsTable).where(eq(quotationItemsTable.quotationId, id));
       for (let i = 0; i < items.length; i++) {
         const item = items[i];
+        const f = persistItemFields(item);
         await db.insert(quotationItemsTable).values({
           id: crypto.randomUUID(),
           quotationId: id,
-          description: toStr(item?.description),
+          phase: f.phase,
+          label: f.label,
+          components: f.components,
+          description: f.description,
           quantity: toNumStr(item?.quantity, "1"),
           unitPrice: toNumStr(item?.unitPrice),
           total: toNumStr(item?.total),
@@ -268,7 +322,6 @@ router.delete("/quotations/:id", async (req: Request<{ id: string }>, res: Respo
 router.get("/quotations/rab-suggest", async (req, res): Promise<void> => {
   try {
     const { projectType } = req.query as { projectType?: string };
-
     const expenses = await db.select().from(expensesTable);
     const projects = await db.select().from(projectsTable);
     const projectTypeById = new Map(projects.map((p: any) => [p.id, p.projectType]));
@@ -276,7 +329,6 @@ router.get("/quotations/rab-suggest", async (req, res): Promise<void> => {
     const relevant = projectType
       ? expenses.filter((e: any) => e.projectId && projectTypeById.get(e.projectId) === projectType)
       : expenses;
-
     const pool = relevant.length > 0 ? relevant : expenses;
 
     const byCategory: Record<string, number[]> = {};
@@ -310,7 +362,8 @@ router.get("/quotations/rab-suggest", async (req, res): Promise<void> => {
 router.post("/quotations/preview-pdf", async (req, res): Promise<void> => {
   try {
     const body = req.body ?? {};
-    const html = buildQuotationHtml(body);
+    const company = await getCompanyProfile();
+    const html = buildQuotationHtml(body, company);
     const dims = PAPER_DIMENSIONS[toStr(body.paperSize) || "A4"] || PAPER_DIMENSIONS.A4;
     const pdfBuffer = await generatePdfFromHtml(html, {
       width: dims.width,
@@ -336,8 +389,9 @@ router.get("/quotations/:id/export-pdf", async (req: Request<{ id: string }>, re
     const id = toStr(req.params.id);
     const data = await loadQuotationForExport(id);
     if (!data) { res.status(404).json({ error: "Quotation not found" }); return; }
+    const company = await getCompanyProfile();
     const dims = PAPER_DIMENSIONS[data.paperSize] || PAPER_DIMENSIONS.A4;
-    const html = buildQuotationHtml(data);
+    const html = buildQuotationHtml(data, company);
     const pdfBuffer = await generatePdfFromHtml(html, {
       width: dims.width,
       height: dims.height,
@@ -357,8 +411,9 @@ router.get("/quotations/:id/export-html", async (req: Request<{ id: string }>, r
     const id = toStr(req.params.id);
     const data = await loadQuotationForExport(id);
     if (!data) { res.status(404).json({ error: "Quotation not found" }); return; }
+    const company = await getCompanyProfile();
     res.setHeader("Content-Type", "text/html");
-    res.send(buildQuotationHtml(data));
+    res.send(buildQuotationHtml(data, company));
   } catch (err) {
     logger.error({ err }, "quotations.export-html.error");
     res.status(500).json({ error: "Failed to render preview" });
@@ -367,8 +422,9 @@ router.get("/quotations/:id/export-html", async (req: Request<{ id: string }>, r
 
 router.post("/quotations/preview-html", async (req, res): Promise<void> => {
   try {
+    const company = await getCompanyProfile();
     res.setHeader("Content-Type", "text/html");
-    res.send(buildQuotationHtml(req.body ?? {}));
+    res.send(buildQuotationHtml(req.body ?? {}, company));
   } catch (err) {
     logger.error({ err }, "quotations.preview-html.error");
     res.status(500).json({ error: "Failed to render preview" });
@@ -462,27 +518,43 @@ router.post("/quotations/:id/convert", async (req: Request<{ id: string }>, res:
   }
 });
 
-// ================= HTML Template (dipakai preview & PDF, sumber tunggal) =================
+// ================= HTML Template (dipakai preview & PDF) =================
 
-function buildQuotationHtml(q: any): string {
+function buildQuotationHtml(q: any, company: any): string {
   const items = Array.isArray(q.items) ? q.items : [];
-  const logoHtml = q.logoUrl
-    ? `<img src="${q.logoUrl}" alt="Logo" style="height:48px;max-width:180px;object-fit:contain;" />`
-    : `<div style="font-size:22px;font-weight:800;letter-spacing:2px;color:#ff6b35;">FRAMELESS™</div>`;
+  const effectiveLogo = q.logoUrl || company.logoUrl;
+  const logoHtml = effectiveLogo
+    ? `<img src="${effectiveLogo}" alt="Logo" style="height:48px;max-width:180px;object-fit:contain;" />`
+    : `<div style="font-size:22px;font-weight:800;letter-spacing:2px;color:#ff6b35;">${escapeHtml((company.companyName || "FRAMELESS").toUpperCase())}</div>`;
 
   const generatedDate = new Date().toLocaleDateString("id-ID", { day: "2-digit", month: "long", year: "numeric" });
   const validUntil = q.validUntil
     ? new Date(q.validUntil).toLocaleDateString("id-ID", { day: "2-digit", month: "long", year: "numeric" })
     : "-";
 
-  const rows = items.map((item: any, idx: number) => `
-    <tr style="background:${idx % 2 === 0 ? "#fafafa" : "#ffffff"};border-bottom:1px solid #ececec;">
-      <td style="padding:10px 14px;font-size:13px;color:#222;">${escapeHtml(item.description || "—")}</td>
-      <td style="padding:10px 14px;text-align:center;font-size:12px;color:#666;">${escapeHtml(String(item.quantity ?? ""))}</td>
-      <td style="padding:10px 14px;text-align:right;font-size:12px;color:#555;">${formatIDR(item.unitPrice)}</td>
-      <td style="padding:10px 14px;text-align:right;font-size:13px;font-weight:600;color:#111;">${formatIDR(item.total)}</td>
+  // Group items by phase, preserve within-phase order
+  const groups = PHASE_ORDER.map((phase) => ({
+    phase,
+    label: PHASE_LABELS[phase],
+    items: items.filter((it: any) => (it.phase || "lain") === phase),
+  })).filter((g) => g.items.length > 0);
+
+  const rowsHtml = groups.map((g) => `
+    <tr>
+      <td colspan="4" style="padding:8px 14px;background:#f2f2f2;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#666;">${escapeHtml(g.label)}</td>
     </tr>
+    ${g.items.map((item: any, idx: number) => `
+      <tr style="background:${idx % 2 === 0 ? "#fafafa" : "#ffffff"};border-bottom:1px solid #ececec;">
+        <td style="padding:10px 14px;font-size:13px;color:#222;">${escapeHtml(item.description || "—")}</td>
+        <td style="padding:10px 14px;text-align:center;font-size:12px;color:#666;">${escapeHtml(String(item.quantity ?? ""))}</td>
+        <td style="padding:10px 14px;text-align:right;font-size:12px;color:#555;">${formatIDR(item.unitPrice)}</td>
+        <td style="padding:10px 14px;text-align:right;font-size:13px;font-weight:600;color:#111;">${formatIDR(item.total)}</td>
+      </tr>
+    `).join("")}
   `).join("");
+
+  const addressLine = company.address ? escapeHtml(company.address) : "";
+  const contactLine = [company.email, company.website].filter(Boolean).map(escapeHtml).join(" · ");
 
   return `
   <!DOCTYPE html>
@@ -500,12 +572,12 @@ function buildQuotationHtml(q: any): string {
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;">
       <div>
         ${logoHtml}
-        <p style="font-size:10px;color:#999;text-transform:uppercase;letter-spacing:2px;margin-top:6px;">Creative Production House</p>
-        <p style="font-size:10px;color:#999;margin-top:4px;">Jl. Lurah Sudarto Jlamprang Wonosobo 56319</p>
-        <p style="font-size:10px;color:#999;">info@frameless.com · www.framelesscreative.com</p>
+        <p style="font-size:10px;color:#999;text-transform:uppercase;letter-spacing:2px;margin-top:6px;">${escapeHtml(company.tagline || "Creative Production House")}</p>
+        ${addressLine ? `<p style="font-size:10px;color:#999;margin-top:4px;">${addressLine}</p>` : ""}
+        ${contactLine ? `<p style="font-size:10px;color:#999;">${contactLine}</p>` : ""}
       </div>
       <div style="text-align:right;">
-        <p style="font-size:9px;text-transform:uppercase;letter-spacing:3px;color:#999;margin:0 0 4px;">Dokumen Penawaran</p>
+        <p style="font-size:9px;text-transform:uppercase;letter-spacing:3px;color:#999;margin:0 0 4px;">Surat Penawaran</p>
         <p style="font-size:22px;font-weight:800;color:#1a1a1a;margin:0;">${escapeHtml(q.number || "")}</p>
         <p style="font-size:10px;color:#999;margin-top:6px;">Tanggal: ${generatedDate}</p>
         <p style="font-size:10px;color:#999;">Berlaku s/d: ${validUntil}</p>
@@ -528,11 +600,11 @@ function buildQuotationHtml(q: any): string {
         <tr style="background:#1a1a1a;">
           <th style="text-align:left;padding:10px 14px;color:#fff;font-size:10px;letter-spacing:2px;text-transform:uppercase;">Deskripsi Jasa</th>
           <th style="text-align:center;padding:10px 14px;color:#fff;font-size:10px;letter-spacing:2px;text-transform:uppercase;width:60px;">Qty</th>
-          <th style="text-align:right;padding:10px 14px;color:#fff;font-size:10px;letter-spacing:2px;text-transform:uppercase;width:140px;">Rate</th>
+          <th style="text-align:right;padding:10px 14px;color:#fff;font-size:10px;letter-spacing:2px;text-transform:uppercase;width:140px;">Harga</th>
           <th style="text-align:right;padding:10px 14px;color:#fff;font-size:10px;letter-spacing:2px;text-transform:uppercase;width:140px;">Jumlah</th>
         </tr>
       </thead>
-      <tbody>${rows}</tbody>
+      <tbody>${rowsHtml}</tbody>
     </table>
 
     <div class="section" style="display:flex;justify-content:flex-end;margin-top:16px;">
@@ -559,7 +631,7 @@ function buildQuotationHtml(q: any): string {
 
     <div class="section" style="border-top:2px solid #1a1a1a;padding-top:16px;margin-top:32px;display:flex;justify-content:space-between;">
       <div style="font-size:10px;color:#888;line-height:1.6;max-width:60%;">
-        Dokumen ini merupakan penawaran resmi dari Frameless Creative Project PT dan berlaku hingga tanggal yang tercantum di atas.
+        Dokumen ini merupakan penawaran resmi dari ${escapeHtml(company.companyName || "Frameless Creative")} dan berlaku hingga tanggal yang tercantum di atas.
       </div>
       <div style="text-align:right;font-size:10px;color:#999;">Dicetak ${generatedDate}</div>
     </div>
@@ -597,7 +669,15 @@ function mapQuotation(q: any) {
   };
 }
 function mapItem(i: any) {
-  return { id: i.id, quotationId: i.quotationId, description: i.description, quantity: Number(i.quantity), unitPrice: Number(i.unitPrice), total: Number(i.total), sortOrder: Number(i.sortOrder) };
+  return {
+    id: i.id, quotationId: i.quotationId,
+    phase: i.phase || "lain",
+    label: i.label || i.description,
+    components: parseComponents(i.components),
+    description: i.description,
+    quantity: Number(i.quantity), unitPrice: Number(i.unitPrice), total: Number(i.total),
+    sortOrder: Number(i.sortOrder),
+  };
 }
 function mapRabItem(r: any) {
   return { id: r.id, quotationId: r.quotationId, category: r.category, itemName: r.itemName, quantity: Number(r.quantity), unit: r.unit, unitCost: Number(r.unitCost), total: Number(r.total), notes: r.notes, sortOrder: Number(r.sortOrder) };

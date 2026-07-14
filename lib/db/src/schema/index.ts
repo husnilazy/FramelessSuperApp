@@ -20,3 +20,4 @@ export * from "./notifications";
 export * from "./project_files";
 export * from "./filmmaking";
 export * from "./quotations";
+export * from "./company_profile";
