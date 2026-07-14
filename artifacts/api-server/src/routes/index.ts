@@ -39,6 +39,7 @@ import journalRouter from "./journal.js";
 import accountMappingRouter from "./account-mapping.js";
 import autoPosterRouter from "./auto-poster.js";
 import quotationsRouter from "./quotations.js";
+import companyProfileRouter from "./company-profile.js";
 
 
 const router: IRouter = Router();
@@ -84,6 +85,7 @@ router.use(journalRouter);
 router.use(accountMappingRouter);
 router.use(autoPosterRouter);
 router.use(quotationsRouter);
+router.use(companyProfileRouter);
 router.use(crewLinkInBioRouter);
 
 // 404 fallback

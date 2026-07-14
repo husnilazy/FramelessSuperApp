@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useRoute, useLocation } from "wouter";
-import { useListClients, useListProjects } from "@workspace/api-client-react";
+import { useListClients } from "@workspace/api-client-react";
 import { formatCurrency } from "@/lib/formatters";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,12 +9,22 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import {
   ArrowLeft, Plus, Trash2, Download, Save, Upload, ImageIcon,
-  RotateCcw, Sparkles, Wand2, RefreshCcw, ChevronDown,
+  RotateCcw, Sparkles, Wand2, RefreshCcw, ChevronDown, Star, StarOff,
 } from "lucide-react";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
-interface LineItem { id: string; description: string; quantity: number; unitPrice: number; total: number; }
+type Phase = "pra" | "produksi" | "pasca" | "lain";
+
+interface LineItem {
+  id: string;
+  phase: Phase;
+  label: string;
+  componentsText: string; // raw input "Director, Videographer"
+  quantity: number;
+  unitPrice: number;
+  total: number;
+}
 interface RabItem { id: string; category: string; itemName: string; quantity: number; unit: string; unitCost: number; total: number; notes: string; }
 
 interface QuotationData {
@@ -31,7 +41,7 @@ interface QuotationData {
   taxRate: number;
   discount: number;
   dpPercentage: number;
-  logoUrl: string;
+  logoUrl: string; // "" berarti pakai logo default perusahaan
   paperSize: string;
   marginTop: string;
   marginBottom: string;
@@ -41,26 +51,42 @@ interface QuotationData {
 
 const RAB_CATEGORIES = ["Crew", "Equipment", "Lokasi", "Logistik", "Overhead", "Lainnya"];
 const PAPER_SIZES = ["A4", "Letter", "Legal", "F4"];
-const DEFAULT_LOGO = "/logo-frameless.png";
 
-const newItem = (): LineItem => ({ id: Math.random().toString(36).slice(2), description: "", quantity: 1, unitPrice: 0, total: 0 });
+const PHASES: { value: Phase; label: string }[] = [
+  { value: "pra", label: "Pra Produksi" },
+  { value: "produksi", label: "Produksi" },
+  { value: "pasca", label: "Pasca Produksi" },
+  { value: "lain", label: "Lainnya" },
+];
+
+const newItem = (phase: Phase = "produksi"): LineItem => ({
+  id: Math.random().toString(36).slice(2), phase, label: "", componentsText: "", quantity: 1, unitPrice: 0, total: 0,
+});
 const newRabItem = (category = "Crew"): RabItem => ({ id: Math.random().toString(36).slice(2), category, itemName: "", quantity: 1, unit: "", unitCost: 0, total: 0, notes: "" });
 
-function today() { return new Date().toISOString().split("T")[0]; }
 function daysOut(n: number) { const d = new Date(); d.setDate(d.getDate() + n); return d.toISOString().split("T")[0]; }
 function authHeaders(): Record<string, string> {
   const token = localStorage.getItem("token");
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
+// Compose final display description dari label + komponen: "Produksi (Director, Videographer)"
+function composeDescription(item: LineItem): string {
+  const comps = item.componentsText.split(",").map((s) => s.trim()).filter(Boolean);
+  const label = item.label.trim();
+  if (!label) return comps.length > 0 ? `(${comps.join(", ")})` : "";
+  return comps.length > 0 ? `${label} (${comps.join(", ")})` : label;
+}
+
 const defaultQ: QuotationData = {
   clientId: "", projectType: "", title: "", status: "DRAFT",
   validUntil: daysOut(14), billTo: "",
-  items: [newItem()], rabItems: [],
+  items: [newItem("pra"), newItem("produksi"), newItem("pasca")],
+  rabItems: [],
   notes: "", terms:
     "1. Penawaran ini berlaku hingga tanggal yang tercantum di atas.\n2. DP wajib dibayarkan sebelum produksi dimulai.\n3. Revisi di luar scope yang disepakati dapat dikenakan biaya tambahan.\n4. Jadwal produksi mengikuti ketersediaan tim & lokasi.",
   taxRate: 11, discount: 0, dpPercentage: 50,
-  logoUrl: DEFAULT_LOGO, paperSize: "A4",
+  logoUrl: "", paperSize: "A4",
   marginTop: "16mm", marginBottom: "16mm", marginLeft: "14mm", marginRight: "14mm",
 };
 
@@ -86,8 +112,25 @@ export default function QuotationEditorPage() {
   const [number, setNumber] = useState<string>("");
   const [convertedInfo, setConvertedInfo] = useState<{ projectId?: string; invoiceId?: string } | null>(null);
 
+  // Logo perusahaan (default, tersimpan permanen)
+  const [companyLogo, setCompanyLogo] = useState<string>("");
+  const [companyName, setCompanyName] = useState<string>("Frameless Creative");
+  const [settingDefault, setSettingDefault] = useState(false);
+
   const { data: clients, isLoading: clientsLoading } = useListClients();
-  const { data: projects } = useListProjects();
+
+  // ─── Load company profile (logo default) ───────────────────────────────────
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch("/api/company-profile", { headers: authHeaders() });
+        if (!res.ok) return;
+        const data = await res.json();
+        setCompanyLogo(data.logoUrl || "");
+        setCompanyName(data.companyName || "Frameless Creative");
+      } catch { /* silent, fallback ke placeholder */ }
+    })();
+  }, []);
 
   // ─── Load existing quotation ───────────────────────────────────────────────
   useEffect(() => {
@@ -107,14 +150,21 @@ export default function QuotationEditorPage() {
           status: data.status || "DRAFT",
           validUntil: data.validUntil ? new Date(data.validUntil).toISOString().split("T")[0] : daysOut(14),
           billTo: data.billTo || "",
-          items: data.items?.length ? data.items.map((i: any) => ({ id: i.id, description: i.description, quantity: Number(i.quantity), unitPrice: Number(i.unitPrice), total: Number(i.total) })) : [newItem()],
+          items: data.items?.length
+            ? data.items.map((i: any) => ({
+                id: i.id, phase: (i.phase || "lain") as Phase,
+                label: i.label || i.description || "",
+                componentsText: Array.isArray(i.components) ? i.components.join(", ") : "",
+                quantity: Number(i.quantity), unitPrice: Number(i.unitPrice), total: Number(i.total),
+              }))
+            : [newItem("pra"), newItem("produksi"), newItem("pasca")],
           rabItems: data.rabItems?.length ? data.rabItems.map((r: any) => ({ id: r.id, category: r.category, itemName: r.itemName, quantity: Number(r.quantity), unit: r.unit || "", unitCost: Number(r.unitCost), total: Number(r.total), notes: r.notes || "" })) : [],
           notes: data.notes || "",
           terms: data.terms || defaultQ.terms,
           taxRate: data.subtotal > 0 ? Math.round((data.tax / data.subtotal) * 100) : 11,
           discount: data.discount || 0,
           dpPercentage: data.dpPercentage || 50,
-          logoUrl: data.logoUrl || DEFAULT_LOGO,
+          logoUrl: data.logoUrl || "",
           paperSize: data.paperSize || "A4",
           marginTop: data.marginTop || "16mm",
           marginBottom: data.marginBottom || "16mm",
@@ -138,19 +188,23 @@ export default function QuotationEditorPage() {
   const marginPercent = total > 0 ? Math.round((margin / total) * 100) : 0;
   const dpAmount = Math.round((total * q.dpPercentage) / 100);
 
+  // Logo aktif yang dipakai (override per-penawaran > default perusahaan)
+  const effectiveLogo = q.logoUrl || companyLogo;
+  const usingCustomLogo = !!q.logoUrl;
+
   // ─── Line item handlers ─────────────────────────────────────────────────────
-  const updateItem = useCallback((id: string, field: keyof LineItem, value: number | string) => {
+  const updateItem = useCallback((id: string, field: "label" | "componentsText" | "quantity" | "unitPrice" | "phase", value: number | string) => {
     setQ((p) => ({
       ...p,
       items: p.items.map((it) => {
         if (it.id !== id) return it;
-        const u = { ...it, [field]: value };
+        const u = { ...it, [field]: value } as LineItem;
         if (field === "quantity" || field === "unitPrice") u.total = Number(u.quantity) * Number(u.unitPrice);
         return u;
       }),
     }));
   }, []);
-  const addItem = () => setQ((p) => ({ ...p, items: [...p.items, newItem()] }));
+  const addItem = (phase: Phase) => setQ((p) => ({ ...p, items: [...p.items, newItem(phase)] }));
   const removeItem = (id: string) => setQ((p) => ({ ...p, items: p.items.filter((i) => i.id !== id) }));
 
   // ─── RAB handlers ───────────────────────────────────────────────────────────
@@ -176,9 +230,7 @@ export default function QuotationEditorPage() {
       if (!res.ok) throw new Error();
       const data = await res.json();
       setRabSuggestions(data.suggestions || []);
-      if (data.fallbackUsed) {
-        toast({ title: "Belum ada histori project tipe ini — pakai rata-rata semua project" });
-      }
+      if (data.fallbackUsed) toast({ title: "Belum ada histori project tipe ini — pakai rata-rata semua project" });
     } catch {
       toast({ variant: "destructive", title: "Gagal ambil saran RAB" });
     } finally {
@@ -198,7 +250,7 @@ export default function QuotationEditorPage() {
     }));
   };
 
-  // ─── Logo upload ────────────────────────────────────────────────────────────
+  // ─── Logo upload (per-penawaran override) ──────────────────────────────────
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -207,6 +259,28 @@ export default function QuotationEditorPage() {
     reader.onload = (ev) => { if (ev.target?.result) setQ((p) => ({ ...p, logoUrl: ev.target!.result as string })); };
     reader.readAsDataURL(file);
   };
+
+  // Jadikan logo yang sedang aktif sebagai logo default perusahaan (permanen, dipakai semua penawaran baru)
+  const handleSetAsDefault = async () => {
+    if (!q.logoUrl) return;
+    setSettingDefault(true);
+    try {
+      const res = await fetch("/api/company-profile", {
+        method: "PUT", headers: { "Content-Type": "application/json", ...authHeaders() },
+        body: JSON.stringify({ logoUrl: q.logoUrl }),
+      });
+      if (!res.ok) throw new Error();
+      setCompanyLogo(q.logoUrl);
+      setQ((p) => ({ ...p, logoUrl: "" })); // balik pakai "default" reference, bukan override lokal
+      toast({ title: "Logo dijadikan default — otomatis dipakai di semua penawaran baru" });
+    } catch {
+      toast({ variant: "destructive", title: "Gagal menyimpan logo default" });
+    } finally {
+      setSettingDefault(false);
+    }
+  };
+
+  const handleResetToDefault = () => setQ((p) => ({ ...p, logoUrl: "" }));
 
   // ─── Client auto-fill ───────────────────────────────────────────────────────
   const applyClientData = (clientId: string) => {
@@ -230,21 +304,26 @@ export default function QuotationEditorPage() {
           role: "admin",
           messages: [{
             role: "user",
-            content: `Buatkan draf poin-poin deskripsi jasa (bukan harga) untuk dokumen penawaran project "${q.title}"${q.projectType ? ` (tipe: ${q.projectType})` : ""}. Format: satu poin per baris, singkat, profesional, dalam Bahasa Indonesia. Maksimal 6 poin.`,
+            content: `Buatkan draf poin-poin deskripsi jasa produksi video untuk project "${q.title}"${q.projectType ? ` (tipe: ${q.projectType})` : ""}. Kelompokkan menjadi 3 bagian: Pra Produksi, Produksi, Pasca Produksi. Untuk tiap poin beri format: "Fase | Nama Item | Crew/Alat dipisah koma". Contoh: "Produksi | Shooting Hari 1 | Director, Videographer, Kamera Sony A7S3". Maksimal 2 poin per fase, dalam Bahasa Indonesia.`,
           }],
         }),
       });
       const data = await res.json();
       const lines: string[] = (data.reply || "").split("\n").map((l: string) => l.replace(/^[-•\d.\s]+/, "").trim()).filter(Boolean);
-      if (lines.length === 0) { toast({ variant: "destructive", title: "AI tidak memberikan hasil, coba lagi" }); return; }
+      const parsed: LineItem[] = [];
+      for (const line of lines) {
+        const parts = line.split("|").map((s) => s.trim());
+        if (parts.length < 2) continue;
+        const phaseRaw = parts[0].toLowerCase();
+        const phase: Phase = phaseRaw.includes("pra") ? "pra" : phaseRaw.includes("pasca") ? "pasca" : phaseRaw.includes("produksi") ? "produksi" : "lain";
+        parsed.push({ ...newItem(phase), label: parts[1] || "", componentsText: parts[2] || "" });
+      }
+      if (parsed.length === 0) { toast({ variant: "destructive", title: "AI tidak memberikan hasil yang valid, coba lagi" }); return; }
       setQ((p) => ({
         ...p,
-        items: [
-          ...p.items.filter((i) => i.description.trim() !== ""),
-          ...lines.map((desc) => ({ ...newItem(), description: desc })),
-        ],
+        items: [...p.items.filter((i) => i.label.trim() !== "" || i.componentsText.trim() !== ""), ...parsed],
       }));
-      toast({ title: `${lines.length} item ditambahkan dari AI` });
+      toast({ title: `${parsed.length} item ditambahkan dari AI` });
     } catch {
       toast({ variant: "destructive", title: "AI sedang tidak bisa dihubungi" });
     } finally {
@@ -260,7 +339,15 @@ export default function QuotationEditorPage() {
     estimatedCost: String(estimatedCost), dpPercentage: String(q.dpPercentage),
     notes: q.notes, terms: q.terms, logoUrl: q.logoUrl, paperSize: q.paperSize,
     marginTop: q.marginTop, marginBottom: q.marginBottom, marginLeft: q.marginLeft, marginRight: q.marginRight,
-    items: q.items.map((i) => ({ description: i.description, quantity: i.quantity, unitPrice: i.unitPrice, total: i.total })),
+    items: q.items
+      .filter((i) => i.label.trim() !== "" || i.componentsText.trim() !== "")
+      .map((i) => ({
+        phase: i.phase,
+        label: i.label,
+        components: JSON.stringify(i.componentsText.split(",").map((s) => s.trim()).filter(Boolean)),
+        description: composeDescription(i),
+        quantity: i.quantity, unitPrice: i.unitPrice, total: i.total,
+      })),
     rabItems: q.rabItems.map((r) => ({ category: r.category, itemName: r.itemName, quantity: r.quantity, unit: r.unit, unitCost: r.unitCost, total: r.total, notes: r.notes })),
   });
 
@@ -358,9 +445,7 @@ export default function QuotationEditorPage() {
         });
         if (!res.ok) return;
         const html = await res.text();
-        if (iframeRef.current) {
-          iframeRef.current.srcdoc = html;
-        }
+        if (iframeRef.current) iframeRef.current.srcdoc = html;
       } catch { /* silent, preview best-effort */ }
     }, 500);
     return () => clearTimeout(timer);
@@ -378,15 +463,15 @@ export default function QuotationEditorPage() {
     <div className="pb-12 space-y-6">
       {/* Top Bar */}
       <div className="flex items-center justify-between gap-4 flex-wrap">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 min-w-0">
           <a href="/quotations">
-            <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-white">
+            <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-white shrink-0">
               <ArrowLeft className="w-5 h-5" />
             </Button>
           </a>
-          <div>
-            <h1 className="text-3xl font-heading tracking-wider text-white">{number || "Penawaran Baru"}</h1>
-            <p className="text-muted-foreground text-xs uppercase tracking-widest">
+          <div className="min-w-0">
+            <h1 className="text-3xl font-heading tracking-wider text-white truncate">{number || "Penawaran Baru"}</h1>
+            <p className="text-muted-foreground text-xs uppercase tracking-widest truncate">
               {q.title || "Quotation Editor"}
             </p>
           </div>
@@ -436,27 +521,43 @@ export default function QuotationEditorPage() {
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         {/* ── Editor Form ── */}
-        <div className="xl:col-span-2 space-y-4">
+        <div className="xl:col-span-2 space-y-4 min-w-0">
 
           {/* Logo */}
           <div className="glass-panel rounded-xl p-5 border-white/10 space-y-3">
-            <p className="text-xs uppercase tracking-widest text-muted-foreground font-semibold">Logo Perusahaan</p>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <p className="text-xs uppercase tracking-widest text-muted-foreground font-semibold">Logo Perusahaan</p>
+              {!usingCustomLogo && companyLogo && (
+                <span className="text-[10px] uppercase tracking-wider text-green-400 flex items-center gap-1">
+                  <Star className="w-3 h-3 fill-green-400" /> Memakai logo default
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-4 flex-wrap">
               <div className="w-32 h-16 rounded-lg bg-white flex items-center justify-center border border-white/20 overflow-hidden shrink-0">
-                {q.logoUrl ? <img src={q.logoUrl} alt="Logo" className="w-full h-full object-contain p-1" /> : <ImageIcon className="w-8 h-8 text-gray-300" />}
+                {effectiveLogo ? <img src={effectiveLogo} alt="Logo" className="w-full h-full object-contain p-1" /> : <ImageIcon className="w-8 h-8 text-gray-300" />}
               </div>
               <div className="flex flex-col gap-2">
                 <input ref={logoInputRef} type="file" accept="image/png,image/jpeg,image/jpg,image/webp,image/svg+xml" className="hidden" onChange={handleLogoUpload} />
                 <Button variant="outline" size="sm" onClick={() => logoInputRef.current?.click()} className="border-white/20 text-white hover:bg-white/10 text-xs">
-                  <Upload className="w-3.5 h-3.5 mr-2" /> Upload Logo Kustom
+                  <Upload className="w-3.5 h-3.5 mr-2" /> Upload Logo Baru
                 </Button>
-                {q.logoUrl !== DEFAULT_LOGO && (
-                  <Button variant="ghost" size="sm" onClick={() => setQ((p) => ({ ...p, logoUrl: DEFAULT_LOGO }))} className="text-muted-foreground hover:text-white text-xs">
-                    <RotateCcw className="w-3 h-3 mr-1.5" /> Reset ke Logo Frameless
-                  </Button>
+                {usingCustomLogo && (
+                  <div className="flex gap-2 flex-wrap">
+                    <Button size="sm" onClick={handleSetAsDefault} disabled={settingDefault} className="bg-primary/20 hover:bg-primary/30 text-primary text-xs h-8">
+                      <Star className="w-3.5 h-3.5 mr-1.5" />
+                      {settingDefault ? "Menyimpan..." : "Jadikan Default"}
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={handleResetToDefault} className="text-muted-foreground hover:text-white text-xs h-8">
+                      <RotateCcw className="w-3 h-3 mr-1.5" /> Pakai Default
+                    </Button>
+                  </div>
                 )}
               </div>
             </div>
+            <p className="text-[10px] text-muted-foreground">
+              Logo default tersimpan permanen dan otomatis dipakai di semua Penawaran baru. Upload di sini hanya untuk override khusus penawaran ini — klik "Jadikan Default" kalau mau logo ini dipakai selamanya.
+            </p>
           </div>
 
           {/* Meta */}
@@ -466,7 +567,7 @@ export default function QuotationEditorPage() {
               <label className="text-xs uppercase tracking-wider text-muted-foreground">Judul Project / Jasa *</label>
               <Input value={q.title} onChange={(e) => setQ((p) => ({ ...p, title: e.target.value }))} placeholder="Cth: Video Company Profile PT Maju Jaya" className="bg-white/5 border-white/10 text-white" />
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1">
                 <label className="text-xs uppercase tracking-wider text-muted-foreground">Client *</label>
                 <Select value={q.clientId} onValueChange={applyClientData}>
@@ -485,7 +586,7 @@ export default function QuotationEditorPage() {
                 <Input value={q.projectType} onChange={(e) => setQ((p) => ({ ...p, projectType: e.target.value }))} placeholder="Cth: Company Profile, Wedding, Music Video" className="bg-white/5 border-white/10 text-white" />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1">
                 <label className="text-xs uppercase tracking-wider text-muted-foreground">Berlaku Sampai</label>
                 <Input type="date" value={q.validUntil} onChange={(e) => setQ((p) => ({ ...p, validUntil: e.target.value }))} className="bg-white/5 border-white/10 text-white" />
@@ -518,7 +619,7 @@ export default function QuotationEditorPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="grid grid-cols-4 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   {(["marginTop", "marginBottom", "marginLeft", "marginRight"] as const).map((field) => (
                     <div key={field} className="space-y-1">
                       <label className="text-[10px] uppercase tracking-wider text-muted-foreground">{field.replace("margin", "")}</label>
@@ -531,44 +632,80 @@ export default function QuotationEditorPage() {
             )}
           </div>
 
-          {/* Line Items */}
-          <div className="glass-panel rounded-xl p-5 border-white/10 space-y-3">
-            <div className="flex items-center justify-between">
+          {/* Line Items — dikelompokkan per Fase Produksi */}
+          <div className="glass-panel rounded-xl p-5 border-white/10 space-y-4">
+            <div className="flex items-center justify-between flex-wrap gap-2">
               <p className="text-xs uppercase tracking-widest text-muted-foreground font-semibold">Deskripsi Jasa / Deliverable</p>
               <Button onClick={handleAiAssist} disabled={aiLoading} size="sm" variant="outline" className="border-primary/30 text-primary hover:bg-primary/10 text-xs">
                 <Sparkles className="w-3.5 h-3.5 mr-1.5" />
                 {aiLoading ? "AI menyusun..." : "Bantu AI Susun"}
               </Button>
             </div>
-            
-            {/* Table Header */}
-            <div className="grid grid-cols-12 gap-2 items-center px-1 py-2 border-b border-white/20 mb-1">
-              <div className="col-span-6"><p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Deskripsi Jasa</p></div>
-              <div className="col-span-2"><p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold text-center">QTY</p></div>
-              <div className="col-span-3"><p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold text-right">RATE</p></div>
-              <div className="col-span-1"></div>
-            </div>
 
-            {/* Items */}
-            <div className="space-y-2">
-              {q.items.map((item, idx) => (
-                <div key={item.id} className="grid grid-cols-12 gap-2 items-center">
-                  <Input value={item.description} onChange={(e) => updateItem(item.id, "description", e.target.value)} placeholder="Deskripsi item" className="col-span-6 bg-white/5 border-white/10 text-white text-sm" />
-                  <Input type="number" value={item.quantity} onChange={(e) => updateItem(item.id, "quantity", Number(e.target.value))} placeholder="0" className="col-span-2 bg-white/5 border-white/10 text-white text-sm text-center" />
-                  <Input type="number" value={item.unitPrice} onChange={(e) => updateItem(item.id, "unitPrice", Number(e.target.value))} placeholder="0" className="col-span-3 bg-white/5 border-white/10 text-white text-sm text-right" />
-                  <div className="col-span-1 flex items-center justify-between">
-                    <span className="text-[10px] text-muted-foreground">{formatCurrency(item.total)}</span>
-                    <Button variant="ghost" size="icon" onClick={() => removeItem(item.id)} className="text-muted-foreground hover:text-red-400">
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+            {PHASES.map((ph) => {
+              const items = q.items.filter((i) => i.phase === ph.value);
+              return (
+                <div key={ph.value} className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] uppercase tracking-widest font-bold text-primary/80 bg-primary/10 px-2 py-0.5 rounded">{ph.label}</span>
+                    <div className="h-px flex-1 bg-white/10" />
+                  </div>
+
+                  <div className="overflow-x-auto -mx-1 px-1">
+                    <div className="min-w-[560px] space-y-2">
+                      {items.map((item) => (
+                        <div key={item.id} className="grid grid-cols-[1.4fr_1.2fr_70px_110px_36px] gap-2 items-center">
+                          <Input
+                            value={item.label}
+                            onChange={(e) => updateItem(item.id, "label", e.target.value)}
+                            placeholder="Nama item (cth: Shooting Hari 1)"
+                            className="bg-white/5 border-white/10 text-white text-sm"
+                          />
+                          <Input
+                            value={item.componentsText}
+                            onChange={(e) => updateItem(item.id, "componentsText", e.target.value)}
+                            placeholder="Crew/Alat, pisah koma"
+                            className="bg-white/5 border-white/10 text-white text-sm"
+                          />
+                          <Input
+                            type="number"
+                            value={item.quantity}
+                            onChange={(e) => updateItem(item.id, "quantity", Number(e.target.value))}
+                            className="bg-white/5 border-white/10 text-white text-sm text-center"
+                          />
+                          <Input
+                            type="number"
+                            value={item.unitPrice}
+                            onChange={(e) => updateItem(item.id, "unitPrice", Number(e.target.value))}
+                            placeholder="Harga"
+                            className="bg-white/5 border-white/10 text-white text-sm"
+                          />
+                          <Button variant="ghost" size="icon" onClick={() => removeItem(item.id)} className="text-muted-foreground hover:text-red-400 shrink-0">
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      ))}
+                      {items.length === 0 && (
+                        <p className="text-xs text-muted-foreground/60 italic py-1">Belum ada item di fase ini.</p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between text-xs pl-0.5">
+                    <button onClick={() => addItem(ph.value)} className="flex items-center gap-1 text-muted-foreground hover:text-primary transition-colors">
+                      <Plus className="w-3.5 h-3.5" /> Tambah item {ph.label}
+                    </button>
+                    {items.length > 0 && (
+                      <span className="text-muted-foreground">
+                        Subtotal: <span className="text-white font-medium">{formatCurrency(items.reduce((s, i) => s + i.total, 0))}</span>
+                      </span>
+                    )}
                   </div>
                 </div>
-              ))}
-            </div>
-            <Button onClick={addItem} variant="outline" size="sm" className="border-white/20 text-white hover:bg-white/10 text-xs w-full">
-              <Plus className="w-3.5 h-3.5 mr-1.5" /> Tambah Item
-            </Button>
-            <div className="grid grid-cols-2 gap-3 pt-2 border-t border-white/10">
+              );
+            })}
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-3 border-t border-white/10">
               <div className="space-y-1">
                 <label className="text-xs uppercase tracking-wider text-muted-foreground">Pajak (%)</label>
                 <Input type="number" value={q.taxRate} onChange={(e) => setQ((p) => ({ ...p, taxRate: Number(e.target.value) }))} className="bg-white/5 border-white/10 text-white text-sm" />
@@ -594,7 +731,7 @@ export default function QuotationEditorPage() {
               <div className="rounded-lg border border-blue-400/20 bg-blue-400/5 p-3 space-y-2">
                 <p className="text-[10px] uppercase tracking-wider text-blue-400">Saran biaya berdasarkan histori project</p>
                 {rabSuggestions.map((s) => (
-                  <div key={s.category} className="flex items-center justify-between text-xs">
+                  <div key={s.category} className="flex items-center justify-between text-xs flex-wrap gap-1">
                     <span className="text-white">{s.category} <span className="text-muted-foreground">({s.sampleSize} data)</span></span>
                     <div className="flex items-center gap-2">
                       <span className="text-blue-400">{formatCurrency(s.averageCost)}</span>
@@ -605,40 +742,29 @@ export default function QuotationEditorPage() {
               </div>
             )}
 
-            <div className="space-y-3">
-              {RAB_CATEGORIES.map((cat) => {
-                const catItems = q.rabItems.filter((r) => r.category === cat);
-                if (catItems.length === 0) return null;
-                return (
-                  <div key={cat} className="space-y-2">
-                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">{cat}</p>
-                    
-                    {/* Table Header */}
-                    <div className="grid grid-cols-12 gap-2 items-center px-1 py-2 border-b border-white/10">
-                      <div className="col-span-4"><p className="text-[9px] uppercase tracking-wider text-muted-foreground font-semibold">Item</p></div>
-                      <div className="col-span-2"><p className="text-[9px] uppercase tracking-wider text-muted-foreground font-semibold text-center">Qty</p></div>
-                      <div className="col-span-2"><p className="text-[9px] uppercase tracking-wider text-muted-foreground font-semibold text-center">Satuan</p></div>
-                      <div className="col-span-2"><p className="text-[9px] uppercase tracking-wider text-muted-foreground font-semibold text-right">Rate</p></div>
-                      <div className="col-span-1"><p className="text-[9px] uppercase tracking-wider text-muted-foreground font-semibold text-right">Total</p></div>
-                      <div className="col-span-1"></div>
+            <div className="overflow-x-auto -mx-1 px-1">
+              <div className="min-w-[560px] space-y-3">
+                {RAB_CATEGORIES.map((cat) => {
+                  const catItems = q.rabItems.filter((r) => r.category === cat);
+                  if (catItems.length === 0) return null;
+                  return (
+                    <div key={cat} className="space-y-1.5">
+                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">{cat}</p>
+                      {catItems.map((r) => (
+                        <div key={r.id} className="grid grid-cols-[1.6fr_70px_90px_110px_36px] gap-2 items-center">
+                          <Input value={r.itemName} onChange={(e) => updateRab(r.id, "itemName", e.target.value)} placeholder="Nama item biaya" className="bg-white/5 border-white/10 text-white text-sm" />
+                          <Input type="number" value={r.quantity} onChange={(e) => updateRab(r.id, "quantity", Number(e.target.value))} placeholder="Qty" className="bg-white/5 border-white/10 text-white text-sm text-center" />
+                          <Input value={r.unit} onChange={(e) => updateRab(r.id, "unit", e.target.value)} placeholder="Satuan" className="bg-white/5 border-white/10 text-white text-sm" />
+                          <Input type="number" value={r.unitCost} onChange={(e) => updateRab(r.id, "unitCost", Number(e.target.value))} placeholder="Biaya" className="bg-white/5 border-white/10 text-white text-sm" />
+                          <Button variant="ghost" size="icon" onClick={() => removeRabItem(r.id)} className="text-muted-foreground hover:text-red-400 shrink-0">
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      ))}
                     </div>
-
-                    {/* Items */}
-                    {catItems.map((r) => (
-                      <div key={r.id} className="grid grid-cols-12 gap-2 items-center">
-                        <Input value={r.itemName} onChange={(e) => updateRab(r.id, "itemName", e.target.value)} placeholder="Nama item biaya" className="col-span-4 bg-white/5 border-white/10 text-white text-sm" />
-                        <Input type="number" value={r.quantity} onChange={(e) => updateRab(r.id, "quantity", Number(e.target.value))} placeholder="0" className="col-span-2 bg-white/5 border-white/10 text-white text-sm text-center" />
-                        <Input value={r.unit} onChange={(e) => updateRab(r.id, "unit", e.target.value)} placeholder="Satuan" className="col-span-2 bg-white/5 border-white/10 text-white text-sm text-center" />
-                        <Input type="number" value={r.unitCost} onChange={(e) => updateRab(r.id, "unitCost", Number(e.target.value))} placeholder="0" className="col-span-2 bg-white/5 border-white/10 text-white text-sm text-right" />
-                        <div className="col-span-1 text-right"><p className="text-sm text-white font-semibold">{formatCurrency(r.total)}</p></div>
-                        <Button variant="ghost" size="icon" onClick={() => removeRabItem(r.id)} className="col-span-1 text-muted-foreground hover:text-red-400">
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
 
             <div className="flex gap-2 flex-wrap pt-1">
@@ -650,7 +776,7 @@ export default function QuotationEditorPage() {
             </div>
 
             {/* HPP Summary */}
-            <div className="grid grid-cols-3 gap-3 pt-3 border-t border-white/10">
+            <div className="grid grid-cols-3 gap-2 sm:gap-3 pt-3 border-t border-white/10">
               <div className="text-center">
                 <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Est. HPP</p>
                 <p className="text-sm font-heading text-white">{formatCurrency(estimatedCost)}</p>
@@ -681,7 +807,7 @@ export default function QuotationEditorPage() {
 
         {/* ── Live Preview (server-rendered, sama persis dengan PDF) ── */}
         <div className="xl:col-span-1">
-          <div className="sticky top-6 space-y-3">
+          <div className="xl:sticky xl:top-6 space-y-3">
             <p className="text-xs uppercase tracking-widest text-muted-foreground font-semibold">Preview (identik dengan PDF final)</p>
             <div className="glass-panel rounded-xl border-white/10 overflow-hidden" style={{ aspectRatio: q.paperSize === "A4" || q.paperSize === "F4" ? "210/297" : "216/279" }}>
               <iframe ref={iframeRef} title="Quotation Preview" className="w-full h-full bg-white" style={{ border: "none" }} />
