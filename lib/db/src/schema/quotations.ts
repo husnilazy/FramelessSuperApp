@@ -36,10 +36,10 @@ export const quotationsTable = pgTable("quotations", {
 export const quotationItemsTable = pgTable("quotation_items", {
   id: text("id").primaryKey().notNull(),
   quotationId: text("quotationId").notNull().references(() => quotationsTable.id),
-  phase: text("phase").notNull().default("lain"), // pra | produksi | pasca | lain
+  phase: text("phase").notNull().default("lain"),
   label: text("label"),
-  components: text("components"), // JSON stringified string[] (Crew/Alat)
-  description: text("description").notNull(), // composed final text: dipakai buat display & PDF
+  components: text("components"),
+  description: text("description").notNull(),
   quantity: numeric("quantity").notNull(),
   unitPrice: numeric("unitPrice").notNull(),
   total: numeric("total").notNull(),
