@@ -3,6 +3,7 @@ import { Router, type IRouter, type Request, type Response } from "express";
 import { db } from "@workspace/db";
 import { sql } from "drizzle-orm";
 import crypto from "crypto";
+import { postIncomeJournal } from "../lib/journal-poster.js";
 
 const router: IRouter = Router();
 
@@ -108,7 +109,14 @@ router.post("/income", async (req: Request, res: Response): Promise<void> => {
 
     const rows = (result as any).rows || result;
     const row = Array.isArray(rows) ? rows[0] : rows;
-    res.status(201).json(mapIncome(row));
+    const mapped = mapIncome(row);
+
+    // Auto-post ke jurnal akuntansi (fire-and-forget)
+    postIncomeJournal(mapped.id).then(r => {
+      if (!r.success && !r.skipped) console.warn("[income POST] journal:", r.error);
+    }).catch(e => console.warn("[income POST] journal failed:", e?.message));
+
+    res.status(201).json(mapped);
   } catch (err) {
     console.error("[income POST]", err);
     res.status(500).json({ error: "Gagal menyimpan pemasukan" });
