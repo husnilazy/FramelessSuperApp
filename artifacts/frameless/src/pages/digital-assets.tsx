@@ -92,7 +92,7 @@ function BuyModal({ asset, waNumber, onClose }: {
 
       // Free
       if (data.free) {
-        setFileUrl(data.fileUrl || asset.fileUrl);
+        setFileUrl(data.fileUrl || "");
         setStep("success");
         return;
       }
@@ -109,9 +109,19 @@ function BuyModal({ asset, waNumber, onClose }: {
         window.snap.pay(data.snapToken, {
           onSuccess: async () => {
             // Get download URL and increment counter
-            const dlRes = await fetch(`/api/digital-assets/${asset.id}/download`, { method: "POST" });
-            const dlData = await dlRes.json();
-            setFileUrl(dlData.fileUrl || asset.fileUrl);
+            const dlRes = await fetch(`/api/digital-assets/${asset.id}/download`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ orderId: data.orderId }),
+            });
+            const dlData = await dlRes.json().catch(() => ({}));
+            if (!dlRes.ok || !dlData.fileUrl) {
+              // Midtrans kadang butuh beberapa detik untuk menandai lunas.
+              setErrMsg(dlData.error || "Pembayaran belum terkonfirmasi. Coba lagi sebentar lagi.");
+              setStep("form");
+              return;
+            }
+            setFileUrl(dlData.fileUrl);
             setStep("success");
           },
           onPending: () => {

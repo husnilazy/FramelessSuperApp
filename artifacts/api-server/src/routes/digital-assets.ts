@@ -2,6 +2,7 @@ import { Router, type IRouter, type Request, type Response } from "express";
 import { db, digitalAssetsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { requireAuth } from "./middleware.js";
+import { isAdminRequest } from "../middlewares/auth.js";
 
 const router: IRouter = Router();
 
@@ -66,6 +67,42 @@ function normalizePreviewImages(value: unknown): string {
   return "[]";
 }
 
+/** Bentuk aman untuk publik: buang link file. */
+function publicAsset<T extends { fileUrl?: unknown }>(row: T) {
+  const { fileUrl: _omit, ...rest } = row;
+  return rest;
+}
+
+/** Cek ke Midtrans bahwa order DA-… untuk aset ini benar-benar lunas dengan nominal yang sesuai. */
+async function isAssetPaid(assetId: string, price: number, orderId: string): Promise<boolean> {
+  if (!orderId || !orderId.startsWith(`DA-${assetId.slice(0, 8)}-`)) return false;
+  const { db: _db, paymentSettingsTable } = await import("@workspace/db");
+  const { eq: _eq } = await import("drizzle-orm");
+  const [row] = await _db.select().from(paymentSettingsTable).where(_eq(paymentSettingsTable.provider, "midtrans")).limit(1);
+  if (!row?.isEnabled) return false;
+  let cfg: any = {};
+  try { cfg = JSON.parse(row.config || "{}"); } catch { /* config rusak = tidak valid */ }
+  const serverKey = String(cfg.serverKey || "").trim();
+  if (!serverKey) return false;
+  const isProduction = cfg.isProduction === true || cfg.isProduction === "true";
+  const host = isProduction ? "api.midtrans.com" : "api.sandbox.midtrans.com";
+  const https = (await import("https")).default;
+  const auth = Buffer.from(serverKey + ":").toString("base64");
+  const result = await new Promise<any>((resolve) => {
+    const r = https.request(
+      { hostname: host, port: 443, path: `/v2/${encodeURIComponent(orderId)}/status`, method: "GET", headers: { Accept: "application/json", Authorization: `Basic ${auth}` } },
+      (resp) => { let d = ""; resp.on("data", (c) => (d += c)); resp.on("end", () => { try { resolve(JSON.parse(d)); } catch { resolve(null); } }); },
+    );
+    r.on("error", () => resolve(null));
+    r.setTimeout(10_000, () => { r.destroy(); resolve(null); });
+    r.end();
+  });
+  if (!result) return false;
+  const paidStatus = result.transaction_status === "settlement" || (result.transaction_status === "capture" && result.fraud_status !== "challenge");
+  const amountOk = Math.round(Number(result.gross_amount)) === Math.round(price);
+  return paidStatus && amountOk;
+}
+
 router.get("/digital-assets", async (req: Request, res: Response): Promise<void> => {
   try {
     const isActiveParam = (req.query as any)?.isActive;
@@ -80,6 +117,11 @@ router.get("/digital-assets", async (req: Request, res: Response): Promise<void>
 
     const rows = await query.orderBy(digitalAssetsTable.createdAt);
 
+    // Publik: hanya aset aktif dan TANPA fileUrl (link file hanya lewat purchase/download yang terverifikasi).
+    if (!(await isAdminRequest(req))) {
+      res.json(rows.filter((r) => r.isActive).map(publicAsset));
+      return;
+    }
     res.json(rows);
   } catch (error) {
     console.error("[GET /digital-assets]", error);
@@ -112,6 +154,11 @@ router.get("/digital-assets/:id", async (req: Request, res: Response): Promise<v
       return;
     }
 
+    if (!(await isAdminRequest(req))) {
+      if (!row.isActive) { res.status(404).json({ error: "Digital asset not found" }); return; }
+      res.json(publicAsset(row));
+      return;
+    }
     res.json(row);
   } catch (error) {
     console.error("[GET /digital-assets/:id]", error);
@@ -405,7 +452,16 @@ router.post(
         .where(eq(digitalAssetsTable.id, id))
         .limit(1);
 
-      if (!asset) { res.status(404).json({ error: "Not found" }); return; }
+      if (!asset || !asset.isActive) { res.status(404).json({ error: "Not found" }); return; }
+
+      // Aset berbayar: link file hanya diberikan setelah Midtrans mengonfirmasi pembayaran.
+      if (Number(asset.price) > 0) {
+        const orderId = String((req.body as Record<string, unknown> | undefined)?.orderId ?? "");
+        if (!(await isAssetPaid(id, Number(asset.price), orderId))) {
+          res.status(402).json({ error: "Pembayaran belum terkonfirmasi" });
+          return;
+        }
+      }
 
       await db
         .update(digitalAssetsTable)

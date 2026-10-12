@@ -1203,8 +1203,8 @@ export default function CoursePage() {
       <div
         style={{
           borderBottom: `1px solid ${BORDER}`,
-          padding: "14px 28px",
-          display: "flex", alignItems: "center", justifyContent: "space-between",
+          padding: "14px clamp(14px,4vw,28px)",
+          display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12,
           background: "rgba(10,10,12,.88)", backdropFilter: "blur(12px)",
           position: "sticky", top: 0, zIndex: 100,
         }}
@@ -1221,7 +1221,7 @@ export default function CoursePage() {
         >
           <ArrowLeft size={16} /> Kembali
         </a>
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", justifyContent: "flex-end", minWidth: 0 }}>
           {course.level && (
             <span className="cp-badge" style={{ background: ORANGE_DIM, border: `1px solid ${ORANGE_BORDER}`, color: ORANGE }}>
               {course.level}
