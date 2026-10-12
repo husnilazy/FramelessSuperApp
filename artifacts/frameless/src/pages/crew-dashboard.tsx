@@ -1082,7 +1082,13 @@ function CrewDashboard({ user, onLogout }: { user: CrewUser; onLogout: () => voi
       style={{ 
         minHeight: "100dvh", 
         overflowX: "clip",
-        background: isDark ? "#0a0a0c" : "#f6f7f9", 
+        // Latar ala Apple: dasar netral + dua cahaya lembut berukuran besar (aksen di atas, biru-abu di kanan). Statis, tanpa animasi.
+        background: isDark ? "#0a0a0c" : "#f5f5f7",
+        backgroundImage: isDark
+          ? `radial-gradient(1200px 620px at 40% 0%, ${primary}33 0%, transparent 66%), radial-gradient(1000px 600px at 100% 8%, rgba(110,120,255,.20) 0%, transparent 62%), radial-gradient(900px 520px at 0% 100%, rgba(255,255,255,.05) 0%, transparent 62%)`
+          : `radial-gradient(1200px 620px at 40% 0%, ${primary}2e 0%, transparent 66%), radial-gradient(1000px 600px at 100% 8%, rgba(0,113,227,.16) 0%, transparent 62%), radial-gradient(900px 520px at 0% 100%, rgba(0,0,0,.04) 0%, transparent 62%)`,
+        backgroundAttachment: "fixed",
+        backgroundRepeat: "no-repeat", 
         color: glass.text, 
         fontFamily: FONT,
       }}
