@@ -82,6 +82,8 @@ router.use(
     "/team-columns",
     "/payments/activate",
     "/company-profile",
+    "/calendar",
+    "/availability",
     "/admin",
   ],
   requireAdmin,
@@ -132,6 +134,8 @@ router.use("/chat/messages", requireUniversalAuth);
 // Anti brute-force untuk endpoint yang menerima kredensial / kode member.
 router.post(["/auth/login", "/crew/login", "/academy/login", "/course-members/login"], rateLimit({ windowMs: 15 * 60_000, max: 20, key: "login" }));
 router.post("/auth/register", rateLimit({ windowMs: 60 * 60_000, max: 5, key: "register" }));
+// Estimasi AI publik memanggil Gemini berbayar: batasi per IP.
+router.post("/ai/chat", rateLimit({ windowMs: 10 * 60_000, max: 20, key: "ai-chat" }));
 router.post("/course-members/resend-access", rateLimit({ windowMs: 60 * 60_000, max: 5, key: "resend" }));
 
 // Auth routes (PENTING - ini yang kamu butuh!)
