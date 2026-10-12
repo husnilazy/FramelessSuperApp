@@ -7,6 +7,7 @@ import {
   Moon, Sun, Image as ImageIcon, Layers, Eye,
 } from "lucide-react";
 
+import { PageHeader } from "@/components/shell/page-header";
 const PRESET_COLORS = [
   { name: "Frameless Orange", value: "#FF6A20", emoji: "🔥" },
   { name: "Electric Blue",    value: "#3b82f6", emoji: "⚡" },
@@ -75,16 +76,7 @@ export default function AppearanceSettingsPage() {
 
   return (
     <div className="space-y-8 pb-14">
-      {/* ── Page Header ── */}
-      <div className="flex items-center gap-4">
-        <div className="w-12 h-12 rounded-2xl bg-primary/15 border border-primary/25 flex items-center justify-center shrink-0">
-          <Paintbrush className="w-5 h-5 text-primary" />
-        </div>
-        <div>
-          <h1 className="text-3xl font-black tracking-tight text-foreground">Appearance</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">Sesuaikan tema, warna, dan efek visual platform admin.</p>
-        </div>
-      </div>
+      <PageHeader eyebrow="Sistem" title="Tampilan" description="Sesuaikan tema, warna, dan efek visual platform admin." />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 

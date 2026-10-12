@@ -4,6 +4,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Eye, EyeOff, Moon, Sun } from "lucide-react";
 import { motion } from "framer-motion";
 
+import { useTheme } from "@/lib/theme";
+import { useBrand } from "@/lib/brand";
 async function fetchCrewBranding() {
   try {
     const [cmsRes, logosRes] = await Promise.all([
@@ -32,20 +34,20 @@ export default function CrewLoginPage() {
   const [form, setForm] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
   const [showPw, setShowPw] = useState(false);
-  const [branding, setBranding] = useState({ logoUrl: "", companyName: "Frameless Creative" });
-  const [isDark, setIsDark] = useState(true);
-
-  useEffect(() => {
-    fetchCrewBranding().then(setBranding);
-    const saved = localStorage.getItem("theme");
-    if (saved) setIsDark(saved === "dark");
-  }, []);
-
-  const toggleTheme = () => {
-    const next = !isDark;
-    setIsDark(next);
-    localStorage.setItem("theme", next ? "dark" : "light");
+  const [crewBranding, setCrewBranding] = useState({ logoUrl: "", companyName: "Frameless Creative" });
+  // Tema & logo mengikuti aplikasi (logo terang/gelap diunggah admin di Pengaturan Dokumen).
+  const { theme, setTheme } = useTheme();
+  const brand = useBrand();
+  const isDark = theme === "dark";
+  const branding = {
+    logoUrl: brand.logoUrl || crewBranding.logoUrl,
+    companyName: brand.name || crewBranding.companyName,
+    invert: brand.logoUrl ? brand.invertLogo : false,
   };
+
+  useEffect(() => { fetchCrewBranding().then(setCrewBranding); }, []);
+
+  const toggleTheme = () => setTheme(isDark ? "light" : "dark");
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -73,7 +75,7 @@ export default function CrewLoginPage() {
   const primary = "#FF6A20";
 
   const logoEl = branding.logoUrl ? (
-    <img src={branding.logoUrl} alt={branding.companyName} style={{ maxHeight: 48, maxWidth: 150, objectFit: "contain" }} />
+    <img src={branding.logoUrl} alt={branding.companyName} style={{ maxHeight: 48, maxWidth: 150, objectFit: "contain", ...(branding.invert ? { filter: "brightness(0) invert(1)" } : {}) }} />
   ) : (
     <div style={{ width: 52, height: 52, borderRadius: 14, background: primary, display: "grid", placeItems: "center", fontWeight: 900, fontSize: 20, color: "#fff" }}>F</div>
   );
