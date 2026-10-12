@@ -1,5 +1,6 @@
 // artifacts/frameless/src/pages/landing.tsx
 import { useState, useRef, useEffect, useMemo } from "react";
+import { MOTION_CSS, ScrollProgress, HeroLayers, CountUp, useLandingMotion } from "@/lib/landing-motion";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import {
@@ -583,10 +584,13 @@ export default function LandingPage() {
   const waMsg = "Halo%20Admin%20Frameless%20Creative!%20%F0%9F%91%8B%20Saya%20ingin%20menanyakan%20mengenai%20project%20video.%20Bisa%20dibantu%3F";
   const wa = cont.whatsapp ? `https://wa.me/${cont.whatsapp.replace(/\D/g, "")}?text=${waMsg}` : "#";
 
+  useLandingMotion();
+
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <div style={{ background: "#0a0a0c", color: "#f0f0f0", fontFamily: FONT, minHeight: "100vh", overflowX: "hidden", position: "relative" }}>
-      <style>{CSS}</style>
+      <style>{CSS}{MOTION_CSS}</style>
+      <ScrollProgress />
 
       {/* ══════ GLOBAL AMBIENT MESH ══════ */}
       <div style={{ position: "fixed", inset: 0, zIndex: 0, pointerEvents: "none", overflow: "hidden" }}>
@@ -643,7 +647,7 @@ export default function LandingPage() {
       </nav>
 
       {/* ══════ HERO ══════ */}
-      <section style={{ minHeight: "100vh", display: "flex", alignItems: "center", position: "relative", overflow: "hidden", paddingTop: 66 }}>
+      <section data-hero style={{ minHeight: "100vh", display: "flex", alignItems: "center", position: "relative", overflow: "hidden", paddingTop: 66 }}>
         {/* Video BG */}
         {activeEmbed && (
           <div style={{ position: "absolute", inset: 0, zIndex: 0 }}>
@@ -659,8 +663,10 @@ export default function LandingPage() {
           <Mesh c1={c1} c2={c2} c3={c3} />
         </div>
 
+        <HeroLayers c1={c1} c2={c2} />
+
         {/* Content */}
-        <div style={{ position: "relative", zIndex: 2, maxWidth: 1280, margin: "0 auto", padding: "80px 28px", width: "100%" }}>
+        <div data-hero-content style={{ position: "relative", zIndex: 2, maxWidth: 1280, margin: "0 auto", padding: "80px 28px", width: "100%", willChange: "transform, opacity" }}>
           <div className="fu d1" style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "5px 16px", borderRadius: 100, background: "rgba(255,255,255,.055)", border: "1px solid rgba(255,255,255,.1)", marginBottom: 28 }}>
             <div style={{ width: 7, height: 7, borderRadius: "50%", background: "#4ade80", animation: "pulse 2s ease infinite" }} />
             <span style={{ fontSize: 11, fontWeight: 600, color: "rgba(255,255,255,.55)", letterSpacing: ".1em", textTransform: "uppercase" }}>Media Agency · Wonosobo, Central Java</span>
@@ -701,11 +707,10 @@ export default function LandingPage() {
               borderRadius: 20, minWidth: "clamp(130px,28vw,160px)",
               background: "rgba(255,255,255,.026)", border: "1px solid rgba(255,255,255,.07)",
               backdropFilter: "blur(14px)",
-              animation: `statPop .45s cubic-bezier(.16,1,.3,1) ${idx * 0.07}s both`,
               flex: "1 1 clamp(130px,28vw,160px)",
             }}>
               <div style={{ color: OR, display: "flex", justifyContent: "center", marginBottom: 10 }}>{s.i}</div>
-              <div style={{ fontSize: "clamp(28px,5vw,46px)", fontWeight: 900, color: "#fff", letterSpacing: "-.04em", lineHeight: 1 }}>{s.v}</div>
+              <div style={{ fontSize: "clamp(28px,5vw,46px)", fontWeight: 900, color: "#fff", letterSpacing: "-.04em", lineHeight: 1 }}><CountUp value={String(s.v)} /></div>
               <div style={{ fontSize: "clamp(9px,2vw,11px)", color: "rgba(255,255,255,.32)", marginTop: 8, letterSpacing: ".14em", textTransform: "uppercase", fontWeight: 700 }}>{s.l}</div>
             </div>
           ))}
@@ -1912,10 +1917,6 @@ export default function LandingPage() {
                   </motion.div>
                 );
               })}
-            </div>
-
-            <div style={{ textAlign: "center", marginTop: 24 }}>
-              <a href="#crew" style={{ fontSize: 13, color: OR, textDecoration: "none", fontWeight: 600 }}>Scroll to crew section</a>
             </div>
           </div>
         </section>
