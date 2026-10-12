@@ -23,7 +23,7 @@ export default function SettingsPage() {
       </div>
 
       {/* ── OPERATOR PROFILE ── */}
-      <Card className="glass-panel border-white/8 overflow-hidden">
+      <Card className="glass-panel border-foreground/8 overflow-hidden">
         <CardHeader className="pb-3">
           <CardTitle className="text-xs uppercase tracking-widest text-muted-foreground font-semibold flex items-center gap-2">
             <User className="w-3.5 h-3.5 text-primary" /> Operator Profile
@@ -61,7 +61,7 @@ export default function SettingsPage() {
       </Card>
 
       {/* ── COMPANY ── */}
-      <Card className="glass-panel border-white/8 overflow-hidden">
+      <Card className="glass-panel border-foreground/8 overflow-hidden">
         <CardHeader className="pb-3">
           <CardTitle className="text-xs uppercase tracking-widest text-muted-foreground font-semibold flex items-center gap-2">
             <Building2 className="w-3.5 h-3.5 text-primary" /> Company
@@ -77,7 +77,7 @@ export default function SettingsPage() {
       </Card>
 
       {/* ── SECURITY ── */}
-      <Card className="glass-panel border-white/8 overflow-hidden">
+      <Card className="glass-panel border-foreground/8 overflow-hidden">
         <CardHeader className="pb-3">
           <CardTitle className="text-xs uppercase tracking-widest text-muted-foreground font-semibold flex items-center gap-2">
             <Shield className="w-3.5 h-3.5 text-primary" /> Security
@@ -91,7 +91,7 @@ export default function SettingsPage() {
       </Card>
 
       {/* ── SYSTEM ── */}
-      <Card className="glass-panel border-white/8 overflow-hidden">
+      <Card className="glass-panel border-foreground/8 overflow-hidden">
         <CardHeader className="pb-3">
           <CardTitle className="text-xs uppercase tracking-widest text-muted-foreground font-semibold flex items-center gap-2">
             <Database className="w-3.5 h-3.5 text-primary" /> System
@@ -135,7 +135,7 @@ export default function SettingsPage() {
 // ── Sub-component: info row ───────────────────────────────────────────────────
 function InfoRow({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
-    <div className="flex justify-between items-center py-2.5 border-b border-white/4 last:border-0 group">
+    <div className="flex justify-between items-center py-2.5 border-b border-foreground/4 last:border-0 group">
       <div className="flex items-center gap-2.5">
         <span className="text-muted-foreground/50 group-hover:text-primary/60 transition-colors">{icon}</span>
         <span className="text-xs uppercase tracking-wider text-muted-foreground font-medium">{label}</span>

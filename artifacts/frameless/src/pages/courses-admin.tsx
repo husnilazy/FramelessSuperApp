@@ -1633,7 +1633,7 @@ export default function CoursesAdminPage() {
               className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-white text-sm font-bold transition-colors disabled:opacity-60"
             >
               {uploadingGallery
-                ? <><span className="w-4 h-4 rounded-full border-2 border-white/60 border-t-transparent animate-spin" /> Mengupload...</>
+                ? <><span className="w-4 h-4 rounded-full border-2 border-foreground/60 border-t-transparent animate-spin" /> Mengupload...</>
                 : <><Upload className="w-4 h-4" /> Upload Foto</>
               }
             </button>
@@ -1680,14 +1680,14 @@ export default function CoursesAdminPage() {
                       defaultValue={photo.caption || ""}
                       onBlur={(e) => { if (e.target.value !== (photo.caption || "")) updateGalleryCaption(photo.id, e.target.value, selectedCourseForGal); }}
                       placeholder="Tambah caption..."
-                      className="w-full bg-black/60 border border-white/20 rounded-lg px-2.5 py-1.5 text-xs text-white placeholder-white/40 focus:outline-none focus:border-primary/60"
+                      className="w-full bg-black/60 border border-foreground/20 rounded-lg px-2.5 py-1.5 text-xs text-white placeholder-foreground/40 focus:outline-none focus:border-primary/60"
                     />
                   </div>
                 </div>
                 {/* Caption badge */}
                 {photo.caption && (
                   <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/70 px-3 py-2 group-hover:opacity-0 transition-opacity">
-                    <p className="text-[11px] text-white/80 truncate">{photo.caption}</p>
+                    <p className="text-[11px] text-foreground/80 truncate">{photo.caption}</p>
                   </div>
                 )}
               </div>
@@ -1825,7 +1825,7 @@ export default function CoursesAdminPage() {
             >
               {savingStats ? (
                 <span className="flex items-center gap-2">
-                  <span className="w-4 h-4 rounded-full border-2 border-white/60 border-t-transparent animate-spin" />
+                  <span className="w-4 h-4 rounded-full border-2 border-foreground/60 border-t-transparent animate-spin" />
                   Menyimpan...
                 </span>
               ) : statsSaved ? (
@@ -2204,7 +2204,7 @@ export default function CoursesAdminPage() {
               <Button onClick={saveCourse} disabled={savingCourse} className="flex-1 bg-primary hover:bg-primary/90 text-white rounded-xl">
                 {savingCourse ? (
                   <span className="inline-flex items-center gap-2">
-                    <span className="h-4 w-4 rounded-full border-2 border-white/70 border-t-transparent animate-spin" />
+                    <span className="h-4 w-4 rounded-full border-2 border-foreground/70 border-t-transparent animate-spin" />
                     Menyimpan...
                   </span>
                 ) : (

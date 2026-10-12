@@ -9,7 +9,6 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth, getToken } from "@/lib/auth";
-import { supabase } from "@/lib/supabase";
 
 export default function CommandCenterPage() {
   const [activeTab, setActiveTab] = useState("overview");
@@ -281,18 +280,11 @@ function WorkloadHeatmapTab() {
   const { data, isLoading } = useQuery({
     queryKey: ["admin", "workload-heatmap"],
     queryFn: async () => {
-      // Use direct Supabase RPC
-      const { data, error } = await supabase.rpc('get_workload_heatmap');
-      if (error) {
-        console.error('RPC workload-heatmap failed, falling back to API', error);
-        const token = getToken();
-        const res = await fetch("/api/admin/workload-heatmap", {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        if (!res.ok) throw new Error("Failed to fetch");
-        return res.json();
-      }
-      return data;
+      const res = await fetch("/api/admin/workload-heatmap", {
+        headers: { Authorization: `Bearer ${getToken()}` },
+      });
+      if (!res.ok) throw new Error("Failed to fetch workload heatmap");
+      return res.json();
     },
   });
 
@@ -375,65 +367,16 @@ function ProjectPipelineTab() {
   const { data, isLoading } = useQuery({
     queryKey: ["admin", "project-pipeline"],
     queryFn: async () => {
-      // Use direct queries (RPC may fail with 400 if not deployed/updated in Supabase)
-      return await fetchPipelineFallback();
+      const res = await fetch("/api/admin/project-pipeline", {
+        headers: { Authorization: `Bearer ${getToken()}` },
+      });
+      if (!res.ok) throw new Error("Failed to fetch project pipeline");
+      return res.json();
     },
     staleTime: 10000,
-    refetchInterval: false,
+    // Pengganti realtime Supabase (akses langsung ke database sudah ditutup demi keamanan)
+    refetchInterval: 15000,
   });
-
-  // Fallback in case the SQL function is not created yet
-  async function fetchPipelineFallback() {
-    const { data: projects } = await supabase.from('projects').select('*').order('updated_at', { ascending: false });
-    const { data: tasks } = await supabase.from('project_tasks').select('*');
-    const { data: members } = await supabase.from('team_members').select('*');
-
-    // ... (same grouping logic as before)
-    const pipeline: Record<string, any[]> = { planning: [], active: [], shooting: [], editing: [], review: [], completed: [] };
-
-    for (const project of projects || []) {
-      const status = (project.status || 'active').toLowerCase().replace(/\s+/g, '_');
-      const projectTasks = (tasks || []).filter((t: any) => t.project_id === project.id);
-      const doneTasks = projectTasks.filter((t: any) => ['done', 'completed'].includes((t.status || '').toLowerCase()));
-      const owner = (members || []).find((m: any) => m.id === project.assigned_member_id);
-
-      const entry = {
-        id: project.id, title: project.title, client: project.client, status: project.status,
-        progress: project.progress || 0, deadline: project.deadline, priority: project.priority,
-        projectType: project.project_type, updatedAt: project.updated_at,
-        owner: owner ? { id: owner.id, name: owner.name, avatarUrl: owner.avatar_url } : null,
-        taskStats: { total: projectTasks.length, done: doneTasks.length, active: projectTasks.length - doneTasks.length },
-      };
-
-      if (['planning', 'proposed', 'draft'].includes(status)) pipeline.planning.push(entry);
-      else if (['shooting', 'on_shoot'].includes(status)) pipeline.shooting.push(entry);
-      else if (['editing', 'post_production'].includes(status)) pipeline.editing.push(entry);
-      else if (['review', 'client_review', 'final'].includes(status)) pipeline.review.push(entry);
-      else if (['completed', 'done', 'delivered'].includes(status)) pipeline.completed.push(entry);
-      else pipeline.active.push(entry);
-    }
-
-    return { pipeline, total: projects?.length || 0 };
-  }
-
-  // Real-time updates for Project Pipeline (replaces polling)
-  useEffect(() => {
-    const channel = supabase
-      .channel('project-pipeline-changes')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'projects' },
-        () => {
-          // Refetch when any project changes
-          queryClient.invalidateQueries({ queryKey: ["admin", "project-pipeline"] });
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [queryClient]);
 
   const phases = [
     { id: "planning", label: "Planning", color: "bg-purple-500", accent: "border-purple-500" },
@@ -533,17 +476,21 @@ function ProjectPipelineTab() {
   };
 
   const updateProjectStatus = async (projectId: string, newStatus: string) => {
-    const { error } = await supabase
-      .from('projects')
-      .update({ status: newStatus })
-      .eq('id', projectId);
-
-    if (error) {
-      console.error(error);
-      toast({ title: "Gagal update status", description: error.message, variant: "destructive" });
-    } else {
+    try {
+      const res = await fetch(`/api/projects/${projectId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        throw new Error(j.error || `Gagal (${res.status})`);
+      }
       queryClient.invalidateQueries({ queryKey: ["admin", "project-pipeline"] });
       toast({ title: "Status project berhasil diupdate" });
+    } catch (e: any) {
+      console.error(e);
+      toast({ title: "Gagal update status", description: e.message, variant: "destructive" });
     }
   };
 

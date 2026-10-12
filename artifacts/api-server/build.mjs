@@ -38,6 +38,7 @@ async function buildAll() {
       "newrelic","odbc","piscina","realm","ref-napi","rocksdb","sass-embedded",
       "sequelize","serialport","snappy","tinypool","usb","workerd","wrangler",
       "zeromq","zeromq-prebuilt","playwright","puppeteer","puppeteer-core","electron",
+      "@sparticuz/chromium",
     ],
     sourcemap: "linked",
     plugins: [esbuildPluginPino({ transports: ["pino-pretty"] })],

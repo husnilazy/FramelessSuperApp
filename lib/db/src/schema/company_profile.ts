@@ -10,7 +10,13 @@ export const companyProfileTable = pgTable("company_profile", {
   email: text("email"),
   phone: text("phone"),
   website: text("website"),
-  logoUrl: text("logoUrl"),
+  logoUrl: text("logoUrl"), // logo untuk latar TERANG (juga dipakai di invoice/laporan)
+  logoDarkUrl: text("logoDarkUrl"), // logo untuk antarmuka mode GELAP
+  // Info rekening & penandatangan dokumen (ditambahkan via ensureInvoiceColumns)
+  bankName: text("bankName"),
+  bankNumber: text("bankNumber"),
+  bankHolder: text("bankHolder"),
+  signerName: text("signerName"),
   updatedAt: timestamp("updatedAt").notNull().defaultNow(),
 });
 

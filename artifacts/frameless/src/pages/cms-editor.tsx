@@ -410,7 +410,7 @@ function ServicesTab() {
               ) : (
                 <span className="text-lg">{s.icon || "🎬"}</span>
               )}
-              {s.highlightVideoUrl && <div className="absolute bottom-0.5 right-0.5 bg-primary rounded-full p-0.5"><Video className="w-2 h-2 text-white" /></div>}
+              {s.highlightVideoUrl && <div className="absolute bottom-0.5 right-0.5 bg-primary rounded-full p-0.5"><Video className="w-2 h-2 text-foreground" /></div>}
             </div>
             <div className="flex-1 min-w-0">
               <div className="font-semibold text-sm text-foreground truncate">{s.title}</div>
@@ -540,8 +540,8 @@ function CrewGalleryTab() {
           <div key={p.id} className="group relative rounded-xl overflow-hidden border border-border bg-card/50" style={{ aspectRatio: "16/9" }}>
             <img src={p.photoUrl} alt={p.productionTitle} className="w-full h-full object-cover" />
             <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-3">
-              <div className="text-xs font-semibold text-white truncate">{p.productionTitle}</div>
-              {p.productionDate && <div className="text-[10px] text-white/60">{p.productionDate}</div>}
+              <div className="text-xs font-semibold text-foreground truncate">{p.productionTitle}</div>
+              {p.productionDate && <div className="text-[10px] text-foreground/60">{p.productionDate}</div>}
             </div>
             <button onClick={() => handleDelete(p.id)}
               className="absolute top-2 right-2 p-1.5 rounded-lg bg-black/60 text-white/70 hover:text-destructive opacity-0 group-hover:opacity-100 transition-all">

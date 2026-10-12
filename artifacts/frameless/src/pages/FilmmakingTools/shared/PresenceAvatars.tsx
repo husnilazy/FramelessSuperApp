@@ -19,13 +19,13 @@ export function PresenceAvatars({ users }: { users: ActiveCollaborator[] }) {
       {users.slice(0, 4).map((u) => (
         <div
           key={u.userId}
-          className="w-7 h-7 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 border-2 border-zinc-900 flex items-center justify-center text-[10px] font-bold text-white"
+          className="w-7 h-7 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 border-2 border-border flex items-center justify-center text-[10px] font-bold text-white"
         >
           {initials(u.userName) || "?"}
         </div>
       ))}
       {users.length > 4 && (
-        <div className="w-7 h-7 rounded-full bg-zinc-700 border-2 border-zinc-900 flex items-center justify-center text-[10px] font-bold text-zinc-200">
+        <div className="w-7 h-7 rounded-full bg-secondary border-2 border-border flex items-center justify-center text-[10px] font-bold text-foreground">
           +{users.length - 4}
         </div>
       )}

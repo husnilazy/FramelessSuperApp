@@ -21,6 +21,12 @@ export const invoicesTable = pgTable("invoices", {
   terms: text("terms"),
   billTo: text("billTo"),
   shipTo: text("shipTo"),
+  // Field tambahan (ditambahkan via ensureInvoiceColumns() — lihat api-server/src/lib/invoice-schema.ts)
+  invoiceDate: timestamp("invoiceDate"),
+  paymentTerms: text("paymentTerms"),
+  poNumber: text("poNumber"),
+  taxRate: numeric("taxRate").default("11"),
+  shipping: numeric("shipping").notNull().default("0"),
   createdAt: timestamp("createdAt").notNull().defaultNow(),
   updatedAt: timestamp("updatedAt").notNull().defaultNow(),
 });

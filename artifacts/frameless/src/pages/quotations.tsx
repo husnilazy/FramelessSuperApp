@@ -66,7 +66,7 @@ export default function QuotationsPage() {
     <div className="space-y-8 pb-8">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <h1 className="text-4xl font-heading tracking-wider text-white">Penawaran</h1>
+          <h1 className="text-4xl font-heading tracking-wider text-foreground">Penawaran</h1>
           <p className="text-muted-foreground uppercase tracking-widest text-sm font-semibold mt-1">
             Surat Penawaran Project & Jasa
           </p>
@@ -108,7 +108,7 @@ export default function QuotationsPage() {
             className={`px-4 py-1.5 rounded-md text-xs uppercase tracking-widest font-semibold border transition-all duration-200 ${
               statusFilter === s
                 ? "bg-primary/20 text-primary border-primary/40"
-                : "bg-white/5 text-muted-foreground border-white/10 hover:bg-white/10"
+                : "bg-foreground/5 text-muted-foreground border-foreground/10 hover:bg-foreground/10"
             }`}
           >
             {s === "ALL" ? "Semua" : STATUS_CONFIG[s]?.label || s}
@@ -128,7 +128,7 @@ export default function QuotationsPage() {
             return (
               <Card
                 key={q.id}
-                className="glass-panel border-white/5 group hover:border-primary/20 transition-all duration-300 cursor-pointer"
+                className="glass-panel border-foreground/5 group hover:border-primary/20 transition-all duration-300 cursor-pointer"
                 onClick={() => navigate(`/quotations/${q.id}`)}
               >
                 <CardContent className="p-5">
@@ -139,7 +139,7 @@ export default function QuotationsPage() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-heading text-white tracking-wider">{q.number}</span>
+                          <span className="font-heading text-foreground tracking-wider">{q.number}</span>
                           <Badge className={`text-xs border ${config.color} uppercase tracking-wider`}>
                             <StatusIcon className="w-3 h-3 mr-1" />
                             {config.label}
@@ -156,7 +156,7 @@ export default function QuotationsPage() {
                       </div>
                     </div>
                     <div className="text-right shrink-0">
-                      <p className="text-lg font-heading text-white">{formatCurrency(Number(q.total))}</p>
+                      <p className="text-lg font-heading text-foreground">{formatCurrency(Number(q.total))}</p>
                     </div>
                     <Button
                       variant="ghost" size="icon"

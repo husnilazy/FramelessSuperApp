@@ -16,7 +16,7 @@ type ChatHistoryMessage = {
     content: string;
 };
 
-const OR = "#FF6A20";
+const OR = "hsl(var(--primary))";
 const FONT = "'Plus Jakarta Sans',sans-serif";
 
 const SYSTEM_PROMPT = `Kamu adalah AI Assistant untuk Frameless Creative, sebuah perusahaan video production dan media agency profesional yang berlokasi di Wonosobo, Central Java, Indonesia.
@@ -41,10 +41,10 @@ function CopyBtn({ text }: { text: string }) {
     return (
         <button
             onClick={() => { navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 1800); }}
-            style={{ background: "none", border: "none", cursor: "pointer", color: "rgba(255,255,255,.35)", padding: "2px 4px", borderRadius: 4, transition: "color .15s" }}
+            style={{ background: "none", border: "none", cursor: "pointer", color: "rgb(var(--ink) / calc(.35 + var(--ink-boost)))", padding: "2px 4px", borderRadius: 4, transition: "color .15s" }}
             title="Copy"
         >
-            {copied ? <Check size={11} color="#4ade80" /> : <Copy size={11} />}
+            {copied ? <Check size={11} color="var(--c-green)" /> : <Copy size={11} />}
         </button>
     );
 }
@@ -68,8 +68,8 @@ function Bubble({ msg, dark }: { msg: Message; dark: boolean }) {
             )}
             <div style={{
                 maxWidth: "88%", padding: "10px 14px", borderRadius: isUser ? "16px 16px 4px 16px" : "4px 16px 16px 16px",
-                background: isUser ? OR : dark ? "rgba(255,255,255,.07)" : "rgba(0,0,0,.06)",
-                color: isUser ? "#fff" : dark ? "rgba(255,255,255,.88)" : "#1a1d2e",
+                background: isUser ? OR : dark ? "rgb(var(--ink) / .07)" : "rgba(0,0,0,.06)",
+                color: isUser ? "#fff" : dark ? "rgb(var(--ink) / .88)" : "#1a1d2e",
                 fontSize: 13, lineHeight: 1.65, whiteSpace: "pre-wrap", wordBreak: "break-word",
             }}>
                 {msg.content}
@@ -77,7 +77,7 @@ function Bubble({ msg, dark }: { msg: Message; dark: boolean }) {
             {!isUser && (
                 <div style={{ marginTop: 3, display: "flex", alignItems: "center", gap: 4 }}>
                     <CopyBtn text={msg.content} />
-                    <span style={{ fontSize: 9, color: "rgba(255,255,255,.2)" }}>
+                    <span style={{ fontSize: 9, color: "rgb(var(--ink) / calc(.2 + var(--ink-boost)))" }}>
                         {new Date(msg.ts).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}
                     </span>
                 </div>
@@ -93,7 +93,7 @@ function Typing() {
             <div style={{ width: 18, height: 18, borderRadius: "50%", background: OR, display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <Bot size={10} color="#fff" />
             </div>
-            <div style={{ display: "flex", gap: 4, padding: "8px 12px", borderRadius: "4px 16px 16px 16px", background: "rgba(255,255,255,.07)" }}>
+            <div style={{ display: "flex", gap: 4, padding: "8px 12px", borderRadius: "4px 16px 16px 16px", background: "rgb(var(--ink) / .07)" }}>
                 {[0, 1, 2].map(i => (
                     <div key={i} style={{ width: 6, height: 6, borderRadius: "50%", background: OR, animation: `dot .8s ease-in-out ${i * 0.15}s infinite alternate` }} />
                 ))}
@@ -182,8 +182,8 @@ export function AIChat({ dark = true, contextData, fabClassName }: { dark?: bool
         if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
     }
 
-    const bgPanel = dark ? "rgba(12,14,22,.97)" : "rgba(255,255,255,.97)";
-    const borderC = dark ? "rgba(255,255,255,.09)" : "rgba(0,0,0,.1)";
+    const bgPanel = dark ? "rgba(12,14,22,.97)" : "rgb(var(--ink) / .97)";
+    const borderC = dark ? "rgb(var(--ink) / .09)" : "rgba(0,0,0,.1)";
 
     const STARTERS = [
         "Buat konsep video untuk brand launch",
@@ -206,7 +206,7 @@ export function AIChat({ dark = true, contextData, fabClassName }: { dark?: bool
                             width: "min(94vw,380px)",
                             background: bgPanel, border: `1px solid ${borderC}`,
                             borderRadius: 22, overflow: "hidden",
-                            boxShadow: "0 24px 80px rgba(0,0,0,.5), 0 0 0 1px rgba(255,255,255,.04) inset",
+                            boxShadow: "0 24px 80px rgba(0,0,0,.5), 0 0 0 1px rgb(var(--ink) / .04) inset",
                             display: "flex", flexDirection: "column",
                             height: "min(82vh,580px)",
                         }}
@@ -215,17 +215,17 @@ export function AIChat({ dark = true, contextData, fabClassName }: { dark?: bool
                         <div style={{
                             display: "flex", alignItems: "center", justifyContent: "space-between",
                             padding: "14px 16px", borderBottom: `1px solid ${borderC}`,
-                            background: dark ? "rgba(255,255,255,.03)" : "rgba(0,0,0,.02)",
+                            background: dark ? "rgb(var(--ink) / .03)" : "rgba(0,0,0,.02)",
                             flexShrink: 0,
                         }}>
                             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                                <div style={{ width: 32, height: 32, borderRadius: 10, background: `linear-gradient(135deg,${OR},#e84d00)`, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: `0 4px 16px ${OR}55` }}>
+                                <div style={{ width: 32, height: 32, borderRadius: 10, background: `linear-gradient(135deg,${OR},#e84d00)`, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: `0 4px 16px color-mix(in srgb, ${OR} 33%, transparent)` }}>
                                     <Sparkles size={15} color="#fff" />
                                 </div>
                                 <div>
                                     <p style={{ fontSize: 13, fontWeight: 800, color: dark ? "#fff" : "#1a1d2e", margin: 0, letterSpacing: "-.01em" }}>Frameless AI</p>
                                     <p style={{ fontSize: 10, color: "rgba(74,222,128,.8)", margin: 0, display: "flex", alignItems: "center", gap: 3 }}>
-                                        <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#4ade80", display: "inline-block" }} />
+                                        <span style={{ width: 5, height: 5, borderRadius: "50%", background: "var(--c-green)", display: "inline-block" }} />
                                         Online · Gemini Flash
                                     </p>
                                 </div>
@@ -234,12 +234,12 @@ export function AIChat({ dark = true, contextData, fabClassName }: { dark?: bool
                                 {messages.length > 0 && (
                                     <button onClick={() => setMessages([])}
                                         title="Clear chat"
-                                        style={{ width: 28, height: 28, borderRadius: 8, background: "rgba(255,255,255,.06)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "rgba(255,255,255,.4)" }}>
+                                        style={{ width: 28, height: 28, borderRadius: 8, background: "rgb(var(--ink) / .06)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "rgb(var(--ink) / calc(.4 + var(--ink-boost)))" }}>
                                         <Trash2 size={12} />
                                     </button>
                                 )}
                                 <button onClick={() => setOpen(false)}
-                                    style={{ width: 28, height: 28, borderRadius: 8, background: "rgba(255,255,255,.06)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "rgba(255,255,255,.5)" }}>
+                                    style={{ width: 28, height: 28, borderRadius: 8, background: "rgb(var(--ink) / .06)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "rgb(var(--ink) / calc(.5 + var(--ink-boost)))" }}>
                                     <ChevronDown size={14} />
                                 </button>
                             </div>
@@ -249,17 +249,17 @@ export function AIChat({ dark = true, contextData, fabClassName }: { dark?: bool
                         <div style={{ flex: 1, overflowY: "auto", padding: "14px 14px 0", scrollbarWidth: "none" }}>
                             {messages.length === 0 ? (
                                 <div style={{ textAlign: "center", paddingTop: 28 }}>
-                                    <div style={{ width: 52, height: 52, borderRadius: 16, background: `${OR}18`, border: `1.5px solid ${OR}33`, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 14px" }}>
+                                    <div style={{ width: 52, height: 52, borderRadius: 16, background: `color-mix(in srgb, ${OR} 9%, transparent)`, border: `1.5px solid color-mix(in srgb, ${OR} 20%, transparent)`, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 14px" }}>
                                         <Sparkles size={22} color={OR} />
                                     </div>
                                     <p style={{ fontSize: 14, fontWeight: 700, color: dark ? "#fff" : "#1a1d2e", marginBottom: 6 }}>Halo! Ada yang bisa dibantu?</p>
-                                    <p style={{ fontSize: 12, color: "rgba(255,255,255,.4)", marginBottom: 20, lineHeight: 1.6 }}>AI Assistant siap membantu kamu dengan ide kreatif, script, dan konsultasi produksi video.</p>
+                                    <p style={{ fontSize: 12, color: "rgb(var(--ink) / calc(.4 + var(--ink-boost)))", marginBottom: 20, lineHeight: 1.6 }}>AI Assistant siap membantu kamu dengan ide kreatif, script, dan konsultasi produksi video.</p>
                                     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                                         {STARTERS.map(s => (
                                             <button key={s} onClick={() => { setInput(s); setTimeout(() => inputRef.current?.focus(), 100); }}
-                                                style={{ padding: "9px 14px", borderRadius: 10, background: "rgba(255,255,255,.05)", border: "1px solid rgba(255,255,255,.09)", color: "rgba(255,255,255,.6)", fontSize: 12, cursor: "pointer", textAlign: "left", fontFamily: FONT, transition: "all .15s" }}
-                                                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = OR + "55"; (e.currentTarget as HTMLElement).style.color = "#fff"; }}
-                                                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = "rgba(255,255,255,.09)"; (e.currentTarget as HTMLElement).style.color = "rgba(255,255,255,.6)"; }}>
+                                                style={{ padding: "9px 14px", borderRadius: 10, background: "rgb(var(--ink) / .05)", border: "1px solid rgb(var(--ink) / .09)", color: "rgb(var(--ink) / calc(.6 + var(--ink-boost)))", fontSize: 12, cursor: "pointer", textAlign: "left", fontFamily: FONT, transition: "all .15s" }}
+                                                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = `color-mix(in srgb, ${OR} 33%, transparent)`; (e.currentTarget as HTMLElement).style.color = "#fff"; }}
+                                                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = "rgb(var(--ink) / .09)"; (e.currentTarget as HTMLElement).style.color = "rgb(var(--ink) / .6)"; }}>
                                                 {s}
                                             </button>
                                         ))}
@@ -270,7 +270,7 @@ export function AIChat({ dark = true, contextData, fabClassName }: { dark?: bool
                                     {messages.map(m => <Bubble key={m.id} msg={m} dark={dark} />)}
                                     {loading && <Typing />}
                                     {error && (
-                                        <div style={{ padding: "8px 12px", borderRadius: 10, background: "rgba(239,68,68,.1)", border: "1px solid rgba(239,68,68,.2)", color: "#f87171", fontSize: 12, marginBottom: 12 }}>
+                                        <div style={{ padding: "8px 12px", borderRadius: 10, background: "rgba(239,68,68,.1)", border: "1px solid rgba(239,68,68,.2)", color: "var(--c-red)", fontSize: 12, marginBottom: 12 }}>
                                             ⚠ {error}
                                         </div>
                                     )}
@@ -290,14 +290,14 @@ export function AIChat({ dark = true, contextData, fabClassName }: { dark?: bool
                                     placeholder="Ketik pesan... (Enter kirim, Shift+Enter baris baru)"
                                     rows={1}
                                     style={{
-                                        flex: 1, background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.1)",
+                                        flex: 1, background: "rgb(var(--ink) / .06)", border: "1px solid rgb(var(--ink) / .1)",
                                         borderRadius: 12, padding: "10px 12px", color: dark ? "#fff" : "#1a1d2e",
                                         fontSize: 13, resize: "none", outline: "none", fontFamily: FONT,
                                         lineHeight: 1.5, maxHeight: 96, transition: "border-color .2s",
                                         scrollbarWidth: "none",
                                     }}
-                                    onFocus={e => (e.target.style.borderColor = OR + "66")}
-                                    onBlur={e => (e.target.style.borderColor = "rgba(255,255,255,.1)")}
+                                    onFocus={e => (e.target.style.borderColor = `color-mix(in srgb, ${OR} 40%, transparent)`)}
+                                    onBlur={e => (e.target.style.borderColor = "rgb(var(--ink) / .1)")}
                                     onInput={e => {
                                         const t = e.target as HTMLTextAreaElement;
                                         t.style.height = "auto";
@@ -309,19 +309,19 @@ export function AIChat({ dark = true, contextData, fabClassName }: { dark?: bool
                                     disabled={!input.trim() || loading}
                                     style={{
                                         width: 38, height: 38, borderRadius: 12, flexShrink: 0,
-                                        background: input.trim() && !loading ? OR : "rgba(255,255,255,.08)",
+                                        background: input.trim() && !loading ? OR : "rgb(var(--ink) / .08)",
                                         border: "none", cursor: input.trim() && !loading ? "pointer" : "not-allowed",
                                         display: "flex", alignItems: "center", justifyContent: "center",
                                         transition: "all .2s",
                                     }}
                                 >
                                     {loading
-                                        ? <Loader2 size={16} color="rgba(255,255,255,.5)" style={{ animation: "spin .7s linear infinite" }} />
-                                        : <Send size={15} color={input.trim() ? "#fff" : "rgba(255,255,255,.3)"} />
+                                        ? <Loader2 size={16} color="rgb(var(--ink) / .5)" style={{ animation: "spin .7s linear infinite" }} />
+                                        : <Send size={15} color={input.trim() ? "#fff" : "rgb(var(--ink) / .3)"} />
                                     }
                                 </button>
                             </div>
-                            <p style={{ fontSize: 9, color: "rgba(255,255,255,.2)", textAlign: "center", marginTop: 8, letterSpacing: ".04em" }}>
+                            <p style={{ fontSize: 9, color: "rgb(var(--ink) / calc(.2 + var(--ink-boost)))", textAlign: "center", marginTop: 8, letterSpacing: ".04em" }}>
                                 Powered by Gemini · Frameless Creative Internal Tool
                             </p>
                         </div>
@@ -338,7 +338,7 @@ export function AIChat({ dark = true, contextData, fabClassName }: { dark?: bool
                     background: open ? "#333" : `linear-gradient(135deg,${OR},#e84d00)`,
                     border: "none", cursor: "pointer",
                     display: "flex", alignItems: "center", justifyContent: "center",
-                    boxShadow: open ? "none" : `0 8px 32px ${OR}66`,
+                    boxShadow: open ? "none" : `0 8px 32px color-mix(in srgb, ${OR} 40%, transparent)`,
                     transition: "background .2s, box-shadow .2s",
                 }}
             >

@@ -465,12 +465,12 @@ export default function QuotationEditorPage() {
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div className="flex items-center gap-3 min-w-0">
           <a href="/quotations">
-            <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-white shrink-0">
+            <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground shrink-0">
               <ArrowLeft className="w-5 h-5" />
             </Button>
           </a>
           <div className="min-w-0">
-            <h1 className="text-3xl font-heading tracking-wider text-white truncate">{number || "Penawaran Baru"}</h1>
+            <h1 className="text-3xl font-heading tracking-wider text-foreground truncate">{number || "Penawaran Baru"}</h1>
             <p className="text-muted-foreground text-xs uppercase tracking-widest truncate">
               {q.title || "Quotation Editor"}
             </p>
@@ -478,17 +478,17 @@ export default function QuotationEditorPage() {
         </div>
         <div className="flex items-center gap-3 flex-wrap">
           <Select value={q.status} onValueChange={(v) => setQ((p) => ({ ...p, status: v }))}>
-            <SelectTrigger className="w-32 bg-white/5 border-white/10 text-white text-xs">
+            <SelectTrigger className="w-32 bg-foreground/5 border-foreground/10 text-foreground text-xs">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent className="bg-card border-white/10">
+            <SelectContent className="bg-card border-foreground/10">
               <SelectItem value="DRAFT">Draft</SelectItem>
               <SelectItem value="SENT">Terkirim</SelectItem>
               <SelectItem value="ACCEPTED">Diterima</SelectItem>
               <SelectItem value="REJECTED">Ditolak</SelectItem>
             </SelectContent>
           </Select>
-          <Button onClick={handleExportPdf} disabled={exporting} variant="outline" className="border-white/20 text-white hover:bg-white/10 font-heading tracking-wider">
+          <Button onClick={handleExportPdf} disabled={exporting} variant="outline" className="border-foreground/20 text-foreground hover:bg-foreground/10 font-heading tracking-wider">
             <Download className="w-4 h-4 mr-2" />
             {exporting ? "Exporting..." : "Download PDF"}
           </Button>
@@ -514,8 +514,8 @@ export default function QuotationEditorPage() {
       {convertedInfo && (
         <div className="glass-panel rounded-xl p-4 border-primary/30 bg-primary/5 flex items-center gap-3 flex-wrap">
           <p className="text-sm text-primary">Sudah dikonversi.</p>
-          <a href={`/projects/${convertedInfo.projectId}`} className="text-xs text-white underline">Lihat Project</a>
-          <a href={`/invoices/${convertedInfo.invoiceId}`} className="text-xs text-white underline">Lihat Invoice</a>
+          <a href={`/projects/${convertedInfo.projectId}`} className="text-xs text-foreground underline">Lihat Project</a>
+          <a href={`/invoices/${convertedInfo.invoiceId}`} className="text-xs text-foreground underline">Lihat Invoice</a>
         </div>
       )}
 
@@ -524,7 +524,7 @@ export default function QuotationEditorPage() {
         <div className="xl:col-span-2 space-y-4 min-w-0">
 
           {/* Logo */}
-          <div className="glass-panel rounded-xl p-5 border-white/10 space-y-3">
+          <div className="glass-panel rounded-xl p-5 border-foreground/10 space-y-3">
             <div className="flex items-center justify-between flex-wrap gap-2">
               <p className="text-xs uppercase tracking-widest text-muted-foreground font-semibold">Logo Perusahaan</p>
               {!usingCustomLogo && companyLogo && (
@@ -534,12 +534,12 @@ export default function QuotationEditorPage() {
               )}
             </div>
             <div className="flex items-center gap-4 flex-wrap">
-              <div className="w-32 h-16 rounded-lg bg-white flex items-center justify-center border border-white/20 overflow-hidden shrink-0">
-                {effectiveLogo ? <img src={effectiveLogo} alt="Logo" className="w-full h-full object-contain p-1" /> : <ImageIcon className="w-8 h-8 text-gray-300" />}
+              <div className="w-32 h-16 rounded-lg bg-white flex items-center justify-center border border-foreground/20 overflow-hidden shrink-0">
+                {effectiveLogo ? <img src={effectiveLogo} alt="Logo" className="w-full h-full object-contain p-1" /> : <ImageIcon className="w-8 h-8 text-[#9ca3af]" />}
               </div>
               <div className="flex flex-col gap-2">
                 <input ref={logoInputRef} type="file" accept="image/png,image/jpeg,image/jpg,image/webp,image/svg+xml" className="hidden" onChange={handleLogoUpload} />
-                <Button variant="outline" size="sm" onClick={() => logoInputRef.current?.click()} className="border-white/20 text-white hover:bg-white/10 text-xs">
+                <Button variant="outline" size="sm" onClick={() => logoInputRef.current?.click()} className="border-foreground/20 text-foreground hover:bg-foreground/10 text-xs">
                   <Upload className="w-3.5 h-3.5 mr-2" /> Upload Logo Baru
                 </Button>
                 {usingCustomLogo && (
@@ -548,7 +548,7 @@ export default function QuotationEditorPage() {
                       <Star className="w-3.5 h-3.5 mr-1.5" />
                       {settingDefault ? "Menyimpan..." : "Jadikan Default"}
                     </Button>
-                    <Button variant="ghost" size="sm" onClick={handleResetToDefault} className="text-muted-foreground hover:text-white text-xs h-8">
+                    <Button variant="ghost" size="sm" onClick={handleResetToDefault} className="text-muted-foreground hover:text-foreground text-xs h-8">
                       <RotateCcw className="w-3 h-3 mr-1.5" /> Pakai Default
                     </Button>
                   </div>
@@ -561,20 +561,20 @@ export default function QuotationEditorPage() {
           </div>
 
           {/* Meta */}
-          <div className="glass-panel rounded-xl p-5 border-white/10 space-y-3">
+          <div className="glass-panel rounded-xl p-5 border-foreground/10 space-y-3">
             <p className="text-xs uppercase tracking-widest text-muted-foreground font-semibold">Detail Penawaran</p>
             <div className="space-y-1">
               <label className="text-xs uppercase tracking-wider text-muted-foreground">Judul Project / Jasa *</label>
-              <Input value={q.title} onChange={(e) => setQ((p) => ({ ...p, title: e.target.value }))} placeholder="Cth: Video Company Profile PT Maju Jaya" className="bg-white/5 border-white/10 text-white" />
+              <Input value={q.title} onChange={(e) => setQ((p) => ({ ...p, title: e.target.value }))} placeholder="Cth: Video Company Profile PT Maju Jaya" className="bg-foreground/5 border-foreground/10 text-foreground" />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1">
                 <label className="text-xs uppercase tracking-wider text-muted-foreground">Client *</label>
                 <Select value={q.clientId} onValueChange={applyClientData}>
-                  <SelectTrigger className="bg-white/5 border-white/10 text-white">
+                  <SelectTrigger className="bg-foreground/5 border-foreground/10 text-foreground">
                     <SelectValue placeholder={clientsLoading ? "Memuat..." : "Pilih client..."} />
                   </SelectTrigger>
-                  <SelectContent className="bg-card border-white/10">
+                  <SelectContent className="bg-card border-foreground/10">
                     {clients?.map((c: any) => (
                       <SelectItem key={c.id} value={c.id}>{c.name}{c.company ? ` (${c.company})` : ""}</SelectItem>
                     ))}
@@ -583,27 +583,27 @@ export default function QuotationEditorPage() {
               </div>
               <div className="space-y-1">
                 <label className="text-xs uppercase tracking-wider text-muted-foreground">Tipe Project</label>
-                <Input value={q.projectType} onChange={(e) => setQ((p) => ({ ...p, projectType: e.target.value }))} placeholder="Cth: Company Profile, Wedding, Music Video" className="bg-white/5 border-white/10 text-white" />
+                <Input value={q.projectType} onChange={(e) => setQ((p) => ({ ...p, projectType: e.target.value }))} placeholder="Cth: Company Profile, Wedding, Music Video" className="bg-foreground/5 border-foreground/10 text-foreground" />
               </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1">
                 <label className="text-xs uppercase tracking-wider text-muted-foreground">Berlaku Sampai</label>
-                <Input type="date" value={q.validUntil} onChange={(e) => setQ((p) => ({ ...p, validUntil: e.target.value }))} className="bg-white/5 border-white/10 text-white" />
+                <Input type="date" value={q.validUntil} onChange={(e) => setQ((p) => ({ ...p, validUntil: e.target.value }))} className="bg-foreground/5 border-foreground/10 text-foreground" />
               </div>
               <div className="space-y-1">
                 <label className="text-xs uppercase tracking-wider text-muted-foreground">DP saat Deal (%)</label>
-                <Input type="number" value={q.dpPercentage} onChange={(e) => setQ((p) => ({ ...p, dpPercentage: Number(e.target.value) }))} className="bg-white/5 border-white/10 text-white" />
+                <Input type="number" value={q.dpPercentage} onChange={(e) => setQ((p) => ({ ...p, dpPercentage: Number(e.target.value) }))} className="bg-foreground/5 border-foreground/10 text-foreground" />
               </div>
             </div>
             <div className="space-y-1">
               <label className="text-xs uppercase tracking-wider text-muted-foreground">Kepada Yth (Bill To)</label>
-              <Textarea value={q.billTo} onChange={(e) => setQ((p) => ({ ...p, billTo: e.target.value }))} rows={3} className="bg-white/5 border-white/10 text-white" />
+              <Textarea value={q.billTo} onChange={(e) => setQ((p) => ({ ...p, billTo: e.target.value }))} rows={3} className="bg-foreground/5 border-foreground/10 text-foreground" />
             </div>
           </div>
 
           {/* Print Settings */}
-          <div className="glass-panel rounded-xl p-5 border-white/10 space-y-3">
+          <div className="glass-panel rounded-xl p-5 border-foreground/10 space-y-3">
             <button onClick={() => setShowPrintSettings((v) => !v)} className="w-full flex items-center justify-between text-xs uppercase tracking-widest text-muted-foreground font-semibold">
               Pengaturan Cetak (Ukuran & Margin)
               <ChevronDown className={`w-4 h-4 transition-transform ${showPrintSettings ? "rotate-180" : ""}`} />
@@ -613,8 +613,8 @@ export default function QuotationEditorPage() {
                 <div className="space-y-1">
                   <label className="text-xs uppercase tracking-wider text-muted-foreground">Ukuran Kertas</label>
                   <Select value={q.paperSize} onValueChange={(v) => setQ((p) => ({ ...p, paperSize: v }))}>
-                    <SelectTrigger className="bg-white/5 border-white/10 text-white"><SelectValue /></SelectTrigger>
-                    <SelectContent className="bg-card border-white/10">
+                    <SelectTrigger className="bg-foreground/5 border-foreground/10 text-foreground"><SelectValue /></SelectTrigger>
+                    <SelectContent className="bg-card border-foreground/10">
                       {PAPER_SIZES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
                     </SelectContent>
                   </Select>
@@ -623,7 +623,7 @@ export default function QuotationEditorPage() {
                   {(["marginTop", "marginBottom", "marginLeft", "marginRight"] as const).map((field) => (
                     <div key={field} className="space-y-1">
                       <label className="text-[10px] uppercase tracking-wider text-muted-foreground">{field.replace("margin", "")}</label>
-                      <Input value={q[field]} onChange={(e) => setQ((p) => ({ ...p, [field]: e.target.value }))} className="bg-white/5 border-white/10 text-white text-xs" />
+                      <Input value={q[field]} onChange={(e) => setQ((p) => ({ ...p, [field]: e.target.value }))} className="bg-foreground/5 border-foreground/10 text-foreground text-xs" />
                     </div>
                   ))}
                 </div>
@@ -633,7 +633,7 @@ export default function QuotationEditorPage() {
           </div>
 
           {/* Line Items — dikelompokkan per Fase Produksi */}
-          <div className="glass-panel rounded-xl p-5 border-white/10 space-y-4">
+          <div className="glass-panel rounded-xl p-5 border-foreground/10 space-y-4">
             <div className="flex items-center justify-between flex-wrap gap-2">
               <p className="text-xs uppercase tracking-widest text-muted-foreground font-semibold">Deskripsi Jasa / Deliverable</p>
               <Button onClick={handleAiAssist} disabled={aiLoading} size="sm" variant="outline" className="border-primary/30 text-primary hover:bg-primary/10 text-xs">
@@ -648,7 +648,7 @@ export default function QuotationEditorPage() {
                 <div key={ph.value} className="space-y-2">
                   <div className="flex items-center gap-2">
                     <span className="text-[10px] uppercase tracking-widest font-bold text-primary/80 bg-primary/10 px-2 py-0.5 rounded">{ph.label}</span>
-                    <div className="h-px flex-1 bg-white/10" />
+                    <div className="h-px flex-1 bg-foreground/10" />
                   </div>
 
                   <div className="overflow-x-auto -mx-1 px-1">
@@ -659,26 +659,26 @@ export default function QuotationEditorPage() {
                             value={item.label}
                             onChange={(e) => updateItem(item.id, "label", e.target.value)}
                             placeholder="Nama item (cth: Shooting Hari 1)"
-                            className="bg-white/5 border-white/10 text-white text-sm"
+                            className="bg-foreground/5 border-foreground/10 text-foreground text-sm"
                           />
                           <Input
                             value={item.componentsText}
                             onChange={(e) => updateItem(item.id, "componentsText", e.target.value)}
                             placeholder="Crew/Alat, pisah koma"
-                            className="bg-white/5 border-white/10 text-white text-sm"
+                            className="bg-foreground/5 border-foreground/10 text-foreground text-sm"
                           />
                           <Input
                             type="number"
                             value={item.quantity}
                             onChange={(e) => updateItem(item.id, "quantity", Number(e.target.value))}
-                            className="bg-white/5 border-white/10 text-white text-sm text-center"
+                            className="bg-foreground/5 border-foreground/10 text-foreground text-sm text-center"
                           />
                           <Input
                             type="number"
                             value={item.unitPrice}
                             onChange={(e) => updateItem(item.id, "unitPrice", Number(e.target.value))}
                             placeholder="Harga"
-                            className="bg-white/5 border-white/10 text-white text-sm"
+                            className="bg-foreground/5 border-foreground/10 text-foreground text-sm"
                           />
                           <Button variant="ghost" size="icon" onClick={() => removeItem(item.id)} className="text-muted-foreground hover:text-red-400 shrink-0">
                             <Trash2 className="w-4 h-4" />
@@ -697,7 +697,7 @@ export default function QuotationEditorPage() {
                     </button>
                     {items.length > 0 && (
                       <span className="text-muted-foreground">
-                        Subtotal: <span className="text-white font-medium">{formatCurrency(items.reduce((s, i) => s + i.total, 0))}</span>
+                        Subtotal: <span className="text-foreground font-medium">{formatCurrency(items.reduce((s, i) => s + i.total, 0))}</span>
                       </span>
                     )}
                   </div>
@@ -705,20 +705,20 @@ export default function QuotationEditorPage() {
               );
             })}
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-3 border-t border-white/10">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-3 border-t border-foreground/10">
               <div className="space-y-1">
                 <label className="text-xs uppercase tracking-wider text-muted-foreground">Pajak (%)</label>
-                <Input type="number" value={q.taxRate} onChange={(e) => setQ((p) => ({ ...p, taxRate: Number(e.target.value) }))} className="bg-white/5 border-white/10 text-white text-sm" />
+                <Input type="number" value={q.taxRate} onChange={(e) => setQ((p) => ({ ...p, taxRate: Number(e.target.value) }))} className="bg-foreground/5 border-foreground/10 text-foreground text-sm" />
               </div>
               <div className="space-y-1">
                 <label className="text-xs uppercase tracking-wider text-muted-foreground">Diskon (Rp)</label>
-                <Input type="number" value={q.discount} onChange={(e) => setQ((p) => ({ ...p, discount: Number(e.target.value) }))} className="bg-white/5 border-white/10 text-white text-sm" />
+                <Input type="number" value={q.discount} onChange={(e) => setQ((p) => ({ ...p, discount: Number(e.target.value) }))} className="bg-foreground/5 border-foreground/10 text-foreground text-sm" />
               </div>
             </div>
           </div>
 
           {/* ── RAB & HPP Panel ── */}
-          <div className="glass-panel rounded-xl p-5 border-white/10 space-y-3">
+          <div className="glass-panel rounded-xl p-5 border-foreground/10 space-y-3">
             <div className="flex items-center justify-between flex-wrap gap-2">
               <p className="text-xs uppercase tracking-widest text-muted-foreground font-semibold">RAB & HPP (Internal — tidak muncul di PDF client)</p>
               <Button onClick={fetchRabSuggestions} disabled={loadingSuggest} size="sm" variant="outline" className="border-blue-400/30 text-blue-400 hover:bg-blue-400/10 text-xs">
@@ -732,10 +732,10 @@ export default function QuotationEditorPage() {
                 <p className="text-[10px] uppercase tracking-wider text-blue-400">Saran biaya berdasarkan histori project</p>
                 {rabSuggestions.map((s) => (
                   <div key={s.category} className="flex items-center justify-between text-xs flex-wrap gap-1">
-                    <span className="text-white">{s.category} <span className="text-muted-foreground">({s.sampleSize} data)</span></span>
+                    <span className="text-foreground">{s.category} <span className="text-muted-foreground">({s.sampleSize} data)</span></span>
                     <div className="flex items-center gap-2">
                       <span className="text-blue-400">{formatCurrency(s.averageCost)}</span>
-                      <Button size="sm" variant="ghost" onClick={() => applySuggestion(s)} className="h-6 px-2 text-[10px] text-white hover:bg-white/10">+ Pakai</Button>
+                      <Button size="sm" variant="ghost" onClick={() => applySuggestion(s)} className="h-6 px-2 text-[10px] text-foreground hover:bg-foreground/10">+ Pakai</Button>
                     </div>
                   </div>
                 ))}
@@ -752,10 +752,10 @@ export default function QuotationEditorPage() {
                       <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">{cat}</p>
                       {catItems.map((r) => (
                         <div key={r.id} className="grid grid-cols-[1.6fr_70px_90px_110px_36px] gap-2 items-center">
-                          <Input value={r.itemName} onChange={(e) => updateRab(r.id, "itemName", e.target.value)} placeholder="Nama item biaya" className="bg-white/5 border-white/10 text-white text-sm" />
-                          <Input type="number" value={r.quantity} onChange={(e) => updateRab(r.id, "quantity", Number(e.target.value))} placeholder="Qty" className="bg-white/5 border-white/10 text-white text-sm text-center" />
-                          <Input value={r.unit} onChange={(e) => updateRab(r.id, "unit", e.target.value)} placeholder="Satuan" className="bg-white/5 border-white/10 text-white text-sm" />
-                          <Input type="number" value={r.unitCost} onChange={(e) => updateRab(r.id, "unitCost", Number(e.target.value))} placeholder="Biaya" className="bg-white/5 border-white/10 text-white text-sm" />
+                          <Input value={r.itemName} onChange={(e) => updateRab(r.id, "itemName", e.target.value)} placeholder="Nama item biaya" className="bg-foreground/5 border-foreground/10 text-foreground text-sm" />
+                          <Input type="number" value={r.quantity} onChange={(e) => updateRab(r.id, "quantity", Number(e.target.value))} placeholder="Qty" className="bg-foreground/5 border-foreground/10 text-foreground text-sm text-center" />
+                          <Input value={r.unit} onChange={(e) => updateRab(r.id, "unit", e.target.value)} placeholder="Satuan" className="bg-foreground/5 border-foreground/10 text-foreground text-sm" />
+                          <Input type="number" value={r.unitCost} onChange={(e) => updateRab(r.id, "unitCost", Number(e.target.value))} placeholder="Biaya" className="bg-foreground/5 border-foreground/10 text-foreground text-sm" />
                           <Button variant="ghost" size="icon" onClick={() => removeRabItem(r.id)} className="text-muted-foreground hover:text-red-400 shrink-0">
                             <Trash2 className="w-4 h-4" />
                           </Button>
@@ -769,17 +769,17 @@ export default function QuotationEditorPage() {
 
             <div className="flex gap-2 flex-wrap pt-1">
               {RAB_CATEGORIES.map((cat) => (
-                <button key={cat} onClick={() => addRabItem(cat)} className="px-3 py-1 rounded-md text-[10px] uppercase tracking-wider font-semibold border border-white/10 text-muted-foreground hover:bg-white/10 hover:text-white transition-all">
+                <button key={cat} onClick={() => addRabItem(cat)} className="px-3 py-1 rounded-md text-[10px] uppercase tracking-wider font-semibold border border-foreground/10 text-muted-foreground hover:bg-foreground/10 hover:text-foreground transition-all">
                   + {cat}
                 </button>
               ))}
             </div>
 
             {/* HPP Summary */}
-            <div className="grid grid-cols-3 gap-2 sm:gap-3 pt-3 border-t border-white/10">
+            <div className="grid grid-cols-3 gap-2 sm:gap-3 pt-3 border-t border-foreground/10">
               <div className="text-center">
                 <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Est. HPP</p>
-                <p className="text-sm font-heading text-white">{formatCurrency(estimatedCost)}</p>
+                <p className="text-sm font-heading text-foreground">{formatCurrency(estimatedCost)}</p>
               </div>
               <div className="text-center">
                 <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Margin</p>
@@ -793,14 +793,14 @@ export default function QuotationEditorPage() {
           </div>
 
           {/* Notes & Terms */}
-          <div className="glass-panel rounded-xl p-5 border-white/10 space-y-3">
+          <div className="glass-panel rounded-xl p-5 border-foreground/10 space-y-3">
             <div className="space-y-1">
               <label className="text-xs uppercase tracking-wider text-muted-foreground">Catatan</label>
-              <Textarea value={q.notes} onChange={(e) => setQ((p) => ({ ...p, notes: e.target.value }))} rows={3} className="bg-white/5 border-white/10 text-white" />
+              <Textarea value={q.notes} onChange={(e) => setQ((p) => ({ ...p, notes: e.target.value }))} rows={3} className="bg-foreground/5 border-foreground/10 text-foreground" />
             </div>
             <div className="space-y-1">
               <label className="text-xs uppercase tracking-wider text-muted-foreground">Syarat & Ketentuan</label>
-              <Textarea value={q.terms} onChange={(e) => setQ((p) => ({ ...p, terms: e.target.value }))} rows={5} className="bg-white/5 border-white/10 text-white" />
+              <Textarea value={q.terms} onChange={(e) => setQ((p) => ({ ...p, terms: e.target.value }))} rows={5} className="bg-foreground/5 border-foreground/10 text-foreground" />
             </div>
           </div>
         </div>
@@ -809,15 +809,15 @@ export default function QuotationEditorPage() {
         <div className="xl:col-span-1">
           <div className="xl:sticky xl:top-6 space-y-3">
             <p className="text-xs uppercase tracking-widest text-muted-foreground font-semibold">Preview (identik dengan PDF final)</p>
-            <div className="glass-panel rounded-xl border-white/10 overflow-hidden" style={{ aspectRatio: q.paperSize === "A4" || q.paperSize === "F4" ? "210/297" : "216/279" }}>
+            <div className="glass-panel rounded-xl border-foreground/10 overflow-hidden" style={{ aspectRatio: q.paperSize === "A4" || q.paperSize === "F4" ? "210/297" : "216/279" }}>
               <iframe ref={iframeRef} title="Quotation Preview" className="w-full h-full bg-white" style={{ border: "none" }} />
             </div>
-            <div className="glass-panel rounded-xl p-4 border-white/10 space-y-1.5 text-sm">
-              <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span className="text-white">{formatCurrency(subtotal)}</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">Pajak</span><span className="text-white">{formatCurrency(taxAmount)}</span></div>
+            <div className="glass-panel rounded-xl p-4 border-foreground/10 space-y-1.5 text-sm">
+              <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span className="text-foreground">{formatCurrency(subtotal)}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Pajak</span><span className="text-foreground">{formatCurrency(taxAmount)}</span></div>
               {q.discount > 0 && <div className="flex justify-between"><span className="text-muted-foreground">Diskon</span><span className="text-green-400">−{formatCurrency(q.discount)}</span></div>}
-              <div className="flex justify-between pt-1.5 border-t border-white/10"><span className="font-semibold text-white">Total</span><span className="text-lg font-heading text-primary">{formatCurrency(total)}</span></div>
-              <div className="flex justify-between text-xs"><span className="text-muted-foreground">DP ({q.dpPercentage}%)</span><span className="text-white">{formatCurrency(dpAmount)}</span></div>
+              <div className="flex justify-between pt-1.5 border-t border-foreground/10"><span className="font-semibold text-foreground">Total</span><span className="text-lg font-heading text-primary">{formatCurrency(total)}</span></div>
+              <div className="flex justify-between text-xs"><span className="text-muted-foreground">DP ({q.dpPercentage}%)</span><span className="text-foreground">{formatCurrency(dpAmount)}</span></div>
             </div>
           </div>
         </div>

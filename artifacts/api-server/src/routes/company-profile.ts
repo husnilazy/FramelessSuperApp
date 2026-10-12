@@ -13,6 +13,18 @@ async function ensureRow() {
   return created;
 }
 
+// Hanya nama & logo — aman untuk halaman login / publik.
+router.get("/public/brand", async (_req, res): Promise<void> => {
+  try {
+    const row = await ensureRow();
+    res.setHeader("Cache-Control", "public, max-age=300");
+    res.json({ companyName: row.companyName, tagline: row.tagline, logoUrl: row.logoUrl, logoDarkUrl: (row as any).logoDarkUrl ?? null });
+  } catch (err) {
+    logger.error({ err }, "public-brand.get.error");
+    res.status(500).json({ error: "Failed to fetch brand" });
+  }
+});
+
 router.get("/company-profile", async (_req, res): Promise<void> => {
   try {
     const row = await ensureRow();
@@ -26,7 +38,7 @@ router.get("/company-profile", async (_req, res): Promise<void> => {
 router.put("/company-profile", async (req, res): Promise<void> => {
   try {
     await ensureRow();
-    const { companyName, tagline, address, email, phone, website, logoUrl } = req.body ?? {};
+    const { companyName, tagline, address, email, phone, website, logoUrl, logoDarkUrl, bankName, bankNumber, bankHolder, signerName } = req.body ?? {};
     const [row] = await db.update(companyProfileTable).set({
       ...(companyName !== undefined && { companyName: String(companyName) }),
       ...(tagline !== undefined && { tagline: String(tagline) }),
@@ -35,6 +47,11 @@ router.put("/company-profile", async (req, res): Promise<void> => {
       ...(phone !== undefined && { phone: String(phone) }),
       ...(website !== undefined && { website: String(website) }),
       ...(logoUrl !== undefined && { logoUrl: logoUrl ? String(logoUrl) : null }),
+      ...(logoDarkUrl !== undefined && { logoDarkUrl: logoDarkUrl ? String(logoDarkUrl) : null }),
+      ...(bankName !== undefined && { bankName: String(bankName) || null }),
+      ...(bankNumber !== undefined && { bankNumber: String(bankNumber) || null }),
+      ...(bankHolder !== undefined && { bankHolder: String(bankHolder) || null }),
+      ...(signerName !== undefined && { signerName: String(signerName) || null }),
       updatedAt: new Date(),
     }).where(eq(companyProfileTable.id, DEFAULT_ID)).returning();
     res.json(mapProfile(row));
@@ -47,7 +64,8 @@ router.put("/company-profile", async (req, res): Promise<void> => {
 function mapProfile(p: any) {
   return {
     companyName: p.companyName, tagline: p.tagline, address: p.address,
-    email: p.email, phone: p.phone, website: p.website, logoUrl: p.logoUrl,
+    email: p.email, phone: p.phone, website: p.website, logoUrl: p.logoUrl, logoDarkUrl: p.logoDarkUrl ?? null,
+    bankName: p.bankName ?? null, bankNumber: p.bankNumber ?? null, bankHolder: p.bankHolder ?? null, signerName: p.signerName ?? null,
     updatedAt: p.updatedAt,
   };
 }

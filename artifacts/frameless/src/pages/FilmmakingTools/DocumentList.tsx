@@ -202,7 +202,7 @@ export function DocumentList({ onOpenDoc }: DocumentListProps = {}) {
     return (
       <div className="flex items-center justify-center h-full gap-3">
         <Clapperboard className="w-6 h-6 text-orange-500 animate-pulse" />
-        <span className="text-sm text-zinc-400">Loading documents...</span>
+        <span className="text-sm text-muted-foreground">Loading documents...</span>
       </div>
     );
   }
@@ -221,16 +221,16 @@ export function DocumentList({ onOpenDoc }: DocumentListProps = {}) {
   }
 
   return (
-    <div className="flex flex-col h-full bg-zinc-950 text-zinc-100">
+    <div className="flex flex-col h-full bg-background text-foreground">
       {/* Header */}
-      <div className="flex items-center justify-between px-6 py-5 border-b border-zinc-800/60 bg-zinc-900/50 backdrop-blur-sm sticky top-0 z-10">
+      <div className="flex items-center justify-between px-6 py-5 border-b border-border/60 bg-card/50 backdrop-blur-sm sticky top-0 z-10">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-orange-500 to-rose-600 flex items-center justify-center shadow-lg shadow-orange-500/20">
-            <Clapperboard className="w-5 h-5 text-white" />
+            <Clapperboard className="w-5 h-5 text-foreground" />
           </div>
           <div>
-            <h1 className="text-lg font-bold text-zinc-100">Filmmaking Tools</h1>
-            <p className="text-xs text-zinc-500">{documents.length} document{documents.length !== 1 ? "s" : ""}</p>
+            <h1 className="text-lg font-bold text-foreground">Filmmaking Tools</h1>
+            <p className="text-xs text-muted-foreground">{documents.length} document{documents.length !== 1 ? "s" : ""}</p>
           </div>
         </div>
 
@@ -241,66 +241,66 @@ export function DocumentList({ onOpenDoc }: DocumentListProps = {}) {
               New Document
             </Button>
           </DialogTrigger>
-          <DialogContent className="bg-zinc-900 border-zinc-700 text-zinc-100">
+          <DialogContent className="bg-card border-border text-foreground">
             <DialogHeader>
-              <DialogTitle className="flex items-center gap-2 text-zinc-100">
+              <DialogTitle className="flex items-center gap-2 text-foreground">
                 <Clapperboard className="w-5 h-5 text-orange-400" />
                 Create New Document
               </DialogTitle>
             </DialogHeader>
             <div className="space-y-4 py-2">
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-zinc-400 uppercase tracking-wider">Document Title</label>
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Document Title</label>
                 <Input
                   placeholder="e.g., Ramadan Campaign 2025"
                   value={newTitle}
                   onChange={(e) => setNewTitle(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleCreateDocument()}
-                  className="bg-zinc-800 border-zinc-700 text-zinc-100 placeholder:text-zinc-500 focus:border-orange-500"
+                  className="bg-muted border-border text-foreground placeholder:text-muted-foreground focus:border-orange-500"
                   autoFocus
                 />
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-zinc-400 uppercase tracking-wider">Document Type</label>
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Document Type</label>
                 <Select value={newDocType} onValueChange={(val: any) => setNewDocType(val)}>
-                  <SelectTrigger className="bg-zinc-800 border-zinc-700 text-zinc-100">
+                  <SelectTrigger className="bg-muted border-border text-foreground">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="bg-zinc-800 border-zinc-700">
-                    <SelectItem value="concept" className="text-zinc-100 focus:bg-zinc-700">
+                  <SelectContent className="bg-muted border-border">
+                    <SelectItem value="concept" className="text-foreground focus:bg-secondary">
                       <div className="flex items-center gap-2">
                         <Lightbulb className="w-4 h-4 text-amber-400" />
                         <div>
                           <p className="font-medium">Concept / Idea</p>
-                          <p className="text-xs text-zinc-400">Mulai dari sini kalau belum ada naskah — AI bisa generate semuanya</p>
+                          <p className="text-xs text-muted-foreground">Mulai dari sini kalau belum ada naskah — AI bisa generate semuanya</p>
                         </div>
                       </div>
                     </SelectItem>
-                    <SelectItem value="screenplay" className="text-zinc-100 focus:bg-zinc-700">
+                    <SelectItem value="screenplay" className="text-foreground focus:bg-secondary">
                       <div className="flex items-center gap-2">
                         <BookOpen className="w-4 h-4 text-purple-400" />
                         <div>
                           <p className="font-medium">Screenplay</p>
-                          <p className="text-xs text-zinc-400">Write your script, AI will breakdown automatically</p>
+                          <p className="text-xs text-muted-foreground">Write your script, AI will breakdown automatically</p>
                         </div>
                       </div>
                     </SelectItem>
-                    <SelectItem value="script" className="text-zinc-100 focus:bg-zinc-700">
+                    <SelectItem value="script" className="text-foreground focus:bg-secondary">
                       <div className="flex items-center gap-2">
                         <FileText className="w-4 h-4 text-blue-400" />
                         <div>
                           <p className="font-medium">Script Breakdown</p>
-                          <p className="text-xs text-zinc-400">Scene-by-scene production breakdown, dibantu AI</p>
+                          <p className="text-xs text-muted-foreground">Scene-by-scene production breakdown, dibantu AI</p>
                         </div>
                       </div>
                     </SelectItem>
-                    <SelectItem value="shotlist" className="text-zinc-100 focus:bg-zinc-700">
+                    <SelectItem value="shotlist" className="text-foreground focus:bg-secondary">
                       <div className="flex items-center gap-2">
                         <Grid3x3 className="w-4 h-4 text-emerald-400" />
                         <div>
                           <p className="font-medium">Shotlist</p>
-                          <p className="text-xs text-zinc-400">Camera shot breakdown, dibantu AI</p>
+                          <p className="text-xs text-muted-foreground">Camera shot breakdown, dibantu AI</p>
                         </div>
                       </div>
                     </SelectItem>
@@ -325,7 +325,7 @@ export function DocumentList({ onOpenDoc }: DocumentListProps = {}) {
       </div>
 
       {/* Filter Tabs + Search */}
-      <div className="flex flex-col sm:flex-row sm:items-center gap-3 px-6 py-3 border-b border-zinc-800/60">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3 px-6 py-3 border-b border-border/60">
         <div className="flex gap-1 overflow-x-auto">
           {(["all", "concept", "screenplay", "script", "shotlist"] as const).map((type) => (
             <button
@@ -334,7 +334,7 @@ export function DocumentList({ onOpenDoc }: DocumentListProps = {}) {
               className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
                 filter === type
                   ? "bg-orange-500 text-white shadow-md shadow-orange-500/20"
-                  : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800"
+                  : "text-muted-foreground hover:text-zinc-200 hover:bg-muted"
               }`}
             >
               {type === "all" ? "All" : DOC_TYPE_CONFIG[type].label}
@@ -342,12 +342,12 @@ export function DocumentList({ onOpenDoc }: DocumentListProps = {}) {
           ))}
         </div>
         <div className="relative sm:ml-auto sm:w-64">
-          <Search className="w-3.5 h-3.5 text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2" />
+          <Search className="w-3.5 h-3.5 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Cari dokumen..."
-            className="bg-zinc-900 border-zinc-800 text-zinc-100 placeholder:text-zinc-600 pl-8 h-9"
+            className="bg-card border-border text-foreground placeholder:text-muted-foreground/70 pl-8 h-9"
           />
         </div>
       </div>
@@ -356,14 +356,14 @@ export function DocumentList({ onOpenDoc }: DocumentListProps = {}) {
       <div className="flex-1 overflow-auto p-6">
         {filteredDocs.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full gap-4 text-center py-20">
-            <div className="w-20 h-20 rounded-2xl bg-zinc-800/80 flex items-center justify-center">
-              <Clapperboard className="w-10 h-10 text-zinc-600" />
+            <div className="w-20 h-20 rounded-2xl bg-muted/80 flex items-center justify-center">
+              <Clapperboard className="w-10 h-10 text-muted-foreground/70" />
             </div>
             <div>
-              <p className="text-zinc-300 font-semibold text-lg">
+              <p className="text-foreground/80 font-semibold text-lg">
                 {documents.length === 0 ? "No documents yet" : "Tidak ada dokumen yang cocok"}
               </p>
-              <p className="text-zinc-500 text-sm mt-1">
+              <p className="text-muted-foreground text-sm mt-1">
                 {documents.length === 0 ? "Create your first filmmaking document to get started" : "Coba ubah filter atau kata kunci pencarian"}
               </p>
             </div>
@@ -398,7 +398,7 @@ export function DocumentList({ onOpenDoc }: DocumentListProps = {}) {
                       {cfg.label}
                     </span>
                     {doc.isDraft && (
-                      <span className="text-xs text-zinc-500 bg-zinc-800/80 px-2 py-0.5 rounded-full">
+                      <span className="text-xs text-muted-foreground bg-muted/80 px-2 py-0.5 rounded-full">
                         Draft
                       </span>
                     )}
@@ -410,10 +410,10 @@ export function DocumentList({ onOpenDoc }: DocumentListProps = {}) {
                       <Icon className={`w-5 h-5 ${cfg.color}`} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-zinc-100 leading-tight line-clamp-2 group-hover:text-white">
+                      <h3 className="font-semibold text-foreground leading-tight line-clamp-2 group-hover:text-foreground">
                         {doc.title || "Untitled Document"}
                       </h3>
-                      <p className={`text-xs mt-1.5 flex items-center gap-1 text-zinc-500`}>
+                      <p className={`text-xs mt-1.5 flex items-center gap-1 text-muted-foreground`}>
                         <Clock className="w-3 h-3" />
                         {doc.updatedAt ? new Date(doc.updatedAt).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" }) : "N/A"}
                       </p>
@@ -421,9 +421,9 @@ export function DocumentList({ onOpenDoc }: DocumentListProps = {}) {
                   </div>
 
                   {/* Actions */}
-                  <div className="flex gap-2 pt-1 border-t border-white/10">
+                  <div className="flex gap-2 pt-1 border-t border-foreground/10">
                     <button
-                      className="flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs text-zinc-400 hover:text-zinc-200 rounded-lg hover:bg-white/5 transition-colors"
+                      className="flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs text-muted-foreground hover:text-foreground rounded-lg hover:bg-foreground/5 transition-colors"
                       onClick={(e) => {
                         e.stopPropagation();
                         handleDuplicateDocument(doc.id);
@@ -445,7 +445,7 @@ export function DocumentList({ onOpenDoc }: DocumentListProps = {}) {
                   </div>
 
                   {/* Arrow hint */}
-                  <ChevronRight className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <ChevronRight className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/70 opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
               );
             })}
@@ -455,18 +455,18 @@ export function DocumentList({ onOpenDoc }: DocumentListProps = {}) {
 
       {/* Confirm Delete Dialog */}
       <Dialog open={!!docPendingDelete} onOpenChange={(v) => !v && setDocPendingDelete(null)}>
-        <DialogContent className="bg-zinc-900 border-zinc-700 text-zinc-100">
+        <DialogContent className="bg-card border-border text-foreground">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-zinc-100">
+            <DialogTitle className="flex items-center gap-2 text-foreground">
               <AlertCircle className="w-5 h-5 text-red-400" />
               Hapus Dokumen?
             </DialogTitle>
           </DialogHeader>
-          <p className="text-sm text-zinc-400">
-            Yakin mau hapus <span className="text-zinc-200 font-medium">"{docPendingDelete?.title}"</span>? Aksi ini tidak bisa dibatalkan.
+          <p className="text-sm text-muted-foreground">
+            Yakin mau hapus <span className="text-foreground font-medium">"{docPendingDelete?.title}"</span>? Aksi ini tidak bisa dibatalkan.
           </p>
           <div className="flex gap-2 justify-end pt-2">
-            <Button variant="outline" className="border-zinc-700 text-zinc-300 hover:bg-zinc-800" onClick={() => setDocPendingDelete(null)}>
+            <Button variant="outline" className="border-border text-foreground/80 hover:bg-muted" onClick={() => setDocPendingDelete(null)}>
               Batal
             </Button>
             <Button

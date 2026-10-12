@@ -146,15 +146,15 @@ export function FilmmakingSubmissionsAdmin() {
   );
 
   return (
-    <div className="flex flex-col gap-4 p-6 bg-zinc-950 text-zinc-100 min-h-full">
+    <div className="flex flex-col gap-4 p-6 bg-background text-foreground min-h-full">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-zinc-100">Filmmaking Submissions</h1>
-          <p className="text-sm text-zinc-500 mt-0.5">Review dokumen produksi yang dikirim crew untuk approval.</p>
+          <h1 className="text-2xl font-bold text-foreground">Filmmaking Submissions</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">Review dokumen produksi yang dikirim crew untuk approval.</p>
         </div>
       </div>
 
-      <div className="flex gap-1 border-b border-zinc-800 pb-3">
+      <div className="flex gap-1 border-b border-border pb-3">
         {(["all", "pending", "approved", "revision_requested"] as const).map(
           (status) => (
             <button
@@ -163,7 +163,7 @@ export function FilmmakingSubmissionsAdmin() {
               className={`px-4 py-1.5 rounded-lg text-sm font-medium capitalize transition-all whitespace-nowrap ${
                 filter === status
                   ? "bg-orange-500 text-white shadow-md shadow-orange-500/20"
-                  : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800"
+                  : "text-muted-foreground hover:text-zinc-200 hover:bg-muted"
               }`}
             >
               {status.replace("_", " ")}
@@ -173,49 +173,49 @@ export function FilmmakingSubmissionsAdmin() {
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center gap-2 p-10 text-zinc-500">
+        <div className="flex items-center justify-center gap-2 p-10 text-muted-foreground">
           <Loader2 className="w-4 h-4 animate-spin" /> Loading submissions...
         </div>
       ) : submissions.length === 0 ? (
         <div className="flex flex-col items-center gap-3 p-12 text-center">
-          <div className="w-16 h-16 rounded-2xl bg-zinc-900 border border-zinc-800 flex items-center justify-center">
-            <Inbox className="w-7 h-7 text-zinc-600" />
+          <div className="w-16 h-16 rounded-2xl bg-card border border-border flex items-center justify-center">
+            <Inbox className="w-7 h-7 text-muted-foreground/70" />
           </div>
-          <p className="text-zinc-400">No submissions found</p>
+          <p className="text-muted-foreground">No submissions found</p>
         </div>
       ) : (
-        <div className="border border-zinc-800 rounded-2xl overflow-x-auto bg-zinc-900/40">
+        <div className="border border-border rounded-2xl overflow-x-auto bg-card/40">
           <Table>
             <TableHeader>
-              <TableRow className="bg-zinc-900/80 hover:bg-zinc-900/80 border-zinc-800">
-                <TableHead className="w-8 text-zinc-500"></TableHead>
-                <TableHead className="w-40 text-zinc-400">Document</TableHead>
-                <TableHead className="w-32 text-zinc-400">Type</TableHead>
-                <TableHead className="w-32 text-zinc-400">Crew Member</TableHead>
-                <TableHead className="w-32 text-zinc-400">Submitted</TableHead>
-                <TableHead className="w-24 text-zinc-400">Status</TableHead>
-                <TableHead className="w-32 text-zinc-400">Actions</TableHead>
+              <TableRow className="bg-card/80 hover:bg-card/80 border-border">
+                <TableHead className="w-8 text-muted-foreground"></TableHead>
+                <TableHead className="w-40 text-muted-foreground">Document</TableHead>
+                <TableHead className="w-32 text-muted-foreground">Type</TableHead>
+                <TableHead className="w-32 text-muted-foreground">Crew Member</TableHead>
+                <TableHead className="w-32 text-muted-foreground">Submitted</TableHead>
+                <TableHead className="w-24 text-muted-foreground">Status</TableHead>
+                <TableHead className="w-32 text-muted-foreground">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {submissions.map((sub) => (
-                <TableRow key={sub.id} className="hover:bg-zinc-800/40 border-zinc-800">
+                <TableRow key={sub.id} className="hover:bg-muted/40 border-border">
                   <TableCell className="text-lg">
                     {DOC_TYPE_ICON[sub.documentType] || "📄"}
                   </TableCell>
-                  <TableCell className="font-medium text-zinc-200">
+                  <TableCell className="font-medium text-foreground">
                     {sub.documentTitle}
                   </TableCell>
-                  <TableCell className="capitalize text-sm text-zinc-400">
+                  <TableCell className="capitalize text-sm text-muted-foreground">
                     {sub.documentType}
                   </TableCell>
                   <TableCell>
                     <div className="text-sm">
-                      <p className="font-medium text-zinc-200">{sub.crewMemberName}</p>
-                      <p className="text-zinc-500 text-xs">{sub.crewMemberEmail}</p>
+                      <p className="font-medium text-foreground">{sub.crewMemberName}</p>
+                      <p className="text-muted-foreground text-xs">{sub.crewMemberEmail}</p>
                     </div>
                   </TableCell>
-                  <TableCell className="text-sm text-zinc-500">
+                  <TableCell className="text-sm text-muted-foreground">
                     {new Date(sub.submittedAt).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}
                   </TableCell>
                   <TableCell>{getStatusBadge(sub.status)}</TableCell>
@@ -226,53 +226,53 @@ export function FilmmakingSubmissionsAdmin() {
                           size="sm"
                           variant="ghost"
                           onClick={() => setSelectedSubmission(sub)}
-                          className="gap-1 text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100"
+                          className="gap-1 text-foreground/80 hover:bg-muted hover:text-foreground"
                         >
                           <Eye className="w-4 h-4" />
                           View
                         </Button>
                       </DialogTrigger>
-                      <DialogContent className="max-w-2xl bg-zinc-900 border-zinc-700 text-zinc-100">
+                      <DialogContent className="max-w-2xl bg-card border-border text-foreground">
                         <DialogHeader>
-                          <DialogTitle className="text-zinc-100">{sub.documentTitle}</DialogTitle>
+                          <DialogTitle className="text-foreground">{sub.documentTitle}</DialogTitle>
                         </DialogHeader>
                         <div className="space-y-4 py-4 max-h-96 overflow-auto">
                           <div className="grid grid-cols-2 gap-4 text-sm">
                             <div>
-                              <p className="text-zinc-500">Submitted by</p>
-                              <p className="font-medium text-zinc-200">{sub.crewMemberName}</p>
+                              <p className="text-muted-foreground">Submitted by</p>
+                              <p className="font-medium text-foreground">{sub.crewMemberName}</p>
                             </div>
                             <div>
-                              <p className="text-zinc-500">Date</p>
-                              <p className="font-medium text-zinc-200">
+                              <p className="text-muted-foreground">Date</p>
+                              <p className="font-medium text-foreground">
                                 {new Date(sub.submittedAt).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}
                               </p>
                             </div>
                             <div>
-                              <p className="text-zinc-500">Type</p>
-                              <p className="font-medium text-zinc-200 capitalize">
+                              <p className="text-muted-foreground">Type</p>
+                              <p className="font-medium text-foreground capitalize">
                                 {sub.documentType}
                               </p>
                             </div>
                             <div>
-                              <p className="text-zinc-500">Status</p>
-                              <p className="font-medium text-zinc-200">{getStatusBadge(sub.status)}</p>
+                              <p className="text-muted-foreground">Status</p>
+                              <p className="font-medium text-foreground">{getStatusBadge(sub.status)}</p>
                             </div>
                           </div>
 
                           {sub.adminNotes && (
-                            <div className="border-t border-zinc-800 pt-4">
-                              <p className="text-sm text-zinc-500 mb-2">
+                            <div className="border-t border-border pt-4">
+                              <p className="text-sm text-muted-foreground mb-2">
                                 Admin Notes
                               </p>
-                              <p className="text-sm bg-zinc-800 text-zinc-200 p-3 rounded-xl">
+                              <p className="text-sm bg-muted text-foreground p-3 rounded-xl">
                                 {sub.adminNotes}
                               </p>
                             </div>
                           )}
 
                           {sub.status === "pending" && (
-                            <div className="border-t border-zinc-800 pt-4 space-y-3">
+                            <div className="border-t border-border pt-4 space-y-3">
                               <Dialog>
                                 <DialogTrigger asChild>
                                   <Button className="w-full gap-2 bg-emerald-600 hover:bg-emerald-500 text-white">
@@ -280,15 +280,15 @@ export function FilmmakingSubmissionsAdmin() {
                                     Approve
                                   </Button>
                                 </DialogTrigger>
-                                <DialogContent className="bg-zinc-900 border-zinc-700 text-zinc-100">
+                                <DialogContent className="bg-card border-border text-foreground">
                                   <DialogHeader>
-                                    <DialogTitle className="text-zinc-100">Approve Submission?</DialogTitle>
+                                    <DialogTitle className="text-foreground">Approve Submission?</DialogTitle>
                                   </DialogHeader>
-                                  <p className="text-sm text-zinc-400">
+                                  <p className="text-sm text-muted-foreground">
                                     Are you sure you want to approve this submission?
                                   </p>
                                   <div className="flex gap-2 justify-end pt-4">
-                                    <Button variant="outline" className="border-zinc-700 text-zinc-300 hover:bg-zinc-800">Cancel</Button>
+                                    <Button variant="outline" className="border-border text-foreground/80 hover:bg-muted">Cancel</Button>
                                     <Button
                                       className="bg-emerald-600 hover:bg-emerald-500 text-white gap-2"
                                       onClick={() => handleApprove(sub.id)}
@@ -311,9 +311,9 @@ export function FilmmakingSubmissionsAdmin() {
                                     Request Revision
                                   </Button>
                                 </DialogTrigger>
-                                <DialogContent className="bg-zinc-900 border-zinc-700 text-zinc-100">
+                                <DialogContent className="bg-card border-border text-foreground">
                                   <DialogHeader>
-                                    <DialogTitle className="text-zinc-100">Request Revision</DialogTitle>
+                                    <DialogTitle className="text-foreground">Request Revision</DialogTitle>
                                   </DialogHeader>
                                   <Textarea
                                     placeholder="Add notes for the crew member..."
@@ -321,10 +321,10 @@ export function FilmmakingSubmissionsAdmin() {
                                     onChange={(e) =>
                                       setRevisionNotes(e.target.value)
                                     }
-                                    className="min-h-24 bg-zinc-800 border-zinc-700 text-zinc-100 placeholder:text-zinc-500"
+                                    className="min-h-24 bg-muted border-border text-foreground placeholder:text-muted-foreground"
                                   />
                                   <div className="flex gap-2 justify-end pt-4">
-                                    <Button variant="outline" className="border-zinc-700 text-zinc-300 hover:bg-zinc-800">Cancel</Button>
+                                    <Button variant="outline" className="border-border text-foreground/80 hover:bg-muted">Cancel</Button>
                                     <Button
                                       className="bg-orange-600 hover:bg-orange-500 text-white gap-2"
                                       onClick={() => handleRequestRevision(sub.id)}

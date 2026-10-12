@@ -104,7 +104,7 @@ export function CollaboratorsPanel({
           >
             <div>
               <p className="text-sm font-medium">{col.memberName}</p>
-              <p className="text-xs text-gray-500 capitalize">{col.role}</p>
+              <p className="text-xs text-muted-foreground capitalize">{col.role}</p>
             </div>
             {canModify && col.role !== "owner" && (
               <Button

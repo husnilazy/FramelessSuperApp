@@ -1,328 +1,236 @@
-// artifacts/frameless/src/components/layout.tsx
-import { useState, useEffect, type ReactNode } from "react";
+// Shell admin: sidebar (bisa diciutkan), top bar, menu mobile (drawer + tab bawah), pencarian cepat.
+import { useEffect, useState, type ReactNode } from "react";
 import { Link, useLocation } from "wouter";
-import { motion, AnimatePresence } from "framer-motion";
-import {
-  LayoutDashboard, Film, Users, UsersRound, Receipt, PieChart,
-  CreditCard, Settings, LogOut, Globe, BookOpen, Banknote,
-  Users2, Sun, Moon, Package, ExternalLink, Menu, X,
-  MessageSquare, ChevronRight, Paintbrush, Activity, FileText
-} from "lucide-react";
-import { useAuth } from "@/lib/auth";
+import { motion } from "framer-motion";
+import { ChevronLeft, ExternalLink, Menu, Moon, Search, Sun, LayoutGrid, Users2 } from "lucide-react";
+import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useTheme } from "@/lib/theme";
+import { cn } from "@/lib/utils";
 import { AIChat } from "./ai-chat";
+import { PrintHost } from "./print-host";
 import { InvoiceNotificationBell } from "./invoice-notifications";
+import { BrandMark } from "./shell/brand-mark";
+import { CommandMenu } from "./shell/command-menu";
+import { UserMenu } from "./shell/user-menu";
+import { ALL_NAV, MOBILE_TABS, NAV_GROUPS, crumbsFor, isNavActive, type NavItem } from "./shell/nav";
 
-// ── Nav items ─────────────────────────────────────────────────────────────────
-const NAV = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, group: "Operations" },
-  { href: "/command-center", label: "Command Center", icon: Activity, group: "Operations" },
-  { href: "/projects", label: "Projects", icon: Film, group: "Operations" },
-  { href: "/team", label: "Crew", icon: Users, group: "Operations" },
-  { href: "/clients", label: "Clients", icon: UsersRound, group: "Operations" },
-  { href: "/quotations", label: "Penawaran", icon: FileText, group: "Operations" },
-  { href: "/invoices", label: "Invoices", icon: Receipt, group: "Operations" },
-  { href: "/expenses", label: "Expenses", icon: CreditCard, group: "Operations" },
-  { href: "/finance", label: "Finance", icon: PieChart, group: "Operations" },
-  { href: "/accounting", label: "Akuntansi", icon: BookOpen, group: "Operations" },
-  { href: "/cms", label: "CMS Editor", icon: Globe, group: "Content" },
-  { href: "/courses-admin", label: "Courses", icon: BookOpen, group: "Content" },
-  { href: "/digital-assets-admin", label: "Digital Assets", icon: Package, group: "Content" },
-  { href: "/payment-settings", label: "Payments", icon: Banknote, group: "Content" },
-  { href: "/appearance", label: "Appearance", icon: Paintbrush, group: "System" },
-  { href: "/settings", label: "Settings", icon: Settings, group: "System" },
-];
+const COLLAPSE_KEY = "admin_sidebar_collapsed";
 
-// ── Theme-aware colors ────────────────────────────────────────────────────────
-function useColors(theme: string, appearance: any) {
-  const dark = theme === "dark";
-  const OR = appearance?.primaryColor || "#FF6A20";
-  return {
-    OR,
-    bg: dark ? "#0e1018" : "#f8f9fb",
-    sidebar: appearance?.glassmorphism ? (dark ? "rgba(14,16,24,0.92)" : "rgba(255,255,255,0.92)") : (dark ? "#0e1018" : "#ffffff"),
-    border: dark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.08)",
-    text: dark ? "#e8eaf0" : "#1a1d2e",
-    muted: dark ? "rgba(255,255,255,0.38)" : "rgba(0,0,0,0.4)",
-    hover: dark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.05)",
-    activeBg: dark ? `${OR}1e` : `${OR}16`,
-    mainBg: dark ? "rgba(255,255,255,0.01)" : "rgba(0,0,0,0.01)",
-    label: dark ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.25)",
-  };
-}
-
-// ── NavItem ───────────────────────────────────────────────────────────────────
-function NavItem({ item, active, onClick, c }: { item: typeof NAV[0]; active: boolean; onClick?: () => void; c: ReturnType<typeof useColors> }) {
-  const Icon = item.icon;
-  return (
-    <Link href={item.href} onClick={onClick}>
-      <div style={{
-        display: "flex", alignItems: "center", gap: 10,
-        padding: "9px 12px", borderRadius: 12,
-        background: active ? c.activeBg : "transparent",
-        border: `1px solid ${active ? c.OR + "33" : "transparent"}`,
-        color: active ? c.OR : c.muted,
-        cursor: "pointer", transition: "all .18s",
-        marginBottom: 2,
-      }}
-        onMouseEnter={e => { if (!active) { (e.currentTarget as HTMLElement).style.background = c.hover; (e.currentTarget as HTMLElement).style.color = c.text; } }}
-        onMouseLeave={e => { if (!active) { (e.currentTarget as HTMLElement).style.background = "transparent"; (e.currentTarget as HTMLElement).style.color = c.muted; } }}
-      >
-        <Icon size={15} style={{ flexShrink: 0, color: active ? c.OR : "inherit" }} />
-        <span style={{ fontSize: 13, fontWeight: active ? 700 : 500, letterSpacing: "-.01em" }}>{item.label}</span>
-        {active && <ChevronRight size={12} style={{ marginLeft: "auto", color: c.OR }} />}
-      </div>
+// ── Satu item menu ───────────────────────────────────────────────────────────
+function NavLink({ item, active, collapsed, onNavigate }: { item: NavItem; active: boolean; collapsed: boolean; onNavigate?: () => void }) {
+  const link = (
+    <Link
+      href={item.href}
+      onClick={onNavigate}
+      aria-current={active ? "page" : undefined}
+      className={cn(
+        "group relative flex items-center gap-3 rounded-xl text-[13.5px] font-medium transition-colors outline-none",
+        "focus-visible:ring-2 ring-ring",
+        collapsed ? "h-11 w-11 justify-center mx-auto" : "h-10 px-3",
+        active
+          ? "bg-primary/12 text-primary font-semibold"
+          : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground",
+      )}
+    >
+      {active && !collapsed && <span className="absolute left-0 top-2 bottom-2 w-[3px] rounded-r-full bg-primary" />}
+      <item.icon className={cn("h-[18px] w-[18px] shrink-0", active ? "text-primary" : "opacity-80 group-hover:opacity-100")} />
+      {!collapsed && <span className="truncate">{item.label}</span>}
     </Link>
+  );
+  if (!collapsed) return link;
+  return (
+    <Tooltip delayDuration={80}>
+      <TooltipTrigger asChild>{link}</TooltipTrigger>
+      <TooltipContent side="right">{item.label}</TooltipContent>
+    </Tooltip>
   );
 }
 
-// ── SidebarContent ────────────────────────────────────────────────────────────
-function SidebarContent({ pathname, onNav, c, user, logout }: {
-  pathname: string; onNav?: () => void;
-  c: ReturnType<typeof useColors>;
-  user: any; logout: () => void;
-}) {
-  const { theme, toggleTheme, appearance, updateAppearance } = useTheme();
-  const groups = Array.from(new Set(NAV.map(n => n.group)));
-  const isActive = (href: string) =>
-    pathname === href || (href !== "/dashboard" && pathname.startsWith(href));
-
-  // Load logo from CMS (same as crew) so admin dashboard uses uploaded logo from CMS editor
-  // Always fetch latest on mount to pick up size changes etc.
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (token) {
-      fetch("/api/cms", { headers: { Authorization: `Bearer ${token}` } })
-        .then(r => r.ok ? r.json() : {})
-        .then((data: any) => {
-          const b = data?.branding || data || {};
-          const updates: any = {};
-          if (b.logoUrl) updates.logoUrl = b.logoUrl;
-          if (b.logoSize) updates.logoSize = Number(b.logoSize) || 26;
-          if (Object.keys(updates).length) {
-            updateAppearance(updates);
-          }
-        })
-        .catch(() => {});
-    }
-  }, []);
-
+// ── Isi sidebar (dipakai desktop & drawer mobile) ────────────────────────────
+function SidebarBody({
+  pathname, collapsed, onToggle, onNavigate, showToggle,
+}: { pathname: string; collapsed: boolean; onToggle?: () => void; onNavigate?: () => void; showToggle?: boolean }) {
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%", fontFamily: "'Plus Jakarta Sans',sans-serif" }}>
-      {/* Logo */}
-      <div style={{ padding: "8px 16px 6px" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          {appearance?.logoUrl ? (
-            <img 
-              src={appearance.logoUrl} 
-              alt="Logo" 
-              style={{ 
-                height: appearance.logoSize || 28, 
-                width: 'auto',
-                maxWidth: 90,
-                objectFit: "contain", 
-                flexShrink: 0,
-                borderRadius: 3
-              }} 
-            />
-          ) : (
-            <div style={{ width: 26, height: 26, borderRadius: 5, background: c.OR, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-              <span style={{ color: "#fff", fontWeight: 900, fontSize: 12 }}>F</span>
-            </div>
-          )}
-          <span style={{ fontSize: 12, fontWeight: 700, color: c.text, letterSpacing: "-.02em" }}>Admin</span>
-        </div>
+    <div className="flex h-full flex-col">
+      <div className={cn("flex h-16 shrink-0 items-center border-b border-sidebar-border", collapsed ? "justify-center px-2" : "justify-between px-4")}>
+        <BrandMark compact={collapsed} />
+        {showToggle && !collapsed && (
+          <button
+            onClick={onToggle}
+            aria-label="Ciutkan sidebar"
+            className="h-8 w-8 grid place-items-center rounded-lg text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+        )}
       </div>
 
-      <div style={{ height: 1, background: c.border, margin: "0 12px 8px" }} />
-
-      {/* Nav groups */}
-      <nav style={{ flex: 1, overflowY: "auto", padding: "4px 12px", scrollbarWidth: "none" }}>
-        {groups.map(group => (
-          <div key={group} style={{ marginBottom: 20 }}>
-            <p style={{ fontSize: 9, fontWeight: 700, letterSpacing: ".18em", textTransform: "uppercase", color: c.label, padding: "0 4px", marginBottom: 6 }}>{group}</p>
-            {NAV.filter(n => n.group === group).map(item => (
-              <NavItem key={item.href} item={item} active={isActive(item.href)} onClick={onNav} c={c} />
-            ))}
+      <nav className="flex-1 overflow-y-auto overscroll-contain px-3 py-4 space-y-5 [scrollbar-width:thin]">
+        {NAV_GROUPS.map((g) => (
+          <div key={g.id}>
+            {collapsed ? (
+              <div className="mx-3 mb-2 h-px bg-sidebar-border" />
+            ) : (
+              <p className="px-3 mb-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground/70">{g.label}</p>
+            )}
+            <div className="space-y-0.5">
+              {g.items.map((item) => (
+                <NavLink key={item.href} item={item} active={isNavActive(pathname, item.href)} collapsed={collapsed} onNavigate={onNavigate} />
+              ))}
+            </div>
           </div>
         ))}
-
-        {/* External links */}
-        <div style={{ marginBottom: 20 }}>
-          <p style={{ fontSize: 9, fontWeight: 700, letterSpacing: ".18em", textTransform: "uppercase", color: c.label, padding: "0 4px", marginBottom: 6 }}>Public</p>
-          {[
-            { href: "/", label: "Landing Page", icon: ExternalLink, external: true },
-            { href: "/crew/login", label: "Crew Portal", icon: Users2, external: true },
-          ].map(link => (
-            <a key={link.href} href={link.href} target="_blank" rel="noopener noreferrer"
-              style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", borderRadius: 12, color: c.muted, textDecoration: "none", transition: "all .18s", marginBottom: 2 }}
-              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = c.hover; (e.currentTarget as HTMLElement).style.color = c.text; }}
-              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "transparent"; (e.currentTarget as HTMLElement).style.color = c.muted; }}>
-              <link.icon size={15} style={{ flexShrink: 0 }} />
-              <span style={{ fontSize: 13, fontWeight: 500 }}>{link.label}</span>
-              <ExternalLink size={10} style={{ marginLeft: "auto", opacity: .4 }} />
-            </a>
-          ))}
-        </div>
       </nav>
 
-      <div style={{ height: 1, background: c.border, margin: "0 12px" }} />
-
-      {/* User + actions */}
-      <div style={{ padding: "12px 12px 16px" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 6px", marginBottom: 8 }}>
-          <div style={{ width: 34, height: 34, borderRadius: "50%", background: c.OR + "22", border: `1.5px solid ${c.OR}44`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-            <span style={{ color: c.OR, fontWeight: 800, fontSize: 13 }}>{user?.name?.charAt(0) || "A"}</span>
-          </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <p style={{ fontSize: 13, fontWeight: 700, color: c.text, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user?.name || "Admin"}</p>
-            <p style={{ fontSize: 10, color: c.muted, margin: 0, textTransform: "uppercase", letterSpacing: ".08em" }}>{user?.role || "Administrator"}</p>
-          </div>
-          {/* Notifications */}
-          <InvoiceNotificationBell />
-          {/* Theme toggle */}
-          <button onClick={toggleTheme}
-            style={{ width: 30, height: 30, borderRadius: 8, background: c.hover, border: `1px solid ${c.border}`, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: c.muted, flexShrink: 0 }}>
-            {theme === "dark" ? <Sun size={13} /> : <Moon size={13} />}
-          </button>
-        </div>
-
-        <button onClick={logout}
-          style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "9px 12px", borderRadius: 12, background: "transparent", border: "1px solid transparent", color: c.muted, cursor: "pointer", fontSize: 13, fontWeight: 500, fontFamily: "'Plus Jakarta Sans',sans-serif", transition: "all .18s" }}
-          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "rgba(239,68,68,.08)"; (e.currentTarget as HTMLElement).style.color = "#ef4444"; (e.currentTarget as HTMLElement).style.borderColor = "rgba(239,68,68,.2)"; }}
-          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "transparent"; (e.currentTarget as HTMLElement).style.color = c.muted; (e.currentTarget as HTMLElement).style.borderColor = "transparent"; }}>
-          <LogOut size={14} />
-          Sign Out
-        </button>
+      <div className={cn("shrink-0 border-t border-sidebar-border p-3 space-y-0.5", collapsed && "flex flex-col items-center")}>
+        {collapsed ? (
+          <>
+            <button onClick={onToggle} aria-label="Lebarkan sidebar" className="h-10 w-10 grid place-items-center rounded-xl text-muted-foreground hover:bg-foreground/5 hover:text-foreground">
+              <ChevronLeft className="h-4 w-4 rotate-180" />
+            </button>
+          </>
+        ) : (
+          <>
+            <a href="/" target="_blank" rel="noopener noreferrer" className="flex h-9 items-center gap-3 rounded-xl px-3 text-[13px] text-muted-foreground hover:bg-foreground/5 hover:text-foreground">
+              <ExternalLink className="h-4 w-4" /> Lihat website
+            </a>
+            <a href="/crew/login" target="_blank" rel="noopener noreferrer" className="flex h-9 items-center gap-3 rounded-xl px-3 text-[13px] text-muted-foreground hover:bg-foreground/5 hover:text-foreground">
+              <Users2 className="h-4 w-4" /> Crew portal
+            </a>
+          </>
+        )}
       </div>
     </div>
   );
 }
 
-// ── AppLayout ─────────────────────────────────────────────────────────────────
+// ── Layout utama ─────────────────────────────────────────────────────────────
 export function AppLayout({ children }: { children: ReactNode }) {
   const [location] = useLocation();
-  const { user, logout } = useAuth();
-  const { theme, appearance } = useTheme();
-  const c = useColors(theme, appearance);
-  const [mobileOpen, setMobileOpen] = useState(false);
+  const { theme, toggleTheme } = useTheme();
+  const [collapsed, setCollapsed] = useState(() => {
+    try { return localStorage.getItem(COLLAPSE_KEY) === "1"; } catch { return false; }
+  });
+  const [drawer, setDrawer] = useState(false);
+  const [cmd, setCmd] = useState(false);
+
+  useEffect(() => { try { localStorage.setItem(COLLAPSE_KEY, collapsed ? "1" : "0"); } catch {} }, [collapsed]);
+  useEffect(() => { setDrawer(false); window.scrollTo({ top: 0 }); }, [location]);
+
+  const crumb = crumbsFor(location);
+  const tabs = MOBILE_TABS.map((h) => ALL_NAV.find((n) => n.href === h)!).filter(Boolean);
 
   return (
-    <div style={{ display: "flex", minHeight: "100dvh", width: "100%", background: c.bg, color: c.text, fontFamily: "'Plus Jakarta Sans',sans-serif", position: "relative" }}>
+    <div className="min-h-dvh bg-background text-foreground">
+      {/* Latar halus: cahaya primer di sudut atas */}
+      <div aria-hidden className="pointer-events-none fixed inset-x-0 top-0 h-72 -z-0 opacity-70"
+        style={{ background: "radial-gradient(60% 100% at 85% 0%, hsl(var(--primary) / .10), transparent 70%)" }} />
 
-      {/* ── Mesh BG (subtle) ── */}
-      {appearance?.meshGradients && (
-        <div style={{ position: "fixed", inset: 0, pointerEvents: "none", zIndex: 0 }}>
-          <div style={{ position: "absolute", width: "60%", height: "60%", top: "-10%", left: "-10%", background: `radial-gradient(ellipse at center,${c.OR}18 0%,transparent 65%)`, filter: "blur(80px)", animation: "b1 20s ease-in-out infinite" }} />
-          <div style={{ position: "absolute", width: "50%", height: "50%", bottom: "-10%", right: "-10%", background: "radial-gradient(ellipse at center,#7c3aed14 0%,transparent 70%)", filter: "blur(90px)", animation: "b2 25s ease-in-out infinite" }} />
-        </div>
-      )}
-
-      {/* ── Desktop Sidebar ── */}
-      <aside style={{
-        width: 232, flexShrink: 0, display: "flex", flexDirection: "column",
-        background: c.sidebar, borderRight: `1px solid ${c.border}`,
-        backdropFilter: appearance?.glassmorphism ? "blur(24px)" : "none", position: "sticky", top: 0, height: "100dvh",
-        zIndex: 30, overflow: "hidden",
-      }}
-        className="hidden-mobile"
+      {/* Sidebar desktop */}
+      <aside
+        className={cn(
+          "hidden lg:block fixed inset-y-0 left-0 z-30 border-r border-sidebar-border bg-sidebar transition-[width] duration-200 ease-out",
+          collapsed ? "w-[76px]" : "w-[268px]",
+        )}
       >
-        <SidebarContent pathname={location} c={c} user={user} logout={logout} />
+        <SidebarBody pathname={location} collapsed={collapsed} onToggle={() => setCollapsed((c) => !c)} showToggle />
       </aside>
 
-      {/* ── Mobile Overlay ── */}
-      <AnimatePresence>
-        {mobileOpen && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              onClick={() => setMobileOpen(false)}
-              style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.7)", zIndex: 40 }}
-            />
-            <motion.div
-              initial={{ x: -240 }} animate={{ x: 0 }} exit={{ x: -240 }}
-              transition={{ type: "spring", stiffness: 400, damping: 36 }}
-              style={{
-                position: "fixed", top: 0, left: 0, bottom: 0, width: 240,
-                background: c.sidebar, backdropFilter: appearance?.glassmorphism ? "blur(24px)" : "none",
-                borderRight: `1px solid ${c.border}`, zIndex: 50, overflow: "hidden",
-              }}
+      {/* Drawer mobile */}
+      <Sheet open={drawer} onOpenChange={setDrawer}>
+        <SheetContent side="left" className="w-[290px] p-0 bg-sidebar border-sidebar-border [&>button]:hidden">
+          <SheetTitle className="sr-only">Menu</SheetTitle>
+          <SidebarBody pathname={location} collapsed={false} onNavigate={() => setDrawer(false)} />
+        </SheetContent>
+      </Sheet>
+
+      <div className={cn("relative z-10 transition-[padding] duration-200 ease-out", collapsed ? "lg:pl-[76px]" : "lg:pl-[268px]")}>
+        {/* Top bar */}
+        <header className="sticky top-0 z-20 h-16 border-b border-border bg-background/80 backdrop-blur-xl">
+          <div className="flex h-full items-center gap-2 sm:gap-3 px-3 sm:px-6 lg:px-8">
+            <button
+              onClick={() => setDrawer(true)}
+              aria-label="Buka menu"
+              className="lg:hidden h-10 w-10 grid place-items-center rounded-xl border border-border bg-card text-foreground"
             >
-              <SidebarContent pathname={location} onNav={() => setMobileOpen(false)} c={c} user={user} logout={logout} />
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-
-      {/* ── Main ── */}
-      <main style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, height: "100dvh", overflow: "hidden", position: "relative", zIndex: 10 }}>
-
-        {/* Mobile Header */}
-        <header style={{
-          display: "none", alignItems: "center", justifyContent: "space-between",
-          padding: "0 18px", height: 58, flexShrink: 0,
-          background: c.sidebar, backdropFilter: appearance?.glassmorphism ? "blur(24px)" : "none",
-          borderBottom: `1px solid ${c.border}`, zIndex: 20,
-        }}
-          className="show-mobile"
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            {appearance?.logoUrl ? (
-              <img 
-                src={appearance.logoUrl} 
-                alt="Logo" 
-                style={{ 
-                  height: appearance.logoSize || 24, 
-                  width: 'auto',
-                  maxWidth: 70,
-                  objectFit: "contain", 
-                  flexShrink: 0,
-                  borderRadius: 3
-                }} 
-              />
-            ) : (
-              <div style={{ width: 26, height: 26, borderRadius: 6, background: c.OR, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <span style={{ color: "#fff", fontWeight: 900, fontSize: 12 }}>F</span>
-              </div>
-            )}
-            <span style={{ fontWeight: 700, fontSize: 12, color: c.text }}>Admin</span>
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <InvoiceNotificationBell />
-            <button onClick={() => setMobileOpen(true)}
-              style={{ width: 36, height: 36, borderRadius: 10, background: c.hover, border: `1px solid ${c.border}`, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: c.text }}>
-              <Menu size={18} />
+              <Menu className="h-[18px] w-[18px]" />
             </button>
+
+            <div className="lg:hidden min-w-0 flex-1 sm:flex-none"><BrandMark compact className="allow-logo" maxWidth={112} /></div>
+
+            <div className="hidden lg:flex min-w-0 flex-1 items-center gap-2 text-sm">
+              {crumb.parent && (
+                <>
+                  <Link href={crumb.parent.href} className="text-muted-foreground hover:text-foreground">{crumb.parent.label}</Link>
+                  <span className="text-muted-foreground/50">/</span>
+                </>
+              )}
+              <span className="font-semibold text-foreground truncate">{crumb.title}</span>
+            </div>
+
+            <div className="flex-1 lg:hidden" />
+
+            <button
+              onClick={() => setCmd(true)}
+              className="hidden md:flex h-10 w-64 items-center gap-2 rounded-xl border border-border bg-card px-3 text-sm text-muted-foreground hover:border-foreground/20 transition-colors"
+            >
+              <Search className="h-4 w-4" />
+              <span className="flex-1 text-left">Cari…</span>
+              <kbd className="rounded-md border border-border bg-muted px-1.5 py-0.5 text-[10px] font-semibold">Ctrl K</kbd>
+            </button>
+            <button onClick={() => setCmd(true)} aria-label="Cari" className="md:hidden h-10 w-10 grid place-items-center rounded-xl border border-border bg-card">
+              <Search className="h-[18px] w-[18px]" />
+            </button>
+
+            <button
+              onClick={toggleTheme}
+              aria-label="Ganti tema"
+              className="h-10 w-10 grid place-items-center rounded-xl border border-border bg-card text-muted-foreground hover:text-foreground transition-colors"
+            >
+              {theme === "dark" ? <Sun className="h-[18px] w-[18px]" /> : <Moon className="h-[18px] w-[18px]" />}
+            </button>
+            <InvoiceNotificationBell />
+            <UserMenu />
           </div>
         </header>
 
-        {/* Page content */}
-        <div style={{ flex: 1, overflowY: "auto", padding: "28px 28px" }} className="page-pad">
+        {/* Konten */}
+        <main className="px-4 sm:px-6 lg:px-8 py-6 pb-28 lg:pb-12">
           <motion.div
             key={location}
-            initial={{ opacity: 0, y: 8 }}
+            initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: .22, ease: "easeOut" }}
-            style={{ maxWidth: 1400, margin: "0 auto" }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+            className="mx-auto w-full max-w-[1480px]"
           >
             {children}
           </motion.div>
+        </main>
+      </div>
+
+      {/* Tab bawah (mobile) */}
+      <nav className="lg:hidden fixed inset-x-0 bottom-0 z-30 border-t border-border bg-background/90 backdrop-blur-xl pb-[env(safe-area-inset-bottom)]">
+        <div className="mx-auto grid max-w-md grid-cols-5">
+          {tabs.map((t) => {
+            const active = isNavActive(location, t.href);
+            return (
+              <Link key={t.href} href={t.href} className={cn("flex flex-col items-center gap-1 py-2.5 text-[10.5px] font-semibold", active ? "text-primary" : "text-muted-foreground")}>
+                <t.icon className="h-5 w-5" />
+                {t.label}
+              </Link>
+            );
+          })}
+          <button onClick={() => setDrawer(true)} className="flex flex-col items-center gap-1 py-2.5 text-[10.5px] font-semibold text-muted-foreground">
+            <LayoutGrid className="h-5 w-5" />
+            Menu
+          </button>
         </div>
-      </main>
+      </nav>
 
-      <AIChat dark={theme === "dark"} />
-
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap');
-        @keyframes b1{0%,100%{transform:translate(0,0);}50%{transform:translate(60px,-40px);}}
-        @keyframes b2{0%,100%{transform:translate(0,0);}50%{transform:translate(-50px,60px);}}
-        nav::-webkit-scrollbar{display:none;}
-        @media(max-width:768px){
-          .hidden-mobile{display:none!important;}
-          .show-mobile{display:flex!important;}
-          .page-pad{padding:18px 16px!important;}
-        }
-      `}</style>
+      <CommandMenu open={cmd} onOpenChange={setCmd} />
+      <PrintHost />
+      <AIChat dark={theme === "dark"} fabClassName="max-lg:bottom-24!" />
     </div>
   );
 }

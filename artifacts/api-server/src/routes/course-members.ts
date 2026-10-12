@@ -12,6 +12,10 @@ import {
 
 const router: IRouter = Router();
 
+// ID dipakai di beberapa query SQL mentah di bawah → pastikan benar-benar UUID.
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const isUuid = (v: unknown): v is string => typeof v === "string" && UUID_RE.test(v);
+
 // ─── GET /portal/:id ──────────────────────────────────────────────────────────
 router.get("/portal/:id", async (req, res): Promise<void> => {
   try {
@@ -119,8 +123,8 @@ router.post("/course-members/mark-completed", async (req, res): Promise<void> =>
       materialId?: string;
     };
 
-    if (!enrollmentId || !materialId) {
-      res.status(400).json({ error: "enrollmentId dan materialId wajib diisi" });
+    if (!isUuid(enrollmentId) || !isUuid(materialId)) {
+      res.status(400).json({ error: "enrollmentId dan materialId tidak valid" });
       return;
     }
 
@@ -220,6 +224,10 @@ router.post("/course-members/mark-completed", async (req, res): Promise<void> =>
 router.get("/course-members/progress/:enrollmentId", async (req, res): Promise<void> => {
   try {
     const { enrollmentId } = req.params;
+    if (!isUuid(enrollmentId)) {
+      res.status(400).json({ error: "enrollmentId tidak valid" });
+      return;
+    }
 
     const [enrollment] = await db
       .select()
@@ -275,8 +283,8 @@ router.put("/course-members/update-profile", async (req, res): Promise<void> => 
       phone?: string;
     };
 
-    if (!enrollmentId) {
-      res.status(400).json({ error: "enrollmentId wajib diisi" });
+    if (!isUuid(enrollmentId)) {
+      res.status(400).json({ error: "enrollmentId tidak valid" });
       return;
     }
 

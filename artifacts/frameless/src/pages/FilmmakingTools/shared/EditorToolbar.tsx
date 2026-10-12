@@ -64,17 +64,17 @@ export function EditorToolbar({
   onSave,
 }: EditorToolbarProps) {
   return (
-    <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800 bg-zinc-900/80 backdrop-blur-md sticky top-0 z-10 gap-3">
+    <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-card/80 backdrop-blur-md sticky top-0 z-10 gap-3">
       <div className="flex items-center gap-3 flex-1 min-w-0">
-        <Button variant="ghost" size="icon" className="rounded-full hover:bg-zinc-800 flex-shrink-0" onClick={onBack}>
+        <Button variant="ghost" size="icon" className="rounded-full hover:bg-muted flex-shrink-0" onClick={onBack}>
           <ArrowLeft className="w-5 h-5" />
         </Button>
-        <div className="flex items-center gap-2 bg-zinc-800/80 border border-zinc-700 rounded-xl px-3 py-1.5 flex-1 max-w-md">
+        <div className="flex items-center gap-2 bg-muted/80 border border-border rounded-xl px-3 py-1.5 flex-1 max-w-md">
           <span className={`flex-shrink-0 ${accentColorClass}`}>{icon}</span>
           <Input
             value={title}
             onChange={(e) => onTitleChange(e.target.value)}
-            className="border-none shadow-none focus-visible:ring-0 bg-transparent text-sm font-semibold px-0 h-auto py-0 text-zinc-100"
+            className="border-none shadow-none focus-visible:ring-0 bg-transparent text-sm font-semibold px-0 h-auto py-0 text-foreground"
             placeholder={titlePlaceholder}
           />
         </div>
@@ -90,7 +90,7 @@ export function EditorToolbar({
         )}
 
         {lastSaved && !saving && (
-          <span className="text-xs text-zinc-500 flex items-center gap-1">
+          <span className="text-xs text-muted-foreground flex items-center gap-1">
             <CheckCircle2 className="w-3 h-3 text-emerald-500" />
             Saved
           </span>
@@ -98,7 +98,7 @@ export function EditorToolbar({
 
         {primaryAction}
 
-        <div className="h-5 w-px bg-zinc-700" />
+        <div className="h-5 w-px bg-secondary" />
 
         <CollaboratorDialog
           documentId={documentId}
@@ -108,11 +108,11 @@ export function EditorToolbar({
           accentColorClass={accentColorClass}
         />
 
-        <Button variant="ghost" size="icon" className="rounded-xl hover:bg-zinc-800" onClick={onExportPdf} disabled={exporting} title="Export PDF">
+        <Button variant="ghost" size="icon" className="rounded-xl hover:bg-muted" onClick={onExportPdf} disabled={exporting} title="Export PDF">
           {exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
         </Button>
 
-        <Button variant="outline" className="gap-2 rounded-xl border-zinc-700 text-zinc-300 hover:bg-zinc-800" onClick={onSubmit} disabled={submitting}>
+        <Button variant="outline" className="gap-2 rounded-xl border-border text-foreground/80 hover:bg-muted" onClick={onSubmit} disabled={submitting}>
           {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
           Submit
         </Button>

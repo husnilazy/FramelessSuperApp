@@ -1,4 +1,5 @@
 import { Router, type IRouter, type Request, type Response } from "express";
+import { nextInvoiceNumber } from "../lib/invoice-number.js";
 import {
   db,
   quotationsTable,
@@ -120,8 +121,10 @@ router.post("/quotations", async (req, res): Promise<void> => {
     if (!client) { res.status(400).json({ error: "Client ID is required" }); return; }
     if (!toStr(title)) { res.status(400).json({ error: "Judul penawaran wajib diisi" }); return; }
 
-    const count = await db.select().from(quotationsTable);
-    const number = `PEN-${String(count.length + 1).padStart(4, "0")}`;
+    // Nomor berikutnya = angka terbesar + 1 (aman setelah ada penawaran yang dihapus)
+    const existingNumbers = await db.select({ number: quotationsTable.number }).from(quotationsTable);
+    const maxNo = existingNumbers.reduce((m, r) => Math.max(m, parseInt(/^PEN-(\d+)$/i.exec(r.number)?.[1] ?? "0", 10)), 0);
+    const number = `PEN-${String(maxNo + 1).padStart(4, "0")}`;
     const quotationId = crypto.randomUUID();
 
     const [quotation] = await db.insert(quotationsTable).values({
@@ -465,11 +468,16 @@ router.post("/quotations/:id/convert", async (req: Request<{ id: string }>, res:
       notes: `Auto-generated dari Penawaran ${quotation.number}`,
     } as any).returning();
 
+    // Invoice PENUH (bukan invoice DP terpisah): DP dicatat sebagai pembayaran saat uangnya diterima,
+    // sehingga satu invoice menampung seluruh riwayat DP → termin → pelunasan.
     const dpPercent = Number(quotation.dpPercentage) || 50;
     const dpAmount = Math.round((Number(quotation.total) * dpPercent) / 100);
     const invoiceId = crypto.randomUUID();
-    const invoiceCount = await db.select().from(invoicesTable);
-    const invoiceNumber = `INV-${String(invoiceCount.length + 1).padStart(4, "0")}`;
+    const invoiceNumber = await nextInvoiceNumber();
+    const qItems = await db.select().from(quotationItemsTable).where(eq(quotationItemsTable.quotationId, id));
+    const qSubtotal = Number(quotation.subtotal);
+    const qTax = Number(quotation.tax);
+    const taxRate = qSubtotal > 0 ? Math.round((qTax / qSubtotal) * 10000) / 100 : 0;
 
     const [invoice] = await db.insert(invoicesTable).values({
       id: invoiceId,
@@ -477,26 +485,40 @@ router.post("/quotations/:id/convert", async (req: Request<{ id: string }>, res:
       clientId: quotation.clientId,
       projectId: project.id,
       status: "DRAFT",
-      type: "DP",
-      subtotal: String(dpAmount),
-      tax: "0",
-      discount: "0",
-      total: String(dpAmount),
+      type: "FULL",
+      subtotal: String(qSubtotal),
+      tax: String(qTax),
+      discount: String(Number(quotation.discount)),
+      total: String(Number(quotation.total)),
       paidAmount: "0",
+      taxRate: String(taxRate),
+      invoiceDate: new Date(),
+      paymentTerms: `DP ${dpPercent}% di muka`,
       dueDate: null,
       billTo: quotation.billTo,
-      notes: `DP ${dpPercent}% dari Penawaran ${quotation.number} — ${quotation.title}`,
+      terms: quotation.terms,
+      notes: `Berdasarkan Penawaran ${quotation.number} — ${quotation.title}. DP ${dpPercent}% (Rp ${dpAmount.toLocaleString("id-ID")}) dibayar di muka; sisanya saat pekerjaan selesai.`,
     }).returning();
 
-    await db.insert(invoiceItemsTable).values({
-      id: crypto.randomUUID(),
-      invoiceId,
-      description: `DP ${dpPercent}% — ${quotation.title} (Ref: ${quotation.number})`,
-      quantity: "1",
-      unitPrice: String(dpAmount),
-      total: String(dpAmount),
-      sortOrder: "0",
-    });
+    const sorted = [...qItems].sort((a, b) => Number(a.sortOrder) - Number(b.sortOrder));
+    for (let i = 0; i < sorted.length; i++) {
+      const it = sorted[i];
+      await db.insert(invoiceItemsTable).values({
+        id: crypto.randomUUID(),
+        invoiceId,
+        description: [it.label, it.description].filter(Boolean).join(" — ") || it.description,
+        quantity: String(Number(it.quantity)),
+        unitPrice: String(Number(it.unitPrice)),
+        total: String(Number(it.total)),
+        sortOrder: String(i),
+      });
+    }
+    if (sorted.length === 0) {
+      await db.insert(invoiceItemsTable).values({
+        id: crypto.randomUUID(), invoiceId, description: quotation.title,
+        quantity: "1", unitPrice: String(Number(quotation.total)), total: String(Number(quotation.total)), sortOrder: "0",
+      });
+    }
 
     await db.update(quotationsTable).set({
       status: "CONVERTED",
@@ -505,12 +527,12 @@ router.post("/quotations/:id/convert", async (req: Request<{ id: string }>, res:
       updatedAt: new Date(),
     }).where(eq(quotationsTable.id, id));
 
-    await logActivity("quotation.converted", `Penawaran ${quotation.number} dikonversi jadi Project & Invoice DP`);
+    await logActivity("quotation.converted", `Penawaran ${quotation.number} dikonversi jadi Project & Invoice`);
 
     res.json({
       success: true,
       project: { id: project.id, title: project.title },
-      invoice: { id: invoice.id, number: invoice.number, total: dpAmount },
+      invoice: { id: invoice.id, number: invoice.number, total: Number(quotation.total), dpAmount, dpPercent },
     });
   } catch (err) {
     logger.error({ err }, "quotations.convert.error");

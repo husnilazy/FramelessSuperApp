@@ -1,6 +1,6 @@
-import { useState, useRef, useCallback, useEffect, forwardRef } from "react";
+import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { useRoute, useLocation } from "wouter";
-import { useGetInvoice, useCreateInvoice, useListClients, useListProjects } from "@workspace/api-client-react";
+import { useGetInvoice, useListClients, useListProjects } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { formatCurrency } from "@/lib/formatters";
 import { Button } from "@/components/ui/button";
@@ -8,74 +8,127 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Plus, Trash2, Download, Save, FileText, Upload, ImageIcon, RotateCcw } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Save, FileText, Printer, Receipt, Loader2, Wallet, Info } from "lucide-react";
+import { InvoiceDocDialog } from "@/components/invoice-doc-dialog";
+import { InvoicePaymentDialog } from "@/components/invoice-payment-dialog";
+import { CompanyProfileDialog } from "@/components/company-profile-dialog";
+import {
+  deletePayment,
+  fetchDraftPreviewHtml,
+  fetchNextInvoiceNumber,
+  type InvoiceDocKind,
+  type InvoicePayment,
+} from "@/lib/invoice-docs";
 
-// ─── Types ───────────────────────────────────────────────────────────────────
+// ─── Types & helpers ─────────────────────────────────────────────────────────
 
 interface LineItem {
   id: string;
   description: string;
   quantity: number;
   unitPrice: number;
-  total: number;
 }
 
-interface InvoiceData {
-  fromName: string;
-  fromAddress: string;
-  billTo: string;
-  shipTo: string;
+interface InvoiceForm {
   invoiceNumber: string;
   invoiceDate: string;
   dueDate: string;
   paymentTerms: string;
   poNumber: string;
+  clientId: string;
+  projectId: string;
+  billTo: string;
+  shipTo: string;
   items: LineItem[];
   notes: string;
   terms: string;
   taxRate: number;
   discount: number;
   shipping: number;
-  paidAmount: number;
   status: string;
-  clientId: string;
-  projectId: string;
 }
 
-const DEFAULT_LOGO = "/logo-frameless.png";
-const BCA_IMAGE = "/bca-payment.png";
+const DEFAULT_TERMS =
+  "1. Pembayaran dilakukan dalam 14 hari kalender sejak tanggal invoice.\n2. Keterlambatan pembayaran dikenakan denda 2% per bulan.\n3. Pembayaran DP minimal 50% wajib dilunasi sebelum produksi dimulai.\n4. File/aset final hanya diserahkan setelah pelunasan penuh.\n5. Revisi di luar scope pekerjaan yang telah disepakati dapat dikenakan biaya tambahan.\n6. Invoice ini sah sebagai dokumen tagihan resmi tanpa tanda tangan basah.";
 
-const newItem = (): LineItem => ({
-  id: Math.random().toString(36).slice(2),
-  description: "",
-  quantity: 1,
-  unitPrice: 0,
-  total: 0,
+const uid = () => Math.random().toString(36).slice(2);
+const newItem = (): LineItem => ({ id: uid(), description: "", quantity: 1, unitPrice: 0 });
+const isoDay = (d: Date) => d.toISOString().split("T")[0];
+const today = () => isoDay(new Date());
+const daysOut = (n: number) => { const d = new Date(); d.setDate(d.getDate() + n); return isoDay(d); };
+const toDay = (v: any) => (v ? isoDay(new Date(v)) : "");
+
+const emptyForm = (): InvoiceForm => ({
+  invoiceNumber: "",
+  invoiceDate: today(),
+  dueDate: daysOut(14),
+  paymentTerms: "Net 14",
+  poNumber: "",
+  clientId: "",
+  projectId: "",
+  billTo: "",
+  shipTo: "",
+  items: [newItem()],
+  notes: "",
+  terms: DEFAULT_TERMS,
+  taxRate: 11,
+  discount: 0,
+  shipping: 0,
+  status: "DRAFT",
 });
 
-function today() {
-  return new Date().toISOString().split("T")[0];
+const norm = (s?: string | null) => (s || "").trim().toLowerCase();
+
+function clientBlock(c: any): string {
+  return [
+    c.name,
+    c.company,
+    c.address,
+    c.email ? `Email: ${c.email}` : null,
+    c.phone ? `WA/Telp: ${c.phone}` : null,
+  ].filter(Boolean).join("\n");
 }
 
-function daysOut(n: number) {
-  const d = new Date();
-  d.setDate(d.getDate() + n);
-  return d.toISOString().split("T")[0];
+const projectBelongsTo = (p: any, c: any) =>
+  !!c && [norm(c.name), norm(c.company)].filter(Boolean).includes(norm(p.client));
+
+function authHeaders(): Record<string, string> {
+  let t: string | null = null;
+  try { t = localStorage.getItem("token"); } catch {}
+  return { "Content-Type": "application/json", ...(t ? { Authorization: `Bearer ${t}` } : {}) };
 }
 
-// ─── Main Component ───────────────────────────────────────────────────────────
+const lineTotal = (i: LineItem) => Math.round(Number(i.quantity) * Number(i.unitPrice) * 100) / 100;
 
-const DRAFT_KEY = "invoice_draft_new";
-const DRAFT_LOGO_KEY = "invoice_draft_logo";
-
-function loadDraft(): Partial<InvoiceData> | null {
-  try {
-    const raw = localStorage.getItem(DRAFT_KEY);
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
+// Bentuk payload yang dikirim ke server (dipakai juga untuk mendeteksi "belum disimpan")
+function toPayload(inv: InvoiceForm) {
+  return {
+    clientId: inv.clientId,
+    projectId: inv.projectId || null,
+    status: inv.status,
+    number: inv.invoiceNumber,
+    invoiceDate: inv.invoiceDate,
+    dueDate: inv.dueDate,
+    paymentTerms: inv.paymentTerms,
+    poNumber: inv.poNumber,
+    taxRate: inv.taxRate,
+    discount: inv.discount,
+    shipping: inv.shipping,
+    billTo: inv.billTo,
+    shipTo: inv.shipTo,
+    notes: inv.notes,
+    terms: inv.terms,
+    items: inv.items.map((i) => ({ description: i.description, quantity: i.quantity, unitPrice: i.unitPrice })),
+  };
 }
+
+const STAGE_CHIP: Record<string, string> = {
+  UNPAID: "bg-foreground/10 text-muted-foreground border-foreground/15",
+  DP: "bg-orange-500/20 text-orange-400 border-orange-500/30",
+  PAID: "bg-green-500/20 text-green-400 border-green-500/30",
+};
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function InvoiceEditorPage() {
   const [, params] = useRoute("/invoices/:id");
@@ -83,947 +136,615 @@ export default function InvoiceEditorPage() {
   const invoiceId = params?.id && params.id !== "new" ? params.id : null;
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const previewRef = useRef<HTMLDivElement>(null);
-  const logoInputRef = useRef<HTMLInputElement>(null);
+
+  const [inv, setInv] = useState<InvoiceForm>(emptyForm);
+  const [payments, setPayments] = useState<InvoicePayment[]>([]);
+  const [paid, setPaid] = useState(0);
+  const [storedTotal, setStoredTotal] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
-  const [exporting, setExporting] = useState(false);
 
-  const savedLogo = !invoiceId ? (localStorage.getItem(DRAFT_LOGO_KEY) || DEFAULT_LOGO) : DEFAULT_LOGO;
-  const [logoUrl, setLogoUrl] = useState<string>(savedLogo);
+  const [docOpen, setDocOpen] = useState(false);
+  const [docKind, setDocKind] = useState<InvoiceDocKind | undefined>(undefined);
+  const [docPaymentId, setDocPaymentId] = useState<string | null>(null);
+  const [payOpen, setPayOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [previewNonce, setPreviewNonce] = useState(0);
 
-  const { data: existingInvoice } = useGetInvoice(invoiceId ?? "", {
-    query: { enabled: !!invoiceId } as any,
+  const [previewHtml, setPreviewHtml] = useState("");
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewError, setPreviewError] = useState("");
+  const [showAllProjects, setShowAllProjects] = useState(false);
+
+  const hydratedFor = useRef<string | null>(null);
+  const savedRef = useRef<string>("");
+
+  const { data: existing, isLoading: loadingInvoice } = useGetInvoice(invoiceId ?? "", {
+    query: { enabled: !!invoiceId, refetchOnWindowFocus: false } as any,
   });
   const { data: clients, isLoading: clientsLoading, isError: clientsError } = useListClients();
   const { data: projects, isLoading: projectsLoading, isError: projectsError } = useListProjects();
 
-  const createMutation = useCreateInvoice({
-    mutation: {
-      onSuccess: (data) => {
-        localStorage.removeItem(DRAFT_KEY);
-        localStorage.removeItem(DRAFT_LOGO_KEY);
-        queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
-        toast({ title: "Invoice tersimpan" });
-        navigate(`/invoices/${data.id}`);
-      },
-      onError: () => toast({ variant: "destructive", title: "Gagal menyimpan invoice" }),
-    },
-  });
+  const payload = useMemo(() => toPayload(inv), [inv]);
+  const payloadJson = JSON.stringify(payload);
+  const dirty = savedRef.current !== payloadJson;
 
-  const defaultInv: InvoiceData = {
-    fromName: "FRAMELESS CREATIVE PROJECT PT",
-    fromAddress: "Jl. Lurah Sudarto Jlamprang Wonosobo 56319\ninfo@frameless.com · www.framelesscreative.com",
-    billTo: "",
-    shipTo: "",
-    invoiceNumber: `INV-${Date.now().toString().slice(-4)}`,
-    invoiceDate: today(),
-    dueDate: daysOut(14),
-    paymentTerms: "Net 14",
-    poNumber: "",
-    items: [newItem()],
-    notes: "",
-    terms: "1. Pembayaran dilakukan dalam 14 hari kalender sejak tanggal invoice.\n2. Keterlambatan pembayaran dikenakan denda 2% per bulan.\n3. Pembayaran DP minimal 50% wajib dilunasi sebelum produksi dimulai.\n4. File/aset final hanya diserahkan setelah pelunasan penuh.\n5. Revisi di luar scope pekerjaan yang telah disepakati dapat dikenakan biaya tambahan.\n6. Invoice ini sah sebagai dokumen tagihan resmi tanpa tanda tangan basah.",
-    taxRate: 11,
-    discount: 0,
-    shipping: 0,
-    paidAmount: 0,
-    status: "DRAFT",
-    clientId: "",
-    projectId: "",
-  };
-
-  const draft = !invoiceId ? loadDraft() : null;
-  const [inv, setInv] = useState<InvoiceData>(draft ? {
-    ...defaultInv, ...draft,
-    fromName: defaultInv.fromName,
-    fromAddress: defaultInv.fromAddress,
-    terms: defaultInv.terms,
-  } : defaultInv);
-
-  useEffect(() => {
-    if (existingInvoice) {
-      setInv((prev) => ({
-        ...prev,
-        fromName: "FRAMELESS CREATIVE PROJECT PT",
-        fromAddress: "Jl. Lurah Sudarto Jlamprang Wonosobo 56319\ninfo@frameless.com · www.framelesscreative.com",
-        billTo: existingInvoice.billTo || "",
-        shipTo: existingInvoice.shipTo || "",
-        invoiceNumber: existingInvoice.number,
-        invoiceDate: today(),
-        dueDate: existingInvoice.dueDate
-          ? new Date(existingInvoice.dueDate).toISOString().split("T")[0]
-          : daysOut(14),
-        paymentTerms: "Net 14",
-        poNumber: "",
-        items:
-          existingInvoice.items && existingInvoice.items.length > 0
-            ? existingInvoice.items.map((i: any) => ({
-                id: i.id,
-                description: i.description,
-                quantity: Number(i.quantity),
-                unitPrice: Number(i.unitPrice),
-                total: Number(i.total),
-              }))
-            : [newItem()],
-        notes: existingInvoice.notes || "",
-        terms: existingInvoice.terms || prev.terms,
-        taxRate:
-          existingInvoice.subtotal > 0
-            ? Math.round((existingInvoice.tax / existingInvoice.subtotal) * 100)
-            : 11,
-        discount: existingInvoice.discount || 0,
-        shipping: 0,
-        paidAmount: existingInvoice.paidAmount || 0,
-        status: existingInvoice.status,
-        clientId: existingInvoice.clientId || "",
-        projectId: existingInvoice.projectId || "",
-      }));
-    }
-  }, [existingInvoice]);
-
-  // ─── Auto-save draft to localStorage (new invoices only) ─────────────────────
-
-  useEffect(() => {
-    if (!invoiceId) {
-      try {
-        localStorage.setItem(DRAFT_KEY, JSON.stringify(inv));
-      } catch {}
-    }
-  }, [inv, invoiceId]);
-
-  useEffect(() => {
-    if (!invoiceId && logoUrl !== DEFAULT_LOGO) {
-      try {
-        localStorage.setItem(DRAFT_LOGO_KEY, logoUrl);
-      } catch {}
-    } else if (!invoiceId && logoUrl === DEFAULT_LOGO) {
-      localStorage.removeItem(DRAFT_LOGO_KEY);
-    }
-  }, [logoUrl, invoiceId]);
-
-  // ─── Logo Upload ─────────────────────────────────────────────────────────────
-
-  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (!file.type.startsWith("image/")) {
-      toast({ variant: "destructive", title: "File harus berupa gambar (PNG/JPG)" });
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      if (ev.target?.result) setLogoUrl(ev.target.result as string);
-    };
-    reader.readAsDataURL(file);
-  };
-
-  // ─── Calculations ─────────────────────────────────────────────────────────────
-
-  const subtotal = inv.items.reduce((s, i) => s + i.total, 0);
+  // ── Hitung otomatis ─────────────────────────────────────────────────────
+  const subtotal = inv.items.reduce((s, i) => s + lineTotal(i), 0);
   const taxAmount = Math.round(subtotal * (inv.taxRate / 100));
-  const total = subtotal + taxAmount - inv.discount + inv.shipping;
-  const balanceDue = total - inv.paidAmount;
+  const total = Math.max(subtotal + taxAmount - inv.discount + inv.shipping, 0);
+  const balance = Math.max(total - paid, 0);
+  const stage = paid <= 0 ? "UNPAID" : balance <= 0.5 ? "PAID" : "DP";
+  const paidPct = total > 0 ? Math.min(100, Math.round((paid / total) * 100)) : 0;
 
-  const updateItem = useCallback((id: string, field: keyof LineItem, value: number | string) => {
-    setInv((prev) => ({
-      ...prev,
-      items: prev.items.map((item) => {
-        if (item.id !== id) return item;
-        const updated = { ...item, [field]: value };
-        if (field === "quantity" || field === "unitPrice") {
-          updated.total = Number(updated.quantity) * Number(updated.unitPrice);
-        }
-        return updated;
-      }),
-    }));
+  // ── Muat data: form hanya di-hydrate SEKALI per invoice ─────────────────
+  // Refetch di belakang layar tidak boleh menimpa ketikan / perubahan yang belum disimpan.
+  useEffect(() => {
+    if (!existing || !invoiceId) return;
+    const e = existing as any;
+    setPayments(e.payments ?? []);
+    setPaid(Number(e.paidAmount || 0));
+    setStoredTotal(Number(e.total ?? 0));
+
+    if (hydratedFor.current !== invoiceId) {
+      hydratedFor.current = invoiceId;
+      const form: InvoiceForm = {
+        invoiceNumber: e.number,
+        invoiceDate: toDay(e.invoiceDate ?? e.createdAt) || today(),
+        dueDate: toDay(e.dueDate) || daysOut(14),
+        paymentTerms: e.paymentTerms ?? "",
+        poNumber: e.poNumber ?? "",
+        clientId: e.clientId || "",
+        projectId: e.projectId || "",
+        billTo: e.billTo || "",
+        shipTo: e.shipTo || "",
+        items:
+          e.items?.length > 0
+            ? e.items.map((i: any) => ({ id: i.id, description: i.description, quantity: Number(i.quantity), unitPrice: Number(i.unitPrice) }))
+            : [newItem()],
+        notes: e.notes || "",
+        terms: e.terms ?? "",
+        taxRate: Number(e.taxRate ?? 11),
+        discount: Number(e.discount || 0),
+        shipping: Number(e.shipping || 0),
+        status: e.status,
+      };
+      setInv(form);
+      savedRef.current = JSON.stringify(toPayload(form));
+    } else {
+      // Status bisa berubah otomatis karena pembayaran (mis. jadi PAID): ikuti server tanpa menandai "belum disimpan"
+      setInv((p) => (p.status === e.status ? p : { ...p, status: e.status }));
+      try {
+        const snap = JSON.parse(savedRef.current || "{}");
+        snap.status = e.status;
+        savedRef.current = JSON.stringify(snap);
+      } catch {}
+    }
+  }, [existing, invoiceId]);
+
+  // Hapus sisa cache draft versi lama (dulu form invoice baru dipulihkan dari localStorage)
+  useEffect(() => {
+    try { localStorage.removeItem("invoice_draft_new"); localStorage.removeItem("invoice_draft_logo"); } catch {}
   }, []);
 
-  const addItem = () => setInv((p) => ({ ...p, items: [...p.items, newItem()] }));
-  const removeItem = (id: string) => setInv((p) => ({ ...p, items: p.items.filter((i) => i.id !== id) }));
+  // Invoice baru: mulai bersih (tanpa cache draft lama), nomor dari server
+  useEffect(() => {
+    if (invoiceId) return;
+    let cancelled = false;
+    hydratedFor.current = null;
+    setPayments([]);
+    setPaid(0);
+    fetchNextInvoiceNumber()
+      .then((n) => {
+        if (cancelled) return;
+        setInv((p) => (p.invoiceNumber ? p : { ...p, invoiceNumber: n }));
+        // form baru yang belum disentuh dianggap "tersimpan" (tidak muncul label belum disimpan)
+        savedRef.current = JSON.stringify(toPayload({ ...emptyForm(), invoiceNumber: n }));
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [invoiceId]);
 
-  // ─── Save ──────────────────────────────────────────────────────────────────
+  // Peringatan bila menutup tab dengan perubahan yang belum disimpan
+  useEffect(() => {
+    if (!dirty) return;
+    const h = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ""; };
+    window.addEventListener("beforeunload", h);
+    return () => window.removeEventListener("beforeunload", h);
+  }, [dirty]);
 
-  const handleSave = async () => {
+  // Setelah invoice baru dibuat lewat tombol "Tambah Pembayaran", buka dialog pembayarannya
+  useEffect(() => {
+    if (!invoiceId || !existing) return;
+    const sp = new URLSearchParams(window.location.search);
+    if (sp.get("pay") === "1") {
+      sp.delete("pay");
+      window.history.replaceState({}, "", window.location.pathname + (sp.toString() ? `?${sp}` : ""));
+      setPayOpen(true);
+    }
+  }, [invoiceId, existing]);
+
+  // ── Aksi form ───────────────────────────────────────────────────────────
+
+  const patch = useCallback((p: Partial<InvoiceForm>) => setInv((prev) => ({ ...prev, ...p })), []);
+
+  const updateItem = (id: string, field: keyof LineItem, value: number | string) =>
+    setInv((prev) => ({ ...prev, items: prev.items.map((i) => (i.id === id ? { ...i, [field]: value } : i)) }));
+
+  // Ganti client → Bill To SELALU diganti dengan data client itu; project yang bukan milik client dikosongkan
+  const onClientChange = (id: string) => {
+    const c = (clients as any[] | undefined)?.find((x) => x.id === id);
+    setShowAllProjects(false);
+    setInv((p) => {
+      const stillValid = p.projectId && (projects as any[] | undefined)?.some((pr) => pr.id === p.projectId && projectBelongsTo(pr, c));
+      return { ...p, clientId: id, billTo: c ? clientBlock(c) : p.billTo, projectId: stillValid ? p.projectId : "" };
+    });
+  };
+
+  // Pilih project → deskripsi item yang masih kosong otomatis terisi judul project
+  const onProjectChange = (id: string) => {
+    const pr = (projects as any[] | undefined)?.find((x) => x.id === id);
+    setInv((p) => {
+      const onlyBlank = p.items.length === 1 && !p.items[0].description.trim();
+      return {
+        ...p,
+        projectId: id,
+        items: onlyBlank && pr ? [{ ...p.items[0], description: pr.title?.trim() || "" }] : p.items,
+      };
+    });
+  };
+
+  const selectedClient = (clients as any[] | undefined)?.find((c) => c.id === inv.clientId);
+  const clientProjects = useMemo(() => {
+    const all = (projects as any[] | undefined) ?? [];
+    if (!selectedClient || showAllProjects) return all;
+    return all.filter((p) => projectBelongsTo(p, selectedClient) || p.id === inv.projectId);
+  }, [projects, selectedClient, showAllProjects, inv.projectId]);
+  const hiddenProjects = ((projects as any[] | undefined)?.length ?? 0) - clientProjects.length;
+
+  // ── Simpan ──────────────────────────────────────────────────────────────
+
+  const refreshInvoice = () => {
+    queryClient.invalidateQueries({ predicate: (q) => JSON.stringify(q.queryKey).includes("invoices") });
+  };
+
+  /** Simpan ke server. Mengembalikan id invoice, atau null bila gagal. Isi form TIDAK ditimpa ulang. */
+  const handleSave = async (opts: { silent?: boolean; then?: "pay" } = {}): Promise<string | null> => {
     if (!inv.clientId) {
       toast({ variant: "destructive", title: "Pilih client terlebih dahulu" });
-      return;
+      return null;
+    }
+    if (!inv.items.some((i) => i.description.trim())) {
+      toast({ variant: "destructive", title: "Isi minimal satu item pekerjaan" });
+      return null;
     }
     setSaving(true);
     try {
-      const payload = {
-        clientId: inv.clientId,
-        projectId: inv.projectId || undefined,
-        status: inv.status,
-        subtotal: String(subtotal),
-        tax: String(taxAmount),
-        discount: String(inv.discount),
-        total: String(total),
-        paidAmount: inv.paidAmount,
-        dueDate: inv.dueDate,
-        billTo: inv.billTo,
-        shipTo: inv.shipTo,
-        notes: inv.notes,
-        terms: inv.terms,
-        items: inv.items.map((i) => ({
-          description: i.description,
-          quantity: i.quantity,
-          unitPrice: i.unitPrice,
-          total: i.total,
-        })),
-      };
+      const res = await fetch(invoiceId ? `/api/invoices/${invoiceId}` : "/api/invoices", {
+        method: invoiceId ? "PUT" : "POST",
+        headers: authHeaders(),
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Gagal menyimpan invoice");
 
-      if (invoiceId) {
-        const token = localStorage.getItem("token");
-        const res = await fetch(`/api/invoices/${invoiceId}`, {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          },
-          body: JSON.stringify(payload),
-        });
-        if (!res.ok) throw new Error("Failed to update");
-        queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
-        queryClient.invalidateQueries({ queryKey: [`/api/invoices/${invoiceId}`] });
-        toast({ title: "Invoice berhasil disimpan" });
-      } else {
-        createMutation.mutate({ data: payload as any });
-      }
+      savedRef.current = payloadJson;
+      refreshInvoice();
+      if (!opts.silent) toast({ title: "Invoice tersimpan" });
+
+      if (!invoiceId) navigate(`/invoices/${data.id}${opts.then === "pay" ? "?pay=1" : ""}`);
+      return invoiceId ?? data.id;
+    } catch (e: any) {
+      toast({ variant: "destructive", title: e.message || "Gagal menyimpan invoice" });
+      return null;
     } finally {
       setSaving(false);
     }
   };
 
-  // ─── PDF Export ───────────────────────────────────────────────────────────────
+  const openDoc = async (kind?: InvoiceDocKind, paymentId: string | null = null) => {
+    if (!invoiceId || dirty) {
+      const id = await handleSave({ silent: true });
+      if (!id || !invoiceId) return; // invoice baru: setelah tersimpan, tekan Cetak lagi dari halaman invoice
+    }
+    setDocKind(kind);
+    setDocPaymentId(paymentId);
+    setDocOpen(true);
+  };
 
-  const handleExportPdf = async () => {
-    if (!previewRef.current) return;
-    setExporting(true);
+  const openPayment = async () => {
+    if (!invoiceId) {
+      await handleSave({ silent: true, then: "pay" });
+      return;
+    }
+    if (dirty) {
+      const id = await handleSave({ silent: true });
+      if (!id) return;
+    }
+    setPayOpen(true);
+  };
+
+  const handleDeletePayment = async (paymentId: string) => {
+    if (!invoiceId || !confirm("Hapus pembayaran ini? Sisa tagihan dan status invoice akan dihitung ulang.")) return;
     try {
-      const { default: html2canvas } = await import("html2canvas");
-      const { default: jsPDF } = await import("jspdf");
-
-      const el = previewRef.current;
-      const canvas = await html2canvas(el, {
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: "#ffffff",
-        logging: false,
-      });
-
-      const imgData = canvas.toDataURL("image/png");
-      const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-      const pageHeight = pdf.internal.pageSize.getHeight();
-
-      if (pdfHeight <= pageHeight) {
-        pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
-      } else {
-        let y = 0;
-        while (y < pdfHeight) {
-          if (y > 0) pdf.addPage();
-          pdf.addImage(imgData, "PNG", 0, -y, pdfWidth, pdfHeight);
-          y += pageHeight;
-        }
-      }
-
-      pdf.save(`${inv.invoiceNumber}.pdf`);
-      toast({ title: "PDF berhasil diunduh" });
-    } catch (e) {
-      toast({ variant: "destructive", title: "Export gagal, coba lagi" });
-    } finally {
-      setExporting(false);
+      await deletePayment(invoiceId, paymentId);
+      refreshInvoice();
+      toast({ title: "Pembayaran dihapus" });
+    } catch (e: any) {
+      toast({ variant: "destructive", title: "Gagal menghapus", description: e.message });
     }
   };
 
-  // ─── Render ───────────────────────────────────────────────────────────────────
+  const handleDeleteInvoice = async () => {
+    if (!invoiceId) return;
+    const warn = payments.length > 0 ? `Invoice ini punya ${payments.length} pembayaran tercatat. ` : "";
+    if (!confirm(`${warn}Hapus invoice ${inv.invoiceNumber} secara permanen?`)) return;
+    try {
+      const res = await fetch(`/api/invoices/${invoiceId}`, { method: "DELETE", headers: authHeaders() });
+      if (!res.ok) throw new Error("Gagal menghapus invoice");
+      savedRef.current = payloadJson; // tidak ada peringatan "belum disimpan"
+      refreshInvoice();
+      toast({ title: "Invoice dihapus" });
+      navigate("/invoices");
+    } catch (e: any) {
+      toast({ variant: "destructive", title: e.message });
+    }
+  };
+
+  // ── Preview (dirender server — identik dengan cetak & PDF) ──────────────
+
+  useEffect(() => {
+    const ctrl = new AbortController();
+    const t = setTimeout(async () => {
+      setPreviewLoading(true);
+      try {
+        const html = await fetchDraftPreviewHtml({ ...payload, invoiceNumber: inv.invoiceNumber, invoiceId: invoiceId ?? undefined }, ctrl.signal);
+        setPreviewHtml(html);
+        setPreviewError("");
+      } catch (e: any) {
+        if (e?.name !== "AbortError") setPreviewError(e.message || "Preview gagal");
+      } finally {
+        if (!ctrl.signal.aborted) setPreviewLoading(false);
+      }
+    }, 600);
+    return () => { clearTimeout(t); ctrl.abort(); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [payloadJson, invoiceId, payments.length, paid, previewNonce]);
+
+  if (invoiceId && loadingInvoice && hydratedFor.current !== invoiceId) {
+    return (
+      <div className="flex items-center justify-center py-24">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  const label = "text-xs uppercase tracking-wider text-muted-foreground";
+  const field = "bg-foreground/5 border-foreground/10 text-foreground";
+  const totalMismatch = !!invoiceId && storedTotal !== null && Math.abs(storedTotal - total) > 1;
+  const payDisabled = saving || (!!invoiceId && balance <= 0 && total > 0);
+
+  // ─── Render ──────────────────────────────────────────────────────────────
 
   return (
     <div className="pb-12 space-y-6">
-      {/* Top Bar */}
-      <div className="flex items-center justify-between gap-4 flex-wrap">
-        <div className="flex items-center gap-3">
+      {/* Top bar */}
+      <div className="flex items-start justify-between gap-3 flex-wrap">
+        <div className="flex items-center gap-3 min-w-0">
           <a href="/invoices">
-            <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-white">
+            <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
               <ArrowLeft className="w-5 h-5" />
             </Button>
           </a>
-          <div>
-            <h1 className="text-3xl font-heading tracking-wider text-white">
-              {invoiceId ? inv.invoiceNumber : "New Invoice"}
-            </h1>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="text-3xl font-heading tracking-wider text-foreground truncate">{invoiceId ? inv.invoiceNumber : "New Invoice"}</h1>
+              {invoiceId && (
+                <span className={`text-[11px] font-semibold uppercase tracking-wider border rounded px-2 py-0.5 ${STAGE_CHIP[stage]}`}>
+                  {stage === "PAID" ? "Lunas" : stage === "DP" ? `DP ${paidPct}%` : "Belum dibayar"}
+                </span>
+              )}
+              {dirty && <span className="text-[11px] text-yellow-400">● belum disimpan</span>}
+            </div>
             <p className="text-muted-foreground text-xs uppercase tracking-widest">Invoice Editor</p>
           </div>
         </div>
-        <div className="flex items-center gap-3">
-          <Select value={inv.status} onValueChange={(v) => setInv((p) => ({ ...p, status: v }))}>
-            <SelectTrigger className="w-28 bg-white/5 border-white/10 text-white text-xs">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent className="bg-card border-white/10">
+
+        <div className="flex items-center gap-2 flex-wrap">
+          <Select value={inv.status} onValueChange={(v) => patch({ status: v })}>
+            <SelectTrigger className="w-28 bg-foreground/5 border-foreground/10 text-foreground text-xs"><SelectValue /></SelectTrigger>
+            <SelectContent className="bg-card border-foreground/10">
               <SelectItem value="DRAFT">Draft</SelectItem>
               <SelectItem value="SENT">Sent</SelectItem>
               <SelectItem value="PAID">Paid</SelectItem>
+              <SelectItem value="CANCELLED">Cancelled</SelectItem>
             </SelectContent>
           </Select>
-          <Button
-            onClick={handleExportPdf}
-            disabled={exporting}
-            variant="outline"
-            className="border-white/20 text-white hover:bg-white/10 font-heading tracking-wider"
-          >
-            <Download className="w-4 h-4 mr-2" />
-            {exporting ? "Exporting..." : "Download PDF"}
+
+          <Button onClick={openPayment} disabled={payDisabled} className="bg-green-600 hover:bg-green-600/90 text-white font-heading tracking-wider">
+            <Wallet className="w-4 h-4 mr-2" /> Tambah Pembayaran
           </Button>
-          <Button
-            onClick={handleSave}
-            disabled={saving || createMutation.isPending}
-            className="bg-primary hover:bg-primary/90 text-white font-heading tracking-wider"
-          >
-            <Save className="w-4 h-4 mr-2" />
-            {saving || createMutation.isPending ? "Saving..." : "Save"}
+          <Button onClick={() => openDoc()} disabled={saving} variant="outline" className="border-foreground/20 text-foreground hover:bg-foreground/10 font-heading tracking-wider">
+            <Printer className="w-4 h-4 mr-2" /> Cetak / PDF
           </Button>
+          <Button onClick={() => handleSave()} disabled={saving} className="bg-primary hover:bg-primary/90 text-white font-heading tracking-wider">
+            {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+            {saving ? "Menyimpan..." : "Simpan"}
+          </Button>
+          {invoiceId && (
+            <Button onClick={handleDeleteInvoice} variant="ghost" size="icon" title="Hapus invoice" className="text-muted-foreground hover:text-destructive hover:bg-destructive/10">
+              <Trash2 className="w-4 h-4" />
+            </Button>
+          )}
         </div>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        {/* ── Editor Form ── */}
-        <div className="xl:col-span-2 space-y-4">
-
-          {/* Logo Upload */}
-          <div className="glass-panel rounded-xl p-5 border-white/10 space-y-3">
-            <p className="text-xs uppercase tracking-widest text-muted-foreground font-semibold">Logo Perusahaan</p>
-            <div className="flex items-center gap-4">
-              <div className="w-32 h-16 rounded-lg bg-white flex items-center justify-center border border-white/20 overflow-hidden shrink-0">
-                {logoUrl ? (
-                  <img src={logoUrl} alt="Logo" className="w-full h-full object-contain p-1" />
-                ) : (
-                  <ImageIcon className="w-8 h-8 text-gray-300" />
-                )}
-              </div>
-              <div className="flex flex-col gap-2">
-                <input
-                  ref={logoInputRef}
-                  type="file"
-                  accept="image/png,image/jpeg,image/jpg,image/webp,image/svg+xml"
-                  className="hidden"
-                  onChange={handleLogoUpload}
-                />
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => logoInputRef.current?.click()}
-                  className="border-white/20 text-white hover:bg-white/10 text-xs"
-                >
-                  <Upload className="w-3.5 h-3.5 mr-2" />
-                  Upload Logo Kustom
-                </Button>
-                {logoUrl !== DEFAULT_LOGO && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setLogoUrl(DEFAULT_LOGO)}
-                    className="text-muted-foreground hover:text-white text-xs"
-                  >
-                    <RotateCcw className="w-3 h-3 mr-1.5" />
-                    Reset ke Logo Frameless
-                  </Button>
-                )}
-                <p className="text-xs text-muted-foreground">PNG, JPG, SVG · maks 5MB</p>
-              </div>
-            </div>
+      {totalMismatch && (
+        <div className="rounded-xl border border-yellow-500/30 bg-yellow-500/5 p-4 text-sm flex items-start gap-3">
+          <Info className="w-5 h-5 text-yellow-400 shrink-0 mt-0.5" />
+          <div>
+            <p className="text-yellow-300 font-semibold">Total tersimpan berbeda dari hasil hitung item</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Total di database {formatCurrency(storedTotal!)}, sedangkan item + pajak − diskon + ongkir = {formatCurrency(total)}.
+              Periksa item di bawah. Jika hasil hitung sudah benar, tekan <b>Simpan</b> agar total diperbarui.
+            </p>
           </div>
+        </div>
+      )}
 
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+        {/* ── Form ── */}
+        <div className="xl:col-span-2 space-y-4">
           {/* Client / Project */}
-          <div className="glass-panel rounded-xl p-5 border-white/10 space-y-3">
-            <p className="text-xs uppercase tracking-widest text-muted-foreground font-semibold">Invoice Meta</p>
-            <div className="grid grid-cols-2 gap-3">
+          <div className="glass-panel rounded-xl p-5 border-foreground/10 space-y-3">
+            <p className="text-xs uppercase tracking-widest text-muted-foreground font-semibold">Client & Project</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1">
-                <label className="text-xs uppercase tracking-wider text-muted-foreground">Client *</label>
-                <Select 
-                  value={inv.clientId} 
-                  onValueChange={(v) => {
-                    const selected = clients?.find((c: any) => c.id === v);
-                    let newBillTo = inv.billTo;
-                    if (selected && !inv.billTo?.trim()) {
-                      // Auto-fill Bill To from client data (name, company, address, contact)
-                      const parts = [
-                        selected.name,
-                        selected.company,
-                        selected.address,
-                        selected.email ? `Email: ${selected.email}` : null,
-                        selected.phone ? `WA/Telp: ${selected.phone}` : null,
-                      ].filter(Boolean);
-                      newBillTo = parts.join("\n");
-                    }
-                    setInv((p) => ({ ...p, clientId: v, billTo: newBillTo }));
-                  }}
-                >
-                  <SelectTrigger className="bg-white/5 border-white/10 text-white">
+                <label className={label}>Client *</label>
+                <Select value={inv.clientId} onValueChange={onClientChange}>
+                  <SelectTrigger className={field}>
                     <SelectValue placeholder={clientsLoading ? "Memuat..." : clientsError ? "Gagal memuat client" : "Pilih client..."} />
                   </SelectTrigger>
-                  <SelectContent className="bg-card border-white/10">
-                    {clientsError ? (
-                      <div className="px-3 py-2 text-xs text-muted-foreground">Gagal memuat data client</div>
-                    ) : clientsLoading ? (
-                      <div className="px-3 py-2 text-xs text-muted-foreground">Memuat...</div>
-                    ) : clients && clients.length > 0 ? (
-                      clients.map((c: any) => (
-                        <SelectItem key={c.id} value={c.id}>{c.name}{c.company ? ` (${c.company})` : ""}</SelectItem>
-                      ))
+                  <SelectContent className="bg-card border-foreground/10">
+                    {(clients as any[] | undefined)?.length ? (
+                      (clients as any[]).map((c) => <SelectItem key={c.id} value={c.id}>{c.name}{c.company ? ` (${c.company})` : ""}</SelectItem>)
                     ) : (
-                      <div className="px-3 py-2 text-xs text-muted-foreground">Belum ada client</div>
+                      <div className="px-3 py-2 text-xs text-muted-foreground">{clientsLoading ? "Memuat..." : "Belum ada client"}</div>
                     )}
                   </SelectContent>
                 </Select>
-                {inv.clientId && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const selected = clients?.find((c: any) => c.id === inv.clientId);
-                      if (selected) {
-                        const parts = [
-                          selected.name,
-                          selected.company,
-                          selected.address,
-                          selected.email ? `Email: ${selected.email}` : null,
-                          selected.phone ? `WA/Telp: ${selected.phone}` : null,
-                        ].filter(Boolean);
-                        setInv((p) => ({ ...p, billTo: parts.join("\n") }));
-                      }
-                    }}
-                    className="text-[10px] text-primary hover:underline mt-1"
-                  >
-                    Isi ulang Bill To dari data client
+              </div>
+              <div className="space-y-1">
+                <label className={label}>Project</label>
+                <Select value={inv.projectId || "__none__"} onValueChange={(v) => (v === "__none__" ? patch({ projectId: "" }) : onProjectChange(v))}>
+                  <SelectTrigger className={field}><SelectValue placeholder="Tanpa project" /></SelectTrigger>
+                  <SelectContent className="bg-card border-foreground/10">
+                    <SelectItem value="__none__">Tanpa project</SelectItem>
+                    {clientProjects.length ? (
+                      clientProjects.map((p: any) => <SelectItem key={p.id} value={p.id}>{p.title}</SelectItem>)
+                    ) : (
+                      <div className="px-3 py-2 text-xs text-muted-foreground">
+                        {projectsError ? "Gagal memuat project" : projectsLoading ? "Memuat..." : "Client ini belum punya project"}
+                      </div>
+                    )}
+                  </SelectContent>
+                </Select>
+                {selectedClient && hiddenProjects > 0 && !showAllProjects && (
+                  <button type="button" className="text-[11px] text-primary hover:underline" onClick={() => setShowAllProjects(true)}>
+                    Tampilkan semua project ({hiddenProjects} lainnya)
                   </button>
                 )}
               </div>
+            </div>
+          </div>
+
+          {/* Bill To / Ship To */}
+          <div className="glass-panel rounded-xl p-5 border-foreground/10 space-y-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="text-xs uppercase tracking-wider text-muted-foreground">Project</label>
-                <Select value={inv.projectId || "__none__"} onValueChange={(v) => setInv((p) => ({ ...p, projectId: v === "__none__" ? "" : v }))}>
-                  <SelectTrigger className="bg-white/5 border-white/10 text-white">
-                    <SelectValue placeholder="None" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-card border-white/10">
-                    <SelectItem value="__none__">None</SelectItem>
-                    {projectsError ? (
-                      <div className="px-3 py-2 text-xs text-muted-foreground">Gagal memuat data project</div>
-                    ) : projectsLoading ? (
-                      <div className="px-3 py-2 text-xs text-muted-foreground">Memuat...</div>
-                    ) : projects && projects.length > 0 ? (
-                      projects.map((p) => (
-                        <SelectItem key={p.id} value={p.id}>{p.title}</SelectItem>
-                      ))
-                    ) : (
-                      <div className="px-3 py-2 text-xs text-muted-foreground">Belum ada project</div>
-                    )}
-                  </SelectContent>
-                </Select>
+                <div className="flex items-center justify-between">
+                  <label className={label}>Bill To (Tagihan Kepada)</label>
+                  {selectedClient && (
+                    <button type="button" className="text-[10px] text-primary hover:underline" onClick={() => patch({ billTo: clientBlock(selectedClient) })}>
+                      Isi ulang dari data client
+                    </button>
+                  )}
+                </div>
+                <Textarea value={inv.billTo} onChange={(e) => patch({ billTo: e.target.value })} rows={4} className={`${field} resize-none`} placeholder="Terisi otomatis saat memilih client" />
+              </div>
+              <div className="space-y-1">
+                <label className={label}>Ship To (opsional)</label>
+                <Textarea value={inv.shipTo} onChange={(e) => patch({ shipTo: e.target.value })} rows={4} className={`${field} resize-none`} placeholder="Alamat pengiriman" />
+              </div>
+            </div>
+            <p className="text-[11px] text-muted-foreground flex items-start gap-1.5">
+              <Info className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+              <span>Kop surat (nama, alamat, logo) dan rekening mengikuti Profil Perusahaan. <button type="button" className="text-primary hover:underline" onClick={() => setSettingsOpen(true)}>Ubah pengaturan dokumen</button></span>
+            </p>
+          </div>
+
+          {/* Detail */}
+          <div className="glass-panel rounded-xl p-5 border-foreground/10">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+              <div className="space-y-1 col-span-2 md:col-span-1">
+                <label className={label}>Invoice #</label>
+                <Input value={inv.invoiceNumber} onChange={(e) => patch({ invoiceNumber: e.target.value })} className={field} />
+              </div>
+              <div className="space-y-1">
+                <label className={label}>Tanggal</label>
+                <Input type="date" value={inv.invoiceDate} onChange={(e) => patch({ invoiceDate: e.target.value })} className={field} />
+              </div>
+              <div className="space-y-1">
+                <label className={label}>Jatuh Tempo</label>
+                <Input type="date" value={inv.dueDate} onChange={(e) => patch({ dueDate: e.target.value })} className={field} />
+              </div>
+              <div className="space-y-1">
+                <label className={label}>Terms</label>
+                <Input value={inv.paymentTerms} onChange={(e) => patch({ paymentTerms: e.target.value })} className={field} placeholder="Net 14" />
+              </div>
+              <div className="space-y-1">
+                <label className={label}>No. PO</label>
+                <Input value={inv.poNumber} onChange={(e) => patch({ poNumber: e.target.value })} className={field} placeholder="opsional" />
               </div>
             </div>
           </div>
 
-          {/* From / Bill To / Ship To */}
-          <div className="glass-panel rounded-xl p-5 border-white/10 space-y-4">
-            <div className="space-y-1">
-              <label className="text-xs uppercase tracking-wider text-muted-foreground">From (Info Pengirim)</label>
-              <Textarea
-                value={inv.fromAddress}
-                onChange={(e) => setInv((p) => ({ ...p, fromAddress: e.target.value }))}
-                rows={3}
-                className="bg-white/5 border-white/10 text-white resize-none"
-                placeholder="Alamat perusahaan, email, telepon"
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1">
-                <label className="text-xs uppercase tracking-wider text-muted-foreground">Bill To (Tagihan Kepada)</label>
-                <Textarea
-                  value={inv.billTo}
-                  onChange={(e) => setInv((p) => ({ ...p, billTo: e.target.value }))}
-                  rows={3}
-                  className="bg-white/5 border-white/10 text-white resize-none"
-                  placeholder="Nama & alamat client"
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-xs uppercase tracking-wider text-muted-foreground">Ship To (opsional)</label>
-                <Textarea
-                  value={inv.shipTo}
-                  onChange={(e) => setInv((p) => ({ ...p, shipTo: e.target.value }))}
-                  rows={3}
-                  className="bg-white/5 border-white/10 text-white resize-none"
-                  placeholder="Alamat pengiriman"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Invoice Details */}
-          <div className="glass-panel rounded-xl p-5 border-white/10">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <div className="space-y-1">
-                <label className="text-xs uppercase tracking-wider text-muted-foreground">Invoice #</label>
-                <Input value={inv.invoiceNumber} onChange={(e) => setInv((p) => ({ ...p, invoiceNumber: e.target.value }))}
-                  className="bg-white/5 border-white/10 text-white" />
-              </div>
-              <div className="space-y-1">
-                <label className="text-xs uppercase tracking-wider text-muted-foreground">Tanggal</label>
-                <Input type="date" value={inv.invoiceDate} onChange={(e) => setInv((p) => ({ ...p, invoiceDate: e.target.value }))}
-                  className="bg-white/5 border-white/10 text-white" />
-              </div>
-              <div className="space-y-1">
-                <label className="text-xs uppercase tracking-wider text-muted-foreground">Jatuh Tempo</label>
-                <Input type="date" value={inv.dueDate} onChange={(e) => setInv((p) => ({ ...p, dueDate: e.target.value }))}
-                  className="bg-white/5 border-white/10 text-white" />
-              </div>
-              <div className="space-y-1">
-                <label className="text-xs uppercase tracking-wider text-muted-foreground">Terms</label>
-                <Input value={inv.paymentTerms} onChange={(e) => setInv((p) => ({ ...p, paymentTerms: e.target.value }))}
-                  className="bg-white/5 border-white/10 text-white" placeholder="Net 14" />
-              </div>
-            </div>
-          </div>
-
-          {/* Line Items */}
-          <div className="glass-panel rounded-xl p-5 border-white/10 space-y-3">
-            <p className="text-xs uppercase tracking-widest text-muted-foreground font-semibold mb-3">Item Pekerjaan</p>
-            <div className="grid grid-cols-12 gap-2 pb-2 border-b border-white/10">
-              <span className="col-span-5 text-xs uppercase tracking-wider text-muted-foreground">Deskripsi</span>
-              <span className="col-span-2 text-xs uppercase tracking-wider text-muted-foreground text-center">Qty</span>
-              <span className="col-span-2 text-xs uppercase tracking-wider text-muted-foreground text-right">Harga (IDR)</span>
-              <span className="col-span-2 text-xs uppercase tracking-wider text-muted-foreground text-right">Total</span>
+          {/* Items */}
+          <div className="glass-panel rounded-xl p-5 border-foreground/10 space-y-3">
+            <p className="text-xs uppercase tracking-widest text-muted-foreground font-semibold">Item Pekerjaan</p>
+            <div className="hidden sm:grid grid-cols-12 gap-2 pb-2 border-b border-foreground/10">
+              <span className={`col-span-5 ${label}`}>Deskripsi</span>
+              <span className={`col-span-2 text-center ${label}`}>Qty</span>
+              <span className={`col-span-2 text-right ${label}`}>Harga (IDR)</span>
+              <span className={`col-span-2 text-right ${label}`}>Total</span>
               <span className="col-span-1" />
             </div>
             {inv.items.map((item) => (
               <div key={item.id} className="grid grid-cols-12 gap-2 items-center">
-                <div className="col-span-5">
-                  <Input
-                    value={item.description}
-                    onChange={(e) => updateItem(item.id, "description", e.target.value)}
-                    className="bg-white/5 border-white/10 text-white text-sm h-9"
-                    placeholder="Deskripsi layanan / produk..."
-                  />
+                <div className="col-span-12 sm:col-span-5">
+                  <Input value={item.description} onChange={(e) => updateItem(item.id, "description", e.target.value)} className={`${field} text-sm h-9`} placeholder="Deskripsi layanan / produk..." />
                 </div>
-                <div className="col-span-2">
-                  <Input
-                    type="number"
-                    value={item.quantity}
-                    onChange={(e) => updateItem(item.id, "quantity", Number(e.target.value))}
-                    className="bg-white/5 border-white/10 text-white text-sm h-9 text-center"
-                    min={0}
-                  />
+                <div className="col-span-3 sm:col-span-2">
+                  <Input type="number" min={0} value={item.quantity} onChange={(e) => updateItem(item.id, "quantity", Number(e.target.value))} className={`${field} text-sm h-9 text-center`} />
                 </div>
-                <div className="col-span-2">
-                  <Input
-                    type="number"
-                    value={item.unitPrice}
-                    onChange={(e) => updateItem(item.id, "unitPrice", Number(e.target.value))}
-                    className="bg-white/5 border-white/10 text-white text-sm h-9 text-right"
-                    min={0}
-                  />
+                <div className="col-span-5 sm:col-span-2">
+                  <Input type="number" min={0} value={item.unitPrice} onChange={(e) => updateItem(item.id, "unitPrice", Number(e.target.value))} className={`${field} text-sm h-9 text-right`} />
                 </div>
-                <div className="col-span-2 text-right text-sm text-white font-medium px-2">
-                  {formatCurrency(item.total)}
-                </div>
+                <div className="col-span-3 sm:col-span-2 text-right text-sm text-foreground font-medium px-1">{formatCurrency(lineTotal(item))}</div>
                 <div className="col-span-1 flex justify-center">
-                  <Button
-                    variant="ghost" size="icon"
-                    className="w-7 h-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                    onClick={() => removeItem(item.id)}
-                    disabled={inv.items.length === 1}
-                  >
+                  <Button variant="ghost" size="icon" className="w-7 h-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                    onClick={() => setInv((p) => ({ ...p, items: p.items.filter((i) => i.id !== item.id) }))} disabled={inv.items.length === 1}>
                     <Trash2 className="w-3.5 h-3.5" />
                   </Button>
                 </div>
               </div>
             ))}
-            <Button variant="ghost" size="sm" onClick={addItem}
-              className="text-primary hover:text-primary hover:bg-primary/10 font-semibold text-xs mt-1">
+            <Button variant="ghost" size="sm" onClick={() => setInv((p) => ({ ...p, items: [...p.items, newItem()] }))} className="text-primary hover:text-primary hover:bg-primary/10 font-semibold text-xs mt-1">
               <Plus className="w-3.5 h-3.5 mr-1" /> Tambah Item
             </Button>
           </div>
 
           {/* Notes + Terms */}
-          <div className="glass-panel rounded-xl p-5 border-white/10 grid grid-cols-2 gap-4">
+          <div className="glass-panel rounded-xl p-5 border-foreground/10 grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1">
-              <label className="text-xs uppercase tracking-wider text-muted-foreground">Catatan</label>
-              <Textarea
-                value={inv.notes}
-                onChange={(e) => setInv((p) => ({ ...p, notes: e.target.value }))}
-                rows={4}
-                className="bg-white/5 border-white/10 text-white resize-none text-sm"
-                placeholder="Catatan tambahan untuk client"
-              />
+              <label className={label}>Catatan</label>
+              <Textarea value={inv.notes} onChange={(e) => patch({ notes: e.target.value })} rows={5} className={`${field} resize-none text-sm`} placeholder="Catatan tambahan untuk client" />
             </div>
             <div className="space-y-1">
-              <label className="text-xs uppercase tracking-wider text-muted-foreground">Syarat & Ketentuan</label>
-              <Textarea
-                value={inv.terms}
-                onChange={(e) => setInv((p) => ({ ...p, terms: e.target.value }))}
-                rows={4}
-                className="bg-white/5 border-white/10 text-white resize-none text-sm"
-                placeholder="Syarat pembayaran, denda keterlambatan, dll."
-              />
+              <label className={label}>Syarat & Ketentuan</label>
+              <Textarea value={inv.terms} onChange={(e) => patch({ terms: e.target.value })} rows={5} className={`${field} resize-none text-sm`} placeholder="Syarat pembayaran, denda keterlambatan, dll." />
             </div>
           </div>
         </div>
 
-        {/* ── Totals Panel ── */}
+        {/* ── Ringkasan + Pembayaran ── */}
         <div className="space-y-4">
-          <div className="glass-panel rounded-xl p-5 border-white/10 space-y-4 sticky top-4">
-            <p className="text-xs uppercase tracking-widest text-muted-foreground font-semibold">Ringkasan</p>
+          <div className="glass-panel rounded-xl p-5 border-foreground/10 space-y-3 xl:sticky xl:top-4">
+            <p className="text-xs uppercase tracking-widest text-muted-foreground font-semibold">Ringkasan (otomatis)</p>
 
-            <div className="space-y-3">
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Subtotal</span>
-                <span className="text-white font-medium">{formatCurrency(subtotal)}</span>
-              </div>
+            <div className="flex justify-between text-sm"><span className="text-muted-foreground">Subtotal</span><span className="text-foreground font-medium">{formatCurrency(subtotal)}</span></div>
 
+            <div className="grid grid-cols-3 gap-2 items-end">
               <div className="space-y-1">
-                <label className="text-xs uppercase tracking-wider text-muted-foreground">PPN (%)</label>
-                <div className="flex items-center gap-2">
-                  <Input
-                    type="number"
-                    value={inv.taxRate}
-                    onChange={(e) => setInv((p) => ({ ...p, taxRate: Number(e.target.value) }))}
-                    className="bg-white/5 border-white/10 text-white h-8 text-sm"
-                    min={0} max={100}
-                  />
-                  <span className="text-muted-foreground text-sm shrink-0">{formatCurrency(taxAmount)}</span>
-                </div>
+                <label className={label}>PPN %</label>
+                <Input type="number" min={0} max={100} value={inv.taxRate} onChange={(e) => patch({ taxRate: Number(e.target.value) })} className={`${field} h-8 text-sm`} />
               </div>
-
+              <div className="col-span-2 text-right text-sm text-muted-foreground pb-1.5">{formatCurrency(taxAmount)}</div>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1">
-                <label className="text-xs uppercase tracking-wider text-muted-foreground">Diskon (IDR)</label>
-                <Input
-                  type="number"
-                  value={inv.discount}
-                  onChange={(e) => setInv((p) => ({ ...p, discount: Number(e.target.value) }))}
-                  className="bg-white/5 border-white/10 text-white h-8 text-sm"
-                  min={0}
-                />
+                <label className={label}>Diskon (IDR)</label>
+                <Input type="number" min={0} value={inv.discount} onChange={(e) => patch({ discount: Number(e.target.value) })} className={`${field} h-8 text-sm`} />
               </div>
-
               <div className="space-y-1">
-                <label className="text-xs uppercase tracking-wider text-muted-foreground">Ongkos Kirim (IDR)</label>
-                <Input
-                  type="number"
-                  value={inv.shipping}
-                  onChange={(e) => setInv((p) => ({ ...p, shipping: Number(e.target.value) }))}
-                  className="bg-white/5 border-white/10 text-white h-8 text-sm"
-                  min={0}
-                />
-              </div>
-
-              <div className="pt-3 border-t border-white/10 flex justify-between items-center">
-                <span className="font-semibold text-white uppercase tracking-wider text-sm">Total</span>
-                <span className="text-2xl font-heading text-primary">{formatCurrency(total)}</span>
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-xs uppercase tracking-wider text-muted-foreground">Jumlah Dibayar (IDR)</label>
-                <Input
-                  type="number"
-                  value={inv.paidAmount}
-                  onChange={(e) => setInv((p) => ({ ...p, paidAmount: Number(e.target.value) }))}
-                  className="bg-white/5 border-white/10 text-white h-8 text-sm"
-                  min={0}
-                />
-              </div>
-
-              <div className="pt-3 border-t border-primary/30 flex justify-between items-center bg-primary/5 -mx-5 px-5 py-3 rounded-b-xl">
-                <span className="font-heading text-white tracking-wider uppercase">Sisa Tagihan</span>
-                <span className={`text-2xl font-heading ${balanceDue > 0 ? "text-primary" : "text-green-400"}`}>
-                  {formatCurrency(balanceDue)}
-                </span>
+                <label className={label}>Ongkir (IDR)</label>
+                <Input type="number" min={0} value={inv.shipping} onChange={(e) => patch({ shipping: Number(e.target.value) })} className={`${field} h-8 text-sm`} />
               </div>
             </div>
 
-            <Button onClick={handleExportPdf} disabled={exporting}
-              className="w-full bg-white/10 hover:bg-white/20 text-white border border-white/20 font-heading tracking-wider mt-2">
-              <Download className="w-4 h-4 mr-2" />
-              {exporting ? "Generating PDF..." : "Download PDF"}
+            <div className="pt-3 border-t border-foreground/10 flex justify-between items-center">
+              <span className="font-semibold text-foreground uppercase tracking-wider text-sm">Total</span>
+              <span className="text-2xl font-heading text-primary">{formatCurrency(total)}</span>
+            </div>
+            <div className="flex justify-between text-sm"><span className="text-muted-foreground">Sudah dibayar</span><span className="text-green-400 font-medium">{formatCurrency(paid)}</span></div>
+
+            <div className="h-2 rounded-full bg-foreground/10 overflow-hidden">
+              <div className={`h-full rounded-full ${stage === "PAID" ? "bg-green-500" : "bg-primary"}`} style={{ width: `${paidPct}%` }} />
+            </div>
+
+            <div className="pt-3 border-t border-primary/30 flex justify-between items-center bg-primary/5 -mx-5 px-5 py-3">
+              <span className="font-heading text-foreground tracking-wider uppercase">{stage === "PAID" ? "Status" : "Sisa Tagihan"}</span>
+              <span className={`text-2xl font-heading ${balance > 0 ? "text-primary" : "text-green-400"}`}>{stage === "PAID" ? "LUNAS" : formatCurrency(balance)}</span>
+            </div>
+
+            <Button onClick={openPayment} disabled={payDisabled} className="w-full bg-green-600 hover:bg-green-600/90 text-white font-heading tracking-wider">
+              <Wallet className="w-4 h-4 mr-2" /> Tambah Pembayaran
             </Button>
           </div>
+
+          {/* Riwayat pembayaran */}
+          <div className="glass-panel rounded-xl p-5 border-foreground/10 space-y-3">
+            <p className="text-xs uppercase tracking-widest text-muted-foreground font-semibold">Riwayat Pembayaran</p>
+            {!invoiceId ? (
+              <p className="text-xs text-muted-foreground">Invoice akan disimpan otomatis saat kamu menekan “Tambah Pembayaran”.</p>
+            ) : payments.length === 0 ? (
+              <p className="text-xs text-muted-foreground">
+                {paid > 0 ? `Tercatat ${formatCurrency(paid)} dari data lama (tanpa rincian).` : "Belum ada pembayaran."}
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {payments.map((pm, i) => (
+                  <div key={pm.id} className="flex items-center justify-between gap-2 rounded-lg bg-foreground/5 border border-foreground/10 px-3 py-2">
+                    <div className="min-w-0">
+                      <p className="text-sm text-foreground font-medium">{formatCurrency(pm.amount)}</p>
+                      <p className="text-[11px] text-muted-foreground truncate">
+                        #{i + 1} · {pm.method}{pm.reference ? ` · ${pm.reference}` : ""} · {pm.paidAt ? new Date(pm.paidAt).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" }) : "-"}
+                      </p>
+                    </div>
+                    <div className="flex items-center shrink-0">
+                      <Button variant="ghost" size="icon" className="w-8 h-8 text-muted-foreground hover:text-green-400" title="Cetak kwitansi pembayaran ini" onClick={() => openDoc("receipt", pm.id)}>
+                        <Receipt className="w-4 h-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="w-8 h-8 text-muted-foreground hover:text-destructive" title="Hapus pembayaran" onClick={() => handleDeletePayment(pm.id)}>
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* ── Invoice Preview ── */}
+      {/* Preview */}
       <div className="mt-8">
-        <div className="flex items-center gap-2 mb-4">
+        <div className="flex items-center gap-2 mb-4 flex-wrap">
           <FileText className="w-4 h-4 text-primary" />
           <p className="text-xs uppercase tracking-widest text-muted-foreground font-semibold">Preview Invoice</p>
-          <span className="text-xs text-muted-foreground">(tampilan PDF yang akan diunduh)</span>
+          <span className="text-xs text-muted-foreground">(sama persis dengan hasil cetak / PDF)</span>
+          {previewLoading && <Loader2 className="w-3.5 h-3.5 animate-spin text-primary" />}
         </div>
-        <div className="overflow-x-auto">
-          <InvoicePreview
-            ref={previewRef}
-            inv={inv}
-            subtotal={subtotal}
-            taxAmount={taxAmount}
-            total={total}
-            balanceDue={balanceDue}
-            logoUrl={logoUrl}
-            clientName={clients?.find((c) => c.id === inv.clientId)?.name}
-          />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── Invoice Preview Document ─────────────────────────────────────────────────
-
-const InvoicePreview = forwardRef<
-  HTMLDivElement,
-  {
-    inv: InvoiceData;
-    subtotal: number;
-    taxAmount: number;
-    total: number;
-    balanceDue: number;
-    logoUrl: string;
-    clientName?: string;
-  }
->(({ inv, subtotal, taxAmount, total, balanceDue, logoUrl, clientName }, ref) => {
-  return (
-    <div
-      ref={ref}
-      style={{
-        background: "#fff",
-        color: "#111",
-        width: "794px",
-        minHeight: "1123px",
-        padding: "48px 56px 40px",
-        fontFamily: "'Inter', 'Helvetica Neue', Arial, sans-serif",
-        fontSize: "13px",
-        lineHeight: "1.55",
-        boxShadow: "0 4px 40px rgba(0,0,0,0.25)",
-        borderRadius: "4px",
-        display: "flex",
-        flexDirection: "column",
-      }}
-    >
-      {/* ── Header ── */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "24px" }}>
-        {/* Left: Logo + Company Info */}
-        <div style={{ maxWidth: "320px" }}>
-          {/* Logo */}
-          <div style={{ marginBottom: "14px", height: "72px", display: "flex", alignItems: "center" }}>
-            <img
-              src={logoUrl}
-              alt="Logo"
-              style={{ maxHeight: "72px", maxWidth: "240px", objectFit: "contain", objectPosition: "left center" }}
-              crossOrigin="anonymous"
-            />
-          </div>
-          {/* Company Info */}
-          <div style={{ fontSize: "12px", fontWeight: "700", color: "#111", marginBottom: "2px", letterSpacing: "0.3px" }}>
-            Frameless Creative Project PT
-          </div>
-          <div style={{ fontSize: "11px", color: "#555", lineHeight: "1.6", whiteSpace: "pre-line" }}>
-            {inv.fromAddress}
-          </div>
-        </div>
-
-        {/* Right: Invoice Title + Meta */}
-        <div style={{ textAlign: "right" }}>
-          <div style={{ fontSize: "38px", fontWeight: "900", letterSpacing: "5px", color: "#111", marginBottom: "12px", lineHeight: "1" }}>
-            INVOICE
-          </div>
-          <table style={{ marginLeft: "auto", borderCollapse: "collapse" }}>
-            <tbody>
-              <tr>
-                <td style={{ color: "#888", paddingRight: "16px", paddingBottom: "5px", fontSize: "10px", textTransform: "uppercase", letterSpacing: "1px" }}>Invoice #</td>
-                <td style={{ fontWeight: "700", paddingBottom: "5px", fontSize: "13px" }}>{inv.invoiceNumber}</td>
-              </tr>
-              <tr>
-                <td style={{ color: "#888", paddingRight: "16px", paddingBottom: "5px", fontSize: "10px", textTransform: "uppercase", letterSpacing: "1px" }}>Tanggal</td>
-                <td style={{ paddingBottom: "5px" }}>{inv.invoiceDate}</td>
-              </tr>
-              <tr>
-                <td style={{ color: "#888", paddingRight: "16px", paddingBottom: "5px", fontSize: "10px", textTransform: "uppercase", letterSpacing: "1px" }}>Jatuh Tempo</td>
-                <td style={{ paddingBottom: "5px", fontWeight: "700", color: "#c0392b" }}>{inv.dueDate}</td>
-              </tr>
-              {inv.paymentTerms && (
-                <tr>
-                  <td style={{ color: "#888", paddingRight: "16px", paddingBottom: "5px", fontSize: "10px", textTransform: "uppercase", letterSpacing: "1px" }}>Terms</td>
-                  <td style={{ paddingBottom: "5px" }}>{inv.paymentTerms}</td>
-                </tr>
-              )}
-              {inv.poNumber && (
-                <tr>
-                  <td style={{ color: "#888", paddingRight: "16px", fontSize: "10px", textTransform: "uppercase", letterSpacing: "1px" }}>PO #</td>
-                  <td>{inv.poNumber}</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* ── Orange Accent Divider ── */}
-      <div style={{ height: "3px", background: "linear-gradient(90deg, #ff6b35 0%, #ff9a35 60%, #ffd23520 100%)", marginBottom: "24px", borderRadius: "2px" }} />
-
-      {/* ── Bill To / Ship To ── */}
-      <div style={{ display: "grid", gridTemplateColumns: inv.shipTo ? "1fr 1fr" : "1fr 2fr", gap: "24px", marginBottom: "28px" }}>
-        <div style={{ background: "#f9f9f9", borderRadius: "6px", padding: "14px 16px", borderLeft: "3px solid #ff6b35" }}>
-          <div style={{ fontSize: "9px", letterSpacing: "3px", textTransform: "uppercase", color: "#999", marginBottom: "6px", fontWeight: "600" }}>Tagihan Kepada</div>
-          <div style={{ fontWeight: "700", fontSize: "14px", marginBottom: "3px" }}>
-            {clientName || inv.billTo?.split("\n")[0] || "—"}
-          </div>
-          {inv.billTo && (
-            <div style={{ color: "#555", whiteSpace: "pre-line", fontSize: "12px", lineHeight: "1.55" }}>
-              {inv.billTo.split("\n").slice(clientName ? 0 : 1).join("\n")}
-            </div>
-          )}
-        </div>
-        {inv.shipTo ? (
-          <div style={{ background: "#f9f9f9", borderRadius: "6px", padding: "14px 16px" }}>
-            <div style={{ fontSize: "9px", letterSpacing: "3px", textTransform: "uppercase", color: "#999", marginBottom: "6px", fontWeight: "600" }}>Dikirim Ke</div>
-            <div style={{ color: "#444", whiteSpace: "pre-line", fontSize: "12px" }}>{inv.shipTo}</div>
-          </div>
+        {previewError ? (
+          <div className="glass-panel rounded-xl p-6 text-sm text-red-400">{previewError}</div>
         ) : (
-          <div />
+          <iframe title="Preview invoice" srcDoc={previewHtml} className="w-full h-[80vh] min-h-[480px] rounded-lg border border-foreground/10 bg-[#d9dce1]" />
         )}
       </div>
 
-      {/* ── Line Items Table ── */}
-      <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: "20px" }}>
-        <thead>
-          <tr style={{ background: "#1a1a1a" }}>
-            <th style={{ textAlign: "left", padding: "10px 14px", color: "#fff", fontSize: "10px", letterSpacing: "2px", textTransform: "uppercase", fontWeight: "600" }}>Deskripsi Item / Layanan</th>
-            <th style={{ textAlign: "center", padding: "10px 14px", color: "#fff", fontSize: "10px", letterSpacing: "2px", textTransform: "uppercase", fontWeight: "600", width: "70px" }}>Qty</th>
-            <th style={{ textAlign: "right", padding: "10px 14px", color: "#fff", fontSize: "10px", letterSpacing: "2px", textTransform: "uppercase", fontWeight: "600", width: "150px" }}>Harga Satuan</th>
-            <th style={{ textAlign: "right", padding: "10px 14px", color: "#fff", fontSize: "10px", letterSpacing: "2px", textTransform: "uppercase", fontWeight: "600", width: "150px" }}>Jumlah</th>
-          </tr>
-        </thead>
-        <tbody>
-          {inv.items.map((item, idx) => (
-            <tr key={item.id} style={{ background: idx % 2 === 0 ? "#fafafa" : "#ffffff", borderBottom: "1px solid #ececec" }}>
-              <td style={{ padding: "10px 14px", color: "#222", fontSize: "13px" }}>{item.description || "—"}</td>
-              <td style={{ padding: "10px 14px", textAlign: "center", color: "#666" }}>{item.quantity}</td>
-              <td style={{ padding: "10px 14px", textAlign: "right", color: "#555" }}>{formatCurrency(item.unitPrice)}</td>
-              <td style={{ padding: "10px 14px", textAlign: "right", fontWeight: "600", color: "#111" }}>{formatCurrency(item.total)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-
-      {/* ── Totals (right-aligned) ── */}
-      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "16px" }}>
-        <div style={{ width: "340px" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: "16px" }}>
-            <tbody>
-              <tr>
-                <td style={{ padding: "5px 0", color: "#666", fontSize: "12px" }}>Subtotal</td>
-                <td style={{ padding: "5px 0", textAlign: "right", fontWeight: "500" }}>{formatCurrency(subtotal)}</td>
-              </tr>
-              {taxAmount > 0 && (
-                <tr>
-                  <td style={{ padding: "5px 0", color: "#666", fontSize: "12px" }}>PPN ({inv.taxRate}%)</td>
-                  <td style={{ padding: "5px 0", textAlign: "right", fontWeight: "500" }}>{formatCurrency(taxAmount)}</td>
-                </tr>
-              )}
-              {inv.discount > 0 && (
-                <tr>
-                  <td style={{ padding: "5px 0", color: "#666", fontSize: "12px" }}>Diskon</td>
-                  <td style={{ padding: "5px 0", textAlign: "right", fontWeight: "500", color: "#22c55e" }}>−{formatCurrency(inv.discount)}</td>
-                </tr>
-              )}
-              {inv.shipping > 0 && (
-                <tr>
-                  <td style={{ padding: "5px 0", color: "#666", fontSize: "12px" }}>Ongkos Kirim</td>
-                  <td style={{ padding: "5px 0", textAlign: "right", fontWeight: "500" }}>{formatCurrency(inv.shipping)}</td>
-                </tr>
-              )}
-              <tr style={{ borderTop: "2px solid #1a1a1a" }}>
-                <td style={{ padding: "10px 0 5px", fontWeight: "700", fontSize: "13px", letterSpacing: "1px", textTransform: "uppercase" }}>Total</td>
-                <td style={{ padding: "10px 0 5px", textAlign: "right", fontWeight: "800", fontSize: "17px", color: "#ff6b35" }}>{formatCurrency(total)}</td>
-              </tr>
-              {inv.paidAmount > 0 && (
-                <tr>
-                  <td style={{ padding: "4px 0", color: "#666", fontSize: "12px" }}>Sudah Dibayar</td>
-                  <td style={{ padding: "4px 0", textAlign: "right", color: "#22c55e", fontWeight: "600" }}>−{formatCurrency(inv.paidAmount)}</td>
-                </tr>
-              )}
-              <tr>
-                <td colSpan={2} style={{ padding: "0" }}>
-                  <div style={{ background: "#1a1a1a", borderRadius: "5px", padding: "10px 14px", display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "6px" }}>
-                    <span style={{ fontWeight: "700", fontSize: "13px", letterSpacing: "2px", textTransform: "uppercase", color: "#fff" }}>Sisa Tagihan</span>
-                    <span style={{ fontWeight: "900", fontSize: "20px", color: "#ff6b35" }}>{formatCurrency(balanceDue)}</span>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-
-          {/* BCA Payment — di bawah total, kanan */}
-          <div>
-            <div style={{ fontSize: "9px", letterSpacing: "3px", textTransform: "uppercase", color: "#999", marginBottom: "8px", fontWeight: "600" }}>Informasi Pembayaran</div>
-            <div style={{ border: "1.5px solid #1a4f9b", borderRadius: "8px", padding: "12px 16px", background: "#f0f5ff" }}>
-              <div style={{ fontSize: "9px", color: "#1a4f9b", textTransform: "uppercase", letterSpacing: "1px", fontWeight: "600", marginBottom: "2px" }}>Bank Central Asia</div>
-              <div style={{ fontSize: "16px", fontWeight: "800", color: "#1a4f9b", letterSpacing: "2px", fontFamily: "monospace" }}>239-0777895</div>
-              <div style={{ fontSize: "9px", fontWeight: "700", color: "#1a4f9b", letterSpacing: "0.5px", textTransform: "uppercase" }}>FRAMELESS CREATIVE PROJECT PT</div>
-            </div>
-            <div style={{ fontSize: "10px", color: "#888", marginTop: "6px", lineHeight: "1.55" }}>
-              Sertakan nomor invoice pada berita transfer.
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ── Catatan + Syarat & Ketentuan (bawah, full-width 2-col) ── */}
-      {(inv.notes || inv.terms) && (
-        <div style={{ display: "grid", gridTemplateColumns: inv.notes && inv.terms ? "1fr 1fr" : "1fr", gap: "28px", borderTop: "1px solid #ececec", paddingTop: "18px", marginBottom: "20px" }}>
-          {inv.notes && (
-            <div>
-              <div style={{ fontSize: "9px", letterSpacing: "3px", textTransform: "uppercase", color: "#999", marginBottom: "5px", fontWeight: "600" }}>Catatan</div>
-              <div style={{ color: "#444", fontSize: "12px", lineHeight: "1.65", whiteSpace: "pre-line" }}>{inv.notes}</div>
-            </div>
-          )}
-          {inv.terms && (
-            <div>
-              <div style={{ fontSize: "9px", letterSpacing: "3px", textTransform: "uppercase", color: "#999", marginBottom: "5px", fontWeight: "600" }}>Syarat & Ketentuan</div>
-              <div style={{ color: "#555", fontSize: "11px", lineHeight: "1.7", whiteSpace: "pre-line" }}>{inv.terms}</div>
-            </div>
-          )}
-        </div>
+      <CompanyProfileDialog open={settingsOpen} onOpenChange={setSettingsOpen} onSaved={() => setPreviewNonce((n) => n + 1)} />
+      <InvoiceDocDialog invoiceId={invoiceId} open={docOpen} onOpenChange={setDocOpen} initialDoc={docKind} initialPaymentId={docPaymentId} />
+      {invoiceId && (
+        <InvoicePaymentDialog
+          open={payOpen}
+          onOpenChange={setPayOpen}
+          invoiceId={invoiceId}
+          invoiceNumber={inv.invoiceNumber}
+          total={total}
+          paid={paid}
+          onSaved={refreshInvoice}
+          onPrintReceipt={(pid) => { setDocKind("receipt"); setDocPaymentId(pid); setDocOpen(true); }}
+        />
       )}
-
-      {/* ── Spacer ── */}
-      <div style={{ flex: 1 }} />
-
-      {/* ── Official Footer ── */}
-      <div style={{ borderTop: "2px solid #1a1a1a", paddingTop: "16px", marginTop: "16px" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-          <div>
-            <div style={{ fontWeight: "800", fontSize: "12px", letterSpacing: "2px", color: "#111", textTransform: "uppercase", marginBottom: "3px" }}>
-              Frameless Creative Project PT
-            </div>
-            <div style={{ fontSize: "10px", color: "#888", lineHeight: "1.6" }}>
-              Dokumen ini merupakan invoice resmi yang diterbitkan oleh Frameless Creative Project PT.<br />
-              Invoice ini sah tanpa tanda tangan dan cap basah. Berlaku sesuai syarat & ketentuan yang tertera.
-            </div>
-          </div>
-          <div style={{ textAlign: "right", flexShrink: 0 }}>
-            <div style={{ fontSize: "10px", color: "#999", marginBottom: "3px" }}>Dicetak pada</div>
-            <div style={{ fontSize: "11px", fontWeight: "600", color: "#555" }}>
-              {new Date().toLocaleDateString("id-ID", { day: "2-digit", month: "long", year: "numeric" })}
-            </div>
-            <div style={{ marginTop: "8px", display: "flex", alignItems: "center", gap: "6px", justifyContent: "flex-end" }}>
-              <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#ff6b35" }} />
-              <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#ff9a35" }} />
-              <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#ffd235" }} />
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
   );
-});
-
-InvoicePreview.displayName = "InvoicePreview";
+}

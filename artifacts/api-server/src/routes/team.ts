@@ -3,6 +3,8 @@ import { db, teamMembersTable, projectTasksTable, teamAvailabilityTable, project
 import { eq } from "drizzle-orm";
 import crypto from "crypto";
 import { logger } from "../lib/logger.js";
+import { isAdminRequest } from "../middlewares/auth.js";
+import { getCrewMemberIdFromToken } from "./crew.js";
 
 const router: IRouter = Router();
 
@@ -38,6 +40,35 @@ function mapMember(m: any) {
     createdAt: m.createdAt ?? m.created_at,
     updatedAt: m.updatedAt ?? m.updated_at,
   };
+}
+
+/** Field yang aman ditampilkan di landing page publik (tanpa email/telepon/status login). */
+function mapPublicMember(m: any) {
+  const full = mapMember(m);
+  return {
+    id: full.id,
+    name: full.name,
+    role: full.role,
+    department: full.department,
+    avatarUrl: full.avatarUrl,
+    username: full.username,
+    whatsapp: full.whatsapp,
+    instagram: full.instagram,
+    linkedin: full.linkedin,
+    twitter: full.twitter,
+    website: full.website,
+    isActive: full.isActive,
+    orderIndex: full.orderIndex,
+  };
+}
+
+/** Admin atau crew yang login boleh melihat detail lengkap. */
+async function canSeeTeamDetails(req: any): Promise<boolean> {
+  const h = req.headers.authorization;
+  if (typeof h === "string" && h.startsWith("Bearer ")) {
+    if (getCrewMemberIdFromToken(h.slice(7).trim())) return true;
+  }
+  return isAdminRequest(req);
 }
 
 const columnMap: Record<string, string> = {
@@ -112,7 +143,8 @@ router.get("/team", async (_req, res): Promise<void> => {
         ORDER BY order_index
     `);
 
-    res.json(r.rows.map(mapMember));
+    const detailed = await canSeeTeamDetails(_req);
+    res.json(r.rows.map(detailed ? mapMember : mapPublicMember));
 
   } catch (err) {
     logger.error({ err }, "team.get.error");
@@ -127,6 +159,10 @@ router.get("/team", async (_req, res): Promise<void> => {
 
 router.get("/team/:id", async (req, res): Promise<void> => {
   try {
+    if (!(await canSeeTeamDetails(req))) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
     const id = String(req.params.id);
 
     const [member] = await db

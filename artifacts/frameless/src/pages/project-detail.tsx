@@ -115,13 +115,13 @@ export default function ProjectDetailPage() {
     <div className="space-y-8 pb-8">
       <div className="flex items-center gap-4">
         <a href="/projects">
-          <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-white">
+          <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
             <ArrowLeft className="w-5 h-5" />
           </Button>
         </a>
         <div className="flex-1">
           <div className="flex items-center gap-3 flex-wrap">
-            <h1 className="text-4xl font-heading tracking-wider text-white">{project.title}</h1>
+            <h1 className="text-4xl font-heading tracking-wider text-foreground">{project.title}</h1>
             <Badge className={`text-xs border uppercase tracking-wider ${STATUS_COLORS[project.status] || ""}`}>
               {project.status?.replace("_", " ")}
             </Badge>
@@ -133,7 +133,7 @@ export default function ProjectDetailPage() {
               <select
                 value={project.assignedMemberId || ""}
                 onChange={(e) => updateProject.mutate({ id, data: { assignedMemberId: e.target.value || null } })}
-                className="bg-white/5 border-white/10 text-white text-sm rounded px-2 py-1"
+                className="bg-foreground/5 border-foreground/10 text-foreground text-sm rounded px-2 py-1"
               >
                 <option value="">Unassigned</option>
                 {members?.map(m => (
@@ -154,7 +154,7 @@ export default function ProjectDetailPage() {
       </div>
 
       {/* Progress */}
-      <Card className="glass-panel border-white/10">
+      <Card className="glass-panel border-foreground/10">
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
             <CardTitle className="uppercase tracking-widest text-sm text-muted-foreground font-semibold">Progress</CardTitle>
@@ -162,14 +162,14 @@ export default function ProjectDetailPage() {
           </div>
         </CardHeader>
         <CardContent>
-          <Progress value={project.progress ?? 0} className="h-3 bg-white/10 mb-4" />
+          <Progress value={project.progress ?? 0} className="h-3 bg-foreground/10 mb-4" />
           <div className="flex items-center gap-3">
             <Input
               type="number"
               min={0}
               max={100}
               placeholder="Update progress %"
-              className="bg-white/5 border-white/10 text-white w-40"
+              className="bg-foreground/5 border-foreground/10 text-foreground w-40"
               id="progress-input"
             />
             <Button
@@ -190,14 +190,14 @@ export default function ProjectDetailPage() {
       {/* Tasks */}
       <div>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-heading tracking-wider text-white">Task List</h2>
+          <h2 className="text-xl font-heading tracking-wider text-foreground">Task List</h2>
           <Dialog open={taskOpen} onOpenChange={setTaskOpen}>
             <DialogTrigger asChild>
               <Button size="sm" className="bg-primary/20 text-primary hover:bg-primary hover:text-white border border-primary/30 font-heading tracking-wider">
                 <Plus className="w-4 h-4 mr-1" /> Add Task
               </Button>
             </DialogTrigger>
-            <DialogContent className="bg-card border-white/10 text-white">
+            <DialogContent className="bg-card border-foreground/10 text-foreground">
               <DialogHeader>
                 <DialogTitle className="font-heading tracking-wider">Add Task</DialogTitle>
               </DialogHeader>
@@ -212,10 +212,10 @@ export default function ProjectDetailPage() {
         </div>
         <div className="space-y-3">
           {tasks?.map((task) => (
-            <div key={task.id} className="glass-panel border-white/5 rounded-lg p-4 flex items-center justify-between gap-4 group">
+            <div key={task.id} className="glass-panel border-foreground/5 rounded-lg p-4 flex items-center justify-between gap-4 group">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap mb-1">
-                  <p className="text-sm font-medium text-white">{task.title}</p>
+                  <p className="text-sm font-medium text-foreground">{task.title}</p>
                   <Badge className={`text-xs border uppercase tracking-wider ${TASK_STATUS_COLORS[task.status] || ""}`}>
                     {task.status?.replace("_", " ")}
                   </Badge>
@@ -259,12 +259,12 @@ export default function ProjectDetailPage() {
       </div>
 
       {project.description && (
-        <Card className="glass-panel border-white/10">
+        <Card className="glass-panel border-foreground/10">
           <CardHeader>
             <CardTitle className="uppercase tracking-widest text-sm text-muted-foreground font-semibold">Notes</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-white/80 leading-relaxed">{project.description}</p>
+            <p className="text-sm text-foreground/80 leading-relaxed">{project.description}</p>
           </CardContent>
         </Card>
       )}
@@ -272,21 +272,21 @@ export default function ProjectDetailPage() {
       {/* Edit Task Modal */}
       {editingTask && (
         <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
-          <div className="bg-card border border-white/10 rounded-2xl p-6 w-full max-w-md">
+          <div className="bg-card border border-foreground/10 rounded-2xl p-6 w-full max-w-md">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-white">Edit Task</h3>
-              <button onClick={() => setEditingTask(null)} className="text-muted-foreground hover:text-white">Close</button>
+              <h3 className="text-lg font-bold text-foreground">Edit Task</h3>
+              <button onClick={() => setEditingTask(null)} className="text-muted-foreground hover:text-foreground">Close</button>
             </div>
             <div className="space-y-3">
               <div>
                 <label className="text-xs uppercase tracking-wider text-muted-foreground">Title</label>
-                <Input value={editingTask.title} onChange={(e) => setEditingTask((t:any)=>({...t,title:e.target.value}))} className="bg-white/5 border-white/10 text-white" />
+                <Input value={editingTask.title} onChange={(e) => setEditingTask((t:any)=>({...t,title:e.target.value}))} className="bg-foreground/5 border-foreground/10 text-foreground" />
               </div>
               <div>
                 <label className="text-xs uppercase tracking-wider text-muted-foreground">Status</label>
                 <Select value={editingTask.status} onValueChange={(v) => setEditingTask((t:any)=>({...t,status:v}))}>
-                  <SelectTrigger className="bg-white/5 border-white/10 text-white"><SelectValue /></SelectTrigger>
-                  <SelectContent className="bg-card border-white/10">
+                  <SelectTrigger className="bg-foreground/5 border-foreground/10 text-foreground"><SelectValue /></SelectTrigger>
+                  <SelectContent className="bg-card border-foreground/10">
                     <SelectItem value="TODO">To Do</SelectItem>
                     <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
                     <SelectItem value="DONE">Done</SelectItem>
@@ -295,7 +295,7 @@ export default function ProjectDetailPage() {
               </div>
               <div>
                 <label className="text-xs uppercase tracking-wider text-muted-foreground">Assign To</label>
-                <select value={editingTask.memberId || ""} onChange={(e)=>setEditingTask((t:any)=>({...t,memberId:e.target.value||undefined}))} className="bg-white/5 border-white/10 text-white w-full p-2 rounded">
+                <select value={editingTask.memberId || ""} onChange={(e)=>setEditingTask((t:any)=>({...t,memberId:e.target.value||undefined}))} className="bg-foreground/5 border-foreground/10 text-foreground w-full p-2 rounded">
                   <option value="">Unassigned</option>
                   {members?.map(m => <option key={m.id} value={m.id}>{m.name} — {m.role}</option>)}
                 </select>
@@ -310,7 +310,7 @@ export default function ProjectDetailPage() {
       )}
 
       {/* Project Files (Internal Crew Work) */}
-      <Card className="glass-panel border-white/10 mt-6">
+      <Card className="glass-panel border-foreground/10 mt-6">
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2">
@@ -328,7 +328,7 @@ export default function ProjectDetailPage() {
           {projectFiles.length > 0 ? (
             <div className="space-y-3">
               {projectFiles.map((file: any) => (
-                <div key={file.id} className="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/10">
+                <div key={file.id} className="flex items-center justify-between p-3 bg-foreground/5 rounded-xl border border-foreground/10">
                   <div>
                     <div className="font-semibold text-sm">{file.title}</div>
                     <div className="text-xs text-muted-foreground">
@@ -359,13 +359,13 @@ export default function ProjectDetailPage() {
 
 function StatCard({ icon: Icon, label, value }: { icon: any; label: string; value: string }) {
   return (
-    <Card className="glass-panel border-white/5">
+    <Card className="glass-panel border-foreground/5">
       <CardContent className="p-4">
         <div className="flex items-center gap-2 mb-2">
           <Icon className="w-4 h-4 text-primary" />
           <span className="text-xs uppercase tracking-wider text-muted-foreground">{label}</span>
         </div>
-        <p className="text-sm font-semibold text-white">{value}</p>
+        <p className="text-sm font-semibold text-foreground">{value}</p>
       </CardContent>
     </Card>
   );
@@ -388,16 +388,16 @@ function NewTaskForm({ onSubmit, isPending, members, defaultMemberId }: { onSubm
       <div className="space-y-1">
         <label className="text-xs uppercase tracking-wider text-muted-foreground">Task</label>
         <Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })}
-          required className="bg-white/5 border-white/10 text-white" placeholder="Task description" />
+          required className="bg-foreground/5 border-foreground/10 text-foreground" placeholder="Task description" />
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1">
           <label className="text-xs uppercase tracking-wider text-muted-foreground">Status</label>
           <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
-            <SelectTrigger className="bg-white/5 border-white/10 text-white">
+            <SelectTrigger className="bg-foreground/5 border-foreground/10 text-foreground">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent className="bg-card border-white/10">
+            <SelectContent className="bg-card border-foreground/10">
               <SelectItem value="TODO">To Do</SelectItem>
               <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
               <SelectItem value="DONE">Done</SelectItem>
@@ -407,10 +407,10 @@ function NewTaskForm({ onSubmit, isPending, members, defaultMemberId }: { onSubm
         <div className="space-y-1">
           <label className="text-xs uppercase tracking-wider text-muted-foreground">Priority</label>
           <Select value={form.priority} onValueChange={(v) => setForm({ ...form, priority: v })}>
-            <SelectTrigger className="bg-white/5 border-white/10 text-white">
+            <SelectTrigger className="bg-foreground/5 border-foreground/10 text-foreground">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent className="bg-card border-white/10">
+            <SelectContent className="bg-card border-foreground/10">
               <SelectItem value="low">Low</SelectItem>
               <SelectItem value="medium">Medium</SelectItem>
               <SelectItem value="high">High</SelectItem>
@@ -421,11 +421,11 @@ function NewTaskForm({ onSubmit, isPending, members, defaultMemberId }: { onSubm
       <div className="space-y-1">
         <label className="text-xs uppercase tracking-wider text-muted-foreground">Due Date</label>
         <Input type="date" value={form.dueDate as string || ""} onChange={(e) => setForm({ ...form, dueDate: e.target.value })}
-          className="bg-white/5 border-white/10 text-white" />
+          className="bg-foreground/5 border-foreground/10 text-foreground" />
       </div>
       <div className="space-y-1">
         <label className="text-xs uppercase tracking-wider text-muted-foreground">Assign To</label>
-        <select value={form.memberId || ""} onChange={(e) => setForm({ ...form, memberId: e.target.value || undefined } as CreateTaskBody)} className="bg-white/5 border-white/10 text-white">
+        <select value={form.memberId || ""} onChange={(e) => setForm({ ...form, memberId: e.target.value || undefined } as CreateTaskBody)} className="bg-foreground/5 border-foreground/10 text-foreground">
           <option value="">Unassigned</option>
           {members?.map(m => (
             <option key={m.id} value={m.id}>{m.name} — {m.role}</option>

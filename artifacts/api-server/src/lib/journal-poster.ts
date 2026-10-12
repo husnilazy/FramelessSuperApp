@@ -188,6 +188,75 @@ export async function postInvoiceJournal(invoiceId: string): Promise<PostResult>
   }
 }
 
+/**
+ * Jurnal per PEMBAYARAN invoice (DP, termin, pelunasan) — basis kas.
+ * Dilewati bila: pembayaran ini sudah dijurnal, atau invoice sudah punya jurnal lama
+ * (source_type = 'invoice', dibuat sebelum jurnal per pembayaran ada) agar tidak ganda.
+ */
+export async function postPaymentJournal(paymentId: string): Promise<PostResult> {
+  try {
+    const r = await db.execute(sql`
+      SELECT p.id, p.amount, p."paidAt", p."invoiceId", i.number, i.total, c.name AS client_name,
+        (SELECT COALESCE(SUM(p2.amount), 0) FROM payments p2
+           WHERE p2."invoiceId" = p."invoiceId" AND (p2."paidAt" < p."paidAt" OR (p2."paidAt" = p."paidAt" AND p2.id < p.id))) AS before_paid,
+        (SELECT COUNT(*) FROM payments p3
+           WHERE p3."invoiceId" = p."invoiceId" AND (p3."paidAt" < p."paidAt" OR (p3."paidAt" = p."paidAt" AND p3.id < p.id))) AS before_n
+      FROM payments p
+      JOIN invoices i ON i.id = p."invoiceId"
+      LEFT JOIN clients c ON c.id = i."clientId"
+      WHERE p.id = ${paymentId} LIMIT 1
+    `);
+    const rows = (r as any).rows || r;
+    const pay = Array.isArray(rows) ? rows[0] : null;
+    if (!pay) return { success: false, skipped: false, error: "Pembayaran tidak ditemukan" };
+
+    const legacy = await db.execute(sql`
+      SELECT id FROM journal_entries
+      WHERE source_type = 'invoice' AND source_id = ${pay.invoiceId} AND status != 'VOID' LIMIT 1
+    `);
+    const lrows = (legacy as any).rows || legacy;
+    if (Array.isArray(lrows) && lrows.length > 0) {
+      return { success: false, skipped: true, reason: "Invoice sudah punya jurnal lama — dilewati" };
+    }
+
+    const amount = Number(pay.amount);
+    if (amount <= 0) return { success: false, skipped: true, reason: "amount = 0, skip" };
+
+    const mapping = await resolveMapping("default", "invoice_payment") ?? { debitCode: "1-1200", creditCode: "4-1000" };
+    const cumulative = Number(pay.before_paid) + amount;
+    const label =
+      cumulative >= Number(pay.total) - 0.5 ? (Number(pay.before_n) === 0 ? "pelunasan" : "pelunasan")
+      : Number(pay.before_n) === 0 ? "DP" : `termin ${Number(pay.before_n) + 1}`;
+    const client = pay.client_name ?? "Klien";
+
+    return createDoubleEntry({
+      date:        new Date(pay.paidAt).toISOString().slice(0, 10),
+      type:        "INVOICE",
+      description: `Pembayaran invoice ${pay.number} (${label}) — ${client}`,
+      sourceType:  "invoice_payment",
+      sourceId:    paymentId,
+      debitCode:   mapping.debitCode,
+      creditCode:  mapping.creditCode,
+      amount,
+      notes:       `Invoice #${pay.number}, Klien: ${client}`,
+    });
+  } catch (e: any) {
+    return { success: false, skipped: false, error: e?.message ?? String(e) };
+  }
+}
+
+/** Batalkan jurnal (void) milik pembayaran tertentu. */
+export async function voidPaymentJournal(paymentId: string): Promise<void> {
+  try {
+    await db.execute(sql`
+      UPDATE journal_entries SET status = 'VOID', updated_at = NOW()
+      WHERE source_type = 'invoice_payment' AND source_id = ${paymentId} AND status != 'VOID'
+    `);
+  } catch {
+    /* tabel jurnal belum ada */
+  }
+}
+
 export async function postExpenseJournal(expenseId: string): Promise<PostResult> {
   try {
     const result = await db.execute(sql`SELECT * FROM expenses WHERE id = ${expenseId} LIMIT 1`);

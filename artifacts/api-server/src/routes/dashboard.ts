@@ -1,3 +1,4 @@
+import { loadCashEvents } from "../lib/invoice-cash.js";
 import { Router, type IRouter } from "express";
 import { db, pool, projectsTable, clientsTable, teamMembersTable, invoicesTable, expensesTable, activityLogsTable } from "@workspace/db";
 import { eq, desc, sql } from "drizzle-orm";
@@ -117,13 +118,19 @@ router.get("/dashboard/stats", async (_req, res): Promise<void> => {
     const totalRevenue = invoiceRevenue + manualRevenue;
     const totalExpenses = expenses.reduce((s: number, e: any) => s + Number(e.amount || 0), 0);
 
-    const pendingInvoices = invoices.filter((i: any) => i.status === "DRAFT" || i.status === "SENT" || (i.status !== "PAID" && Number(i.paidAmount || 0) < Number(i.total || 0)));
+    // Piutang = invoice yang SUDAH ditagihkan (bukan Draft/Batal/Lunas) dan masih ada sisa.
+    // Draft belum dikirim ke klien, jadi tidak ikut dihitung sebagai piutang / terlambat.
+    const receivables = invoices.filter(
+      (i: any) =>
+        !["PAID", "DRAFT", "CANCELLED"].includes(i.status) &&
+        Number(i.total || 0) - Number(i.paidAmount || 0) > 0.5,
+    );
+    const pendingInvoices = receivables;
     const now = new Date();
     const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-    const overdueInvoices = invoices.filter((i: any) => i.status !== "PAID" && i.dueDate && new Date(i.dueDate) < now).length;
-    const dueSoonInvoices = invoices.filter((i: any) =>
-      i.status !== "PAID" && i.dueDate &&
-      new Date(i.dueDate) >= now && new Date(i.dueDate) <= sevenDaysFromNow
+    const overdueInvoices = receivables.filter((i: any) => i.dueDate && new Date(i.dueDate) < now).length;
+    const dueSoonInvoices = receivables.filter((i: any) =>
+      i.dueDate && new Date(i.dueDate) >= now && new Date(i.dueDate) <= sevenDaysFromNow
     ).length;
 
     // Leads from clients (prospect or inquiry notes) - for dashboard info
@@ -144,7 +151,7 @@ router.get("/dashboard/stats", async (_req, res): Promise<void> => {
       pendingInvoices: pendingInvoices.length,
       overdueInvoices,
       dueSoonInvoices,
-      pendingInvoiceAmount: pendingInvoices.reduce((s: number, i: any) => s + Number(i.total || 0), 0),
+      pendingInvoiceAmount: pendingInvoices.reduce((s: number, i: any) => s + (Number(i.total || 0) - Number(i.paidAmount || 0)), 0),
       leads,
     });
   } catch (err) {
@@ -159,7 +166,7 @@ router.get("/invoices/notifications", async (_req, res): Promise<void> => {
     const now = new Date();
     const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
 
-    const unpaid = (invoices as any[]).filter(i => i.status !== "PAID" && i.dueDate);
+    const unpaid = (invoices as any[]).filter(i => !["PAID", "DRAFT", "CANCELLED"].includes(i.status) && i.dueDate && Number(i.total || 0) - Number(i.paidAmount || 0) > 0.5);
 
     const overdue = unpaid
       .filter(i => new Date(i.dueDate) < now)
@@ -308,6 +315,7 @@ router.get("/activity", async (req, res): Promise<void> => {
 });
 
 async function getCashFlowData(months: number) {
+  const cashEvents = await loadCashEvents();
   const [invoices, expenses, incomeRows] = await Promise.all([
     db.select().from(invoicesTable),
     db.select().from(expensesTable),
@@ -325,13 +333,13 @@ async function getCashFlowData(months: number) {
     const nextDate = new Date(now.getFullYear(), now.getMonth() - i + 1, 1);
     const monthLabel = date.toLocaleString("default", { month: "short", year: "numeric" });
 
-    const invoiceIncome = invoices
-      .filter((inv: InvoiceRow) => {
-        if (inv.status !== "PAID") return false;
-        const ref = inv.paidAt ? new Date(inv.paidAt) : inv.updatedAt ? new Date(inv.updatedAt) : inv.createdAt ? new Date(inv.createdAt) : null;
-        return !!ref && ref >= date && ref < nextDate;
+    // Uang masuk invoice dihitung per tanggal PEMBAYARAN (DP & termin ikut terhitung di bulan masing-masing)
+    const invoiceIncome = cashEvents
+      .filter((ev) => {
+        const d = new Date(ev.date);
+        return d >= date && d < nextDate;
       })
-      .reduce((s: number, inv: InvoiceRow) => s + Number(inv.paidAmount || inv.total), 0);
+      .reduce((s: number, ev) => s + ev.amount, 0);
 
     const manualIncome = (incomeRows || [])
       .filter((e: any) => e.date && new Date(e.date) >= date && new Date(e.date) < nextDate)

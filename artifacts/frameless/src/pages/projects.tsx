@@ -22,23 +22,23 @@ interface Project {
   createdAt: string; updatedAt: string; tasks?: Task[];
 }
 
-const OR = "#FF6A20";
+const OR = "hsl(var(--primary))";
 const FONT = "'Plus Jakarta Sans',sans-serif";
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; dot: string }> = {
-  planning:        { label: "Planning",        color: "#a78bfa", bg: "rgba(167,139,250,.1)", dot: "#a78bfa" },
-  active:          { label: "Active",          color: "#4ade80", bg: "rgba(74,222,128,.1)", dot: "#4ade80" },
-  shooting:        { label: "Shooting",        color: "#fb923c", bg: "rgba(251,146,60,.1)", dot: "#fb923c" },
+  planning:        { label: "Planning",        color: "var(--c-violet)", bg: "rgba(167,139,250,.1)", dot: "var(--c-violet)" },
+  active:          { label: "Active",          color: "var(--c-green)", bg: "rgba(74,222,128,.1)", dot: "var(--c-green)" },
+  shooting:        { label: "Shooting",        color: "var(--c-amber)", bg: "rgba(251,146,60,.1)", dot: "var(--c-amber)" },
   post_production: { label: "Post Production", color: "#facc15", bg: "rgba(250,204,21,.1)", dot: "#facc15" },
   client_review:   { label: "Client Review",   color: "#6366f1", bg: "rgba(99,102,241,.1)", dot: "#6366f1" },
-  final:           { label: "Final",           color: "#22c55e", bg: "rgba(34,197,94,.1)", dot: "#22c55e" },
-  completed:       { label: "Completed",       color: "#60a5fa", bg: "rgba(96,165,250,.1)", dot: "#60a5fa" },
+  final:           { label: "Final",           color: "var(--c-green)", bg: "rgba(34,197,94,.1)", dot: "var(--c-green)" },
+  completed:       { label: "Completed",       color: "var(--c-blue)", bg: "rgba(96,165,250,.1)", dot: "var(--c-blue)" },
 };
 
 const PRIORITY_CONFIG: Record<string, { label: string; color: string }> = {
   high: { label: "High", color: OR },
-  medium: { label: "Medium", color: "#fbbf24" },
-  low: { label: "Low", color: "rgba(255,255,255,.4)" },
+  medium: { label: "Medium", color: "var(--c-amber)" },
+  low: { label: "Low", color: "rgb(var(--ink) / calc(.4 + var(--ink-boost)))" },
 };
 
 const PROJECT_TYPES = ["Commercial", "Music Video", "Short Film", "Documentary", "Wedding", "Social Media", "Corporate", "Event", "Other"];
@@ -58,7 +58,7 @@ async function apiFetch(path: string, opts: RequestInit = {}) {
 
 // ── Status badge ───────────────────────────────────────────────────────────────
 function StatusBadge({ status }: { status: string }) {
-  const cfg = STATUS_CONFIG[status] || { label: status, color: "rgba(255,255,255,.5)", bg: "rgba(255,255,255,.07)", dot: "rgba(255,255,255,.4)" };
+  const cfg = STATUS_CONFIG[status] || { label: status, color: "rgb(var(--ink) / calc(.5 + var(--ink-boost)))", bg: "rgb(var(--ink) / .07)", dot: "rgb(var(--ink) / .4)" };
   return (
     <span style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "3px 10px", borderRadius: 100, background: cfg.bg, fontSize: 11, fontWeight: 700, color: cfg.color, letterSpacing: ".04em", whiteSpace: "nowrap" }}>
       <span style={{ width: 5, height: 5, borderRadius: "50%", background: cfg.dot, display: "inline-block" }} />
@@ -69,14 +69,14 @@ function StatusBadge({ status }: { status: string }) {
 
 // ── Priority dot ───────────────────────────────────────────────────────────────
 function PriorityDot({ priority }: { priority: string }) {
-  const cfg = PRIORITY_CONFIG[priority] || { label: priority, color: "rgba(255,255,255,.4)" };
+  const cfg = PRIORITY_CONFIG[priority] || { label: priority, color: "rgb(var(--ink) / calc(.4 + var(--ink-boost)))" };
   return <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, color: cfg.color, fontWeight: 600 }}><span style={{ width: 6, height: 6, borderRadius: "50%", background: cfg.color, display: "inline-block" }} />{cfg.label}</span>;
 }
 
 // ── Progress bar ───────────────────────────────────────────────────────────────
 function ProgressBar({ value, color = OR }: { value: number; color?: string }) {
   return (
-    <div style={{ width: "100%", height: 4, borderRadius: 100, background: "rgba(255,255,255,.07)", overflow: "hidden" }}>
+    <div style={{ width: "100%", height: 4, borderRadius: 100, background: "rgb(var(--ink) / .07)", overflow: "hidden" }}>
       <div style={{ height: "100%", width: `${Math.min(100, Math.max(0, value))}%`, borderRadius: 100, background: color, transition: "width .5s ease" }} />
     </div>
   );
@@ -87,17 +87,17 @@ function KanbanCard({ project, onEdit, onDelete }: { project: Project; onEdit: (
   const daysLeft = project.deadline ? Math.ceil((new Date(project.deadline).getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : null;
   const isOverdue = daysLeft !== null && daysLeft < 0;
   return (
-    <div style={{ background: "rgba(255,255,255,.04)", border: `1px solid ${isOverdue ? "rgba(248,113,113,.3)" : "rgba(255,255,255,.07)"}`, borderRadius: 16, padding: "16px", marginBottom: 10, cursor: "pointer", transition: "border-color .2s,transform .2s,box-shadow .2s" }}
-      onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.borderColor = OR + "44"; el.style.transform = "translateY(-2px)"; el.style.boxShadow = `0 8px 32px rgba(0,0,0,.3)`; }}
-      onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.borderColor = isOverdue ? "rgba(248,113,113,.3)" : "rgba(255,255,255,.07)"; el.style.transform = "translateY(0)"; el.style.boxShadow = "none"; }}>
+    <div style={{ background: "rgb(var(--ink) / .04)", border: `1px solid ${isOverdue ? "rgba(248,113,113,.3)" : "rgb(var(--ink) / .07)"}`, borderRadius: 16, padding: "16px", marginBottom: 10, cursor: "pointer", transition: "border-color .2s,transform .2s,box-shadow .2s" }}
+      onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.borderColor = `color-mix(in srgb, ${OR} 27%, transparent)`; el.style.transform = "translateY(-2px)"; el.style.boxShadow = `0 8px 32px rgba(0,0,0,.3)`; }}
+      onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.borderColor = isOverdue ? "rgba(248,113,113,.3)" : "rgb(var(--ink) / .07)"; el.style.transform = "translateY(0)"; el.style.boxShadow = "none"; }}>
       {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
         <div style={{ flex: 1, minWidth: 0, paddingRight: 8 }}>
-          <h4 style={{ fontSize: 13, fontWeight: 700, color: "#fff", margin: 0, lineHeight: 1.3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{project.title}</h4>
-          <p style={{ fontSize: 11, color: "rgba(255,255,255,.4)", margin: "3px 0 0" }}>{project.client || "—"}</p>
+          <h4 style={{ fontSize: 13, fontWeight: 700, color: "hsl(var(--foreground))", margin: 0, lineHeight: 1.3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{project.title}</h4>
+          <p style={{ fontSize: 11, color: "rgb(var(--ink) / calc(.4 + var(--ink-boost)))", margin: "3px 0 0" }}>{project.client || "—"}</p>
         </div>
         <div style={{ display: "flex", gap: 4 }}>
-          <button onClick={e => { e.stopPropagation(); onEdit(project); }} style={{ width: 24, height: 24, borderRadius: 6, background: "none", border: "none", cursor: "pointer", color: "rgba(255,255,255,.4)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <button onClick={e => { e.stopPropagation(); onEdit(project); }} style={{ width: 24, height: 24, borderRadius: 6, background: "none", border: "none", cursor: "pointer", color: "rgb(var(--ink) / calc(.4 + var(--ink-boost)))", display: "flex", alignItems: "center", justifyContent: "center" }}>
             <Edit3 size={11} />
           </button>
           <button onClick={e => { e.stopPropagation(); onDelete(project.id); }} style={{ width: 24, height: 24, borderRadius: 6, background: "none", border: "none", cursor: "pointer", color: "rgba(248,113,113,.5)", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -108,28 +108,28 @@ function KanbanCard({ project, onEdit, onDelete }: { project: Project; onEdit: (
 
       {/* Type + Priority */}
       <div style={{ display: "flex", gap: 6, marginBottom: 10, flexWrap: "wrap" }}>
-        {project.projectType && <span style={{ fontSize: 10, padding: "2px 8px", borderRadius: 100, background: "rgba(255,255,255,.06)", color: "rgba(255,255,255,.45)", fontWeight: 600 }}>{project.projectType}</span>}
+        {project.projectType && <span style={{ fontSize: 10, padding: "2px 8px", borderRadius: 100, background: "rgb(var(--ink) / .06)", color: "rgb(var(--ink) / calc(.45 + var(--ink-boost)))", fontWeight: 600 }}>{project.projectType}</span>}
         <PriorityDot priority={project.priority} />
       </div>
 
       {/* Progress */}
       <div style={{ marginBottom: 10 }}>
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
-          <span style={{ fontSize: 10, color: "rgba(255,255,255,.35)", fontWeight: 600 }}>Progress</span>
-          <span style={{ fontSize: 10, color: project.progress >= 100 ? "#4ade80" : OR, fontWeight: 700 }}>{project.progress}%</span>
+          <span style={{ fontSize: 10, color: "rgb(var(--ink) / calc(.35 + var(--ink-boost)))", fontWeight: 600 }}>Progress</span>
+          <span style={{ fontSize: 10, color: project.progress >= 100 ? "var(--c-green)" : OR, fontWeight: 700 }}>{project.progress}%</span>
         </div>
-        <ProgressBar value={project.progress} color={project.progress >= 100 ? "#4ade80" : OR} />
+        <ProgressBar value={project.progress} color={project.progress >= 100 ? "var(--c-green)" : OR} />
       </div>
 
       {/* Footer */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         {project.budget && <span style={{ fontSize: 11, color: OR, fontWeight: 700 }}>{formatCurrency(project.budget)}</span>}
         {daysLeft !== null && (
-          <span style={{ fontSize: 10, fontWeight: 600, color: isOverdue ? "#f87171" : daysLeft <= 7 ? "#fbbf24" : "rgba(255,255,255,.35)" }}>
+          <span style={{ fontSize: 10, fontWeight: 600, color: isOverdue ? "var(--c-red)" : daysLeft <= 7 ? "var(--c-amber)" : "rgb(var(--ink) / calc(.35 + var(--ink-boost)))" }}>
             {isOverdue ? `${Math.abs(daysLeft)}d overdue` : `${daysLeft}d left`}
           </span>
         )}
-        {project.driveUrl && <a href={project.driveUrl} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} style={{ color: "rgba(255,255,255,.3)", display: "flex", alignItems: "center" }}><Link2 size={11} /></a>}
+        {project.driveUrl && <a href={project.driveUrl} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} style={{ color: "rgb(var(--ink) / calc(.3 + var(--ink-boost)))", display: "flex", alignItems: "center" }}><Link2 size={11} /></a>}
       </div>
     </div>
   );
@@ -150,9 +150,9 @@ function ProjectModal({ project, onClose, onSave, members, clients = [] }: { pro
 
   return (
     <div onClick={e => { if (e.target === e.currentTarget) onClose(); }} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.85)", backdropFilter: "blur(12px)", zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center", padding: 20, overflowY: "auto" }}>
-      <div style={{ background: "#111318", border: "1px solid rgba(255,255,255,.1)", borderRadius: 24, padding: "36px", width: "100%", maxWidth: 600, position: "relative", maxHeight: "90vh", overflowY: "auto" }}>
-        <button onClick={onClose} style={{ position: "absolute", top: 16, right: 16, width: 32, height: 32, borderRadius: "50%", background: "rgba(255,255,255,.06)", border: "none", cursor: "pointer", color: "rgba(255,255,255,.5)", display: "flex", alignItems: "center", justifyContent: "center" }}><X size={15} /></button>
-        <h2 style={{ fontSize: 22, fontWeight: 800, color: "#fff", marginBottom: 24, letterSpacing: "-.02em" }}>{isEdit ? "Edit Project" : "New Project"}</h2>
+      <div style={{ background: "hsl(var(--card))", border: "1px solid rgb(var(--ink) / .1)", borderRadius: 24, padding: "36px", width: "100%", maxWidth: 600, position: "relative", maxHeight: "90vh", overflowY: "auto" }}>
+        <button onClick={onClose} style={{ position: "absolute", top: 16, right: 16, width: 32, height: 32, borderRadius: "50%", background: "rgb(var(--ink) / .06)", border: "none", cursor: "pointer", color: "rgb(var(--ink) / calc(.5 + var(--ink-boost)))", display: "flex", alignItems: "center", justifyContent: "center" }}><X size={15} /></button>
+        <h2 style={{ fontSize: 22, fontWeight: 800, color: "hsl(var(--foreground))", marginBottom: 24, letterSpacing: "-.02em" }}>{isEdit ? "Edit Project" : "New Project"}</h2>
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
           {[
@@ -171,16 +171,16 @@ function ProjectModal({ project, onClose, onSave, members, clients = [] }: { pro
             { k: "notes", l: "Internal Notes", full: true, type: "textarea", ph: "Catatan internal tim..." },
           ].map((field: any) => (
             <div key={field.k} style={{ gridColumn: field.full ? "1/-1" : "auto" }}>
-              <label style={{ display: "block", fontSize: 10, fontWeight: 700, letterSpacing: ".14em", textTransform: "uppercase", color: "rgba(255,255,255,.35)", marginBottom: 7 }}>{field.l}</label>
+              <label style={{ display: "block", fontSize: 10, fontWeight: 700, letterSpacing: ".14em", textTransform: "uppercase", color: "rgb(var(--ink) / calc(.35 + var(--ink-boost)))", marginBottom: 7 }}>{field.l}</label>
               {field.type === "select" ? (
                 <select value={(form as any)[field.k] || ""} onChange={e => f(field.k as any, e.target.value)}
-                  style={{ width: "100%", background: "rgba(255,255,255,.05)", border: "1px solid rgba(255,255,255,.1)", borderRadius: 10, padding: "10px 12px", color: "#fff", fontSize: 13, outline: "none", fontFamily: FONT, cursor: "pointer" }}>
+                  style={{ width: "100%", background: "rgb(var(--ink) / .05)", border: "1px solid rgb(var(--ink) / .1)", borderRadius: 10, padding: "10px 12px", color: "hsl(var(--foreground))", fontSize: 13, outline: "none", fontFamily: FONT, cursor: "pointer" }}>
                   <option value="">— Pilih —</option>
-                  {field.opts.map((o: string) => <option key={o} value={o} style={{ background: "#111318" }}>{STATUS_CONFIG[o]?.label || PRIORITY_CONFIG[o]?.label || o}</option>)}
+                  {field.opts.map((o: string) => <option key={o} value={o} style={{ background: "hsl(var(--card))" }}>{STATUS_CONFIG[o]?.label || PRIORITY_CONFIG[o]?.label || o}</option>)}
                 </select>
               ) : field.type === "memberSelect" ? (
                 <select value={(form as any)[field.k] || ""} onChange={e => f(field.k as any, e.target.value || null)}
-                  style={{ width: "100%", background: "rgba(255,255,255,.05)", border: "1px solid rgba(255,255,255,.1)", borderRadius: 10, padding: "10px 12px", color: "#fff", fontSize: 13, outline: "none", fontFamily: FONT, cursor: "pointer" }}>
+                  style={{ width: "100%", background: "rgb(var(--ink) / .05)", border: "1px solid rgb(var(--ink) / .1)", borderRadius: 10, padding: "10px 12px", color: "hsl(var(--foreground))", fontSize: 13, outline: "none", fontFamily: FONT, cursor: "pointer" }}>
                   <option value="">— Unassigned —</option>
                   {members?.map(m => <option key={m.id} value={m.id}>{m.name} — {m.role}</option>)}
                 </select>
@@ -196,14 +196,14 @@ function ProjectModal({ project, onClose, onSave, members, clients = [] }: { pro
                         f("client", e.target.value);
                       }
                     }}
-                    style={{ width: "100%", background: "rgba(255,255,255,.05)", border: "1px solid rgba(255,255,255,.1)", borderRadius: 10, padding: "10px 12px", color: "#fff", fontSize: 13, outline: "none", fontFamily: FONT, cursor: "pointer" }}>
+                    style={{ width: "100%", background: "rgb(var(--ink) / .05)", border: "1px solid rgb(var(--ink) / .1)", borderRadius: 10, padding: "10px 12px", color: "hsl(var(--foreground))", fontSize: 13, outline: "none", fontFamily: FONT, cursor: "pointer" }}>
                     <option value="">— Pilih client terdaftar —</option>
                     {clients.map((c: any) => (
-                      <option key={c.id} value={c.name} style={{ background: "#111318" }}>
+                      <option key={c.id} value={c.name} style={{ background: "hsl(var(--card))" }}>
                         {c.name}{c.company ? ` — ${c.company}` : ""}
                       </option>
                     ))}
-                    <option value="__custom__" style={{ background: "#111318" }}>— Lainnya (ketik manual) —</option>
+                    <option value="__custom__" style={{ background: "hsl(var(--card))" }}>— Lainnya (ketik manual) —</option>
                   </select>
                   {(! (form as any).client || !clients.some((c: any) => c.name === (form as any).client)) && (
                     <input 
@@ -211,26 +211,26 @@ function ProjectModal({ project, onClose, onSave, members, clients = [] }: { pro
                       value={(form as any).client || ""} 
                       onChange={e => f("client", e.target.value)} 
                       placeholder="Nama client manual (akan match otomatis jika sama dengan daftar client)"
-                      style={{ width: "100%", marginTop: 6, background: "rgba(255,255,255,.05)", border: "1px solid rgba(255,255,255,.1)", borderRadius: 10, padding: "10px 12px", color: "#fff", fontSize: 13, outline: "none", boxSizing: "border-box" as any, fontFamily: FONT }} 
+                      style={{ width: "100%", marginTop: 6, background: "rgb(var(--ink) / .05)", border: "1px solid rgb(var(--ink) / .1)", borderRadius: 10, padding: "10px 12px", color: "hsl(var(--foreground))", fontSize: 13, outline: "none", boxSizing: "border-box" as any, fontFamily: FONT }} 
                     />
                   )}
-                  <div style={{ fontSize: 10, color: "rgba(255,255,255,.35)", marginTop: 4 }}>
+                  <div style={{ fontSize: 10, color: "rgb(var(--ink) / calc(.35 + var(--ink-boost)))", marginTop: 4 }}>
                     Pilih dari daftar agar otomatis terhitung di halaman Clients (project count, running, repeat, dll)
                   </div>
                 </div>
               ) : field.type === "textarea" ? (
                 <textarea value={(form as any)[field.k] || ""} onChange={e => f(field.k as any, e.target.value)} placeholder={field.ph} rows={3}
-                  style={{ width: "100%", background: "rgba(255,255,255,.05)", border: "1px solid rgba(255,255,255,.1)", borderRadius: 10, padding: "10px 12px", color: "#fff", fontSize: 13, outline: "none", resize: "vertical", fontFamily: FONT }} />
+                  style={{ width: "100%", background: "rgb(var(--ink) / .05)", border: "1px solid rgb(var(--ink) / .1)", borderRadius: 10, padding: "10px 12px", color: "hsl(var(--foreground))", fontSize: 13, outline: "none", resize: "vertical", fontFamily: FONT }} />
               ) : (
                 <input type={field.type || "text"} value={(form as any)[field.k] || ""} onChange={e => f(field.k as any, field.type === "number" ? Number(e.target.value) : e.target.value)} placeholder={field.ph || ""}
-                  style={{ width: "100%", background: "rgba(255,255,255,.05)", border: "1px solid rgba(255,255,255,.1)", borderRadius: 10, padding: "10px 12px", color: "#fff", fontSize: 13, outline: "none", boxSizing: "border-box" as any, fontFamily: FONT }} />
+                  style={{ width: "100%", background: "rgb(var(--ink) / .05)", border: "1px solid rgb(var(--ink) / .1)", borderRadius: 10, padding: "10px 12px", color: "hsl(var(--foreground))", fontSize: 13, outline: "none", boxSizing: "border-box" as any, fontFamily: FONT }} />
               )}
             </div>
           ))}
         </div>
 
         <div style={{ display: "flex", gap: 10, marginTop: 28, justifyContent: "flex-end" }}>
-          <button onClick={onClose} style={{ padding: "10px 20px", borderRadius: 10, background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.1)", color: "rgba(255,255,255,.6)", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: FONT }}>Cancel</button>
+          <button onClick={onClose} style={{ padding: "10px 20px", borderRadius: 10, background: "rgb(var(--ink) / .06)", border: "1px solid rgb(var(--ink) / .1)", color: "rgb(var(--ink) / calc(.6 + var(--ink-boost)))", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: FONT }}>Cancel</button>
           <button onClick={handleSave} disabled={saving || !form.title}
             style={{ padding: "10px 24px", borderRadius: 10, background: OR, border: "none", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: FONT, opacity: saving ? 0.7 : 1 }}>
             {saving ? "Saving..." : isEdit ? "Update Project" : "Create Project"}
@@ -323,15 +323,15 @@ export default function ProjectsPage() {
     totalBudget: projects.reduce((s, p) => s + (p.budget || 0), 0),
   };
 
-  const ipt = { background: "rgba(255,255,255,.05)", border: "1px solid rgba(255,255,255,.1)", borderRadius: 10, padding: "9px 12px", color: "#fff", fontSize: 13, outline: "none", fontFamily: FONT };
+  const ipt = { background: "rgb(var(--ink) / .05)", border: "1px solid rgb(var(--ink) / .1)", borderRadius: 10, padding: "9px 12px", color: "hsl(var(--foreground))", fontSize: 13, outline: "none", fontFamily: FONT };
 
   return (
     <div style={{ fontFamily: FONT, color: "#f0f0f0", paddingBottom: 60 }}>
       {/* Header */}
       <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginBottom: 32, flexWrap: "wrap", gap: 16 }}>
         <div>
-          <h1 style={{ fontSize: 36, fontWeight: 900, color: "#fff", letterSpacing: "-.03em", margin: "0 0 4px" }}>Projects</h1>
-          <p style={{ fontSize: 12, color: "rgba(255,255,255,.35)", textTransform: "uppercase", letterSpacing: ".14em", fontWeight: 600 }}>Manajemen Proyek Frameless Creative</p>
+          <h1 style={{ fontSize: 36, fontWeight: 900, color: "hsl(var(--foreground))", letterSpacing: "-.03em", margin: "0 0 4px" }}>Projects</h1>
+          <p style={{ fontSize: 12, color: "rgb(var(--ink) / calc(.35 + var(--ink-boost)))", textTransform: "uppercase", letterSpacing: ".14em", fontWeight: 600 }}>Manajemen Proyek Frameless Creative</p>
         </div>
         <button onClick={() => setModal("new")} style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 20px", borderRadius: 12, background: OR, border: "none", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: FONT }}>
           <Plus size={15} /> New Project
@@ -342,13 +342,13 @@ export default function ProjectsPage() {
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(160px,1fr))", gap: 14, marginBottom: 28 }}>
         {[
           { l: "Total Projects", v: stats.total, icon: <Film size={15} color={OR} />, color: OR },
-          { l: "Active", v: stats.active, icon: <TrendingUp size={15} color="#4ade80" />, color: "#4ade80" },
-          { l: "Completed", v: stats.completed, icon: <CheckCircle2 size={15} color="#60a5fa" />, color: "#60a5fa" },
-          { l: "Total Budget", v: formatCurrency(stats.totalBudget), icon: <DollarSign size={15} color="#fbbf24" />, color: "#fbbf24" },
+          { l: "Active", v: stats.active, icon: <TrendingUp size={15} color="var(--c-green)" />, color: "var(--c-green)" },
+          { l: "Completed", v: stats.completed, icon: <CheckCircle2 size={15} color="var(--c-blue)" />, color: "var(--c-blue)" },
+          { l: "Total Budget", v: formatCurrency(stats.totalBudget), icon: <DollarSign size={15} color="var(--c-amber)" />, color: "var(--c-amber)" },
         ].map(s => (
-          <div key={s.l} style={{ padding: "16px 18px", borderRadius: 16, background: "rgba(255,255,255,.03)", border: "1px solid rgba(255,255,255,.06)" }}>
+          <div key={s.l} style={{ padding: "16px 18px", borderRadius: 16, background: "rgb(var(--ink) / .03)", border: "1px solid rgb(var(--ink) / .06)" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-              <p style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,.35)", textTransform: "uppercase", letterSpacing: ".12em", margin: 0 }}>{s.l}</p>
+              <p style={{ fontSize: 10, fontWeight: 700, color: "rgb(var(--ink) / calc(.35 + var(--ink-boost)))", textTransform: "uppercase", letterSpacing: ".12em", margin: 0 }}>{s.l}</p>
               {s.icon}
             </div>
             <p style={{ fontSize: 22, fontWeight: 900, color: s.color, margin: 0, letterSpacing: "-.02em" }}>{s.v}</p>
@@ -359,18 +359,18 @@ export default function ProjectsPage() {
       {/* Toolbar */}
       <div style={{ display: "flex", gap: 12, marginBottom: 24, flexWrap: "wrap", alignItems: "center" }}>
         <div style={{ flex: 1, minWidth: 220, position: "relative" }}>
-          <Search size={14} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "rgba(255,255,255,.35)" }} />
+          <Search size={14} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "rgb(var(--ink) / calc(.35 + var(--ink-boost)))" }} />
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Cari project atau klien..." style={{ ...ipt, width: "100%", paddingLeft: 36, boxSizing: "border-box" }} />
         </div>
         <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} style={{ ...ipt, cursor: "pointer", minWidth: 130 }}>
-          <option value="all" style={{ background: "#111318" }}>All Status</option>
-          {STATUSES.map(s => <option key={s.value} value={s.value} style={{ background: "#111318" }}>{s.label}</option>)}
+          <option value="all" style={{ background: "hsl(var(--card))" }}>All Status</option>
+          {STATUSES.map(s => <option key={s.value} value={s.value} style={{ background: "hsl(var(--card))" }}>{s.label}</option>)}
         </select>
         {/* View toggle */}
-        <div style={{ display: "flex", background: "rgba(255,255,255,.05)", border: "1px solid rgba(255,255,255,.08)", borderRadius: 10, overflow: "hidden" }}>
+        <div style={{ display: "flex", background: "rgb(var(--ink) / .05)", border: "1px solid rgb(var(--ink) / .08)", borderRadius: 10, overflow: "hidden" }}>
           {([["kanban", "Kanban", <Kanban size={14} />], ["list", "List", <List size={14} />]] as any[]).map(([v, l, icon]) => (
             <button key={v} onClick={() => setView(v)}
-              style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", background: view === v ? OR : "transparent", border: "none", color: view === v ? "#fff" : "rgba(255,255,255,.45)", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: FONT, transition: "all .15s" }}>
+              style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", background: view === v ? OR : "transparent", border: "none", color: view === v ? "#fff" : "rgb(var(--ink) / calc(.45 + var(--ink-boost)))", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: FONT, transition: "all .15s" }}>
               {icon}{l}
             </button>
           ))}
@@ -389,11 +389,11 @@ export default function ProjectsPage() {
       {!loading && view === "kanban" && (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(260px,1fr))", gap: 20, alignItems: "start" }}>
           {kanbanCols.map(col => {
-            const cfg = STATUS_CONFIG[col.key] || { color: "rgba(255,255,255,.5)", bg: "rgba(255,255,255,.07)" };
+            const cfg = STATUS_CONFIG[col.key] || { color: "rgb(var(--ink) / calc(.5 + var(--ink-boost)))", bg: "rgb(var(--ink) / .07)" };
             return (
               <div key={col.key}>
                 {/* Column header */}
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14, padding: "10px 14px", borderRadius: 12, background: cfg.bg, border: `1px solid ${cfg.color}22` }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14, padding: "10px 14px", borderRadius: 12, background: cfg.bg, border: `1px solid color-mix(in srgb, ${cfg.color} 13%, transparent)` }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
                     <span style={{ width: 8, height: 8, borderRadius: "50%", background: cfg.color, display: "inline-block" }} />
                     <span style={{ fontSize: 12, fontWeight: 700, color: cfg.color, letterSpacing: ".05em", textTransform: "uppercase" }}>{col.label}</span>
@@ -402,8 +402,8 @@ export default function ProjectsPage() {
                 </div>
                 {/* Cards */}
                 {col.projects.map(p => <KanbanCard key={p.id} project={p} onEdit={p => setModal(p)} onDelete={handleDelete} />)}
-                {col.projects.length === 0 && <div style={{ padding: "24px", textAlign: "center", borderRadius: 14, border: "2px dashed rgba(255,255,255,.06)" }}>
-                  <p style={{ fontSize: 12, color: "rgba(255,255,255,.2)" }}>No projects</p>
+                {col.projects.length === 0 && <div style={{ padding: "24px", textAlign: "center", borderRadius: 14, border: "2px dashed rgb(var(--ink) / .06)" }}>
+                  <p style={{ fontSize: 12, color: "rgb(var(--ink) / calc(.2 + var(--ink-boost)))" }}>No projects</p>
                 </div>}
               </div>
             );
@@ -413,34 +413,34 @@ export default function ProjectsPage() {
 
       {/* ── LIST VIEW ── */}
       {!loading && view === "list" && (
-        <div style={{ borderRadius: 18, border: "1px solid rgba(255,255,255,.07)", overflow: "hidden" }}>
+        <div style={{ borderRadius: 18, border: "1px solid rgb(var(--ink) / .07)", overflow: "hidden" }}>
           {/* Table header */}
-          <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr 120px 100px 80px", gap: 12, padding: "12px 20px", background: "rgba(255,255,255,.03)", borderBottom: "1px solid rgba(255,255,255,.06)" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr 120px 100px 80px", gap: 12, padding: "12px 20px", background: "rgb(var(--ink) / .03)", borderBottom: "1px solid rgb(var(--ink) / .06)" }}>
             {["Project", "Client", "Type", "Status", "Budget", "Deadline", ""].map(h => (
-              <span key={h} style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,.3)", textTransform: "uppercase", letterSpacing: ".14em" }}>{h}</span>
+              <span key={h} style={{ fontSize: 10, fontWeight: 700, color: "rgb(var(--ink) / calc(.3 + var(--ink-boost)))", textTransform: "uppercase", letterSpacing: ".14em" }}>{h}</span>
             ))}
           </div>
-          {filtered.length === 0 && <div style={{ padding: "40px", textAlign: "center" }}><p style={{ color: "rgba(255,255,255,.3)", fontSize: 14 }}>Tidak ada project ditemukan.</p></div>}
+          {filtered.length === 0 && <div style={{ padding: "40px", textAlign: "center" }}><p style={{ color: "rgb(var(--ink) / calc(.3 + var(--ink-boost)))", fontSize: 14 }}>Tidak ada project ditemukan.</p></div>}
           {filtered.map((p, i) => (
-            <div key={p.id} style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr 120px 100px 80px", gap: 12, padding: "14px 20px", borderBottom: i < filtered.length - 1 ? "1px solid rgba(255,255,255,.04)" : "none", alignItems: "center", transition: "background .15s", cursor: "pointer" }}
-              onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,.02)"}
+            <div key={p.id} style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr 120px 100px 80px", gap: 12, padding: "14px 20px", borderBottom: i < filtered.length - 1 ? "1px solid rgb(var(--ink) / .04)" : "none", alignItems: "center", transition: "background .15s", cursor: "pointer" }}
+              onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = "rgb(var(--ink) / .02)"}
               onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = "transparent"}
               onClick={() => setDetail(p)}>
               <div>
-                <p style={{ fontSize: 13, fontWeight: 700, color: "#fff", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.title}</p>
+                <p style={{ fontSize: 13, fontWeight: 700, color: "hsl(var(--foreground))", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.title}</p>
                 <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 3 }}>
                   <ProgressBar value={p.progress} />
                   <span style={{ fontSize: 10, color: OR, fontWeight: 700, flexShrink: 0 }}>{p.progress}%</span>
                 </div>
               </div>
-              <span style={{ fontSize: 12, color: "rgba(255,255,255,.55)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.client || "—"}</span>
-              <span style={{ fontSize: 11, color: "rgba(255,255,255,.4)" }}>{p.projectType || "—"}</span>
+              <span style={{ fontSize: 12, color: "rgb(var(--ink) / calc(.55 + var(--ink-boost)))", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.client || "—"}</span>
+              <span style={{ fontSize: 11, color: "rgb(var(--ink) / calc(.4 + var(--ink-boost)))" }}>{p.projectType || "—"}</span>
               <StatusBadge status={p.status} />
               <span style={{ fontSize: 12, color: OR, fontWeight: 700 }}>{p.budget ? formatCurrency(p.budget) : "—"}</span>
-              <span style={{ fontSize: 11, color: "rgba(255,255,255,.4)" }}>{p.deadline ? formatDate(p.deadline) : "—"}</span>
+              <span style={{ fontSize: 11, color: "rgb(var(--ink) / calc(.4 + var(--ink-boost)))" }}>{p.deadline ? formatDate(p.deadline) : "—"}</span>
               <div style={{ display: "flex", gap: 4 }}>
-                <button onClick={e => { e.stopPropagation(); setModal(p); }} style={{ width: 26, height: 26, borderRadius: 7, background: "rgba(255,255,255,.06)", border: "none", cursor: "pointer", color: "rgba(255,255,255,.5)", display: "flex", alignItems: "center", justifyContent: "center" }}><Edit3 size={11} /></button>
-                <button onClick={e => { e.stopPropagation(); handleDelete(p.id); }} style={{ width: 26, height: 26, borderRadius: 7, background: "rgba(248,113,113,.1)", border: "none", cursor: "pointer", color: "#f87171", display: "flex", alignItems: "center", justifyContent: "center" }}><Trash2 size={11} /></button>
+                <button onClick={e => { e.stopPropagation(); setModal(p); }} style={{ width: 26, height: 26, borderRadius: 7, background: "rgb(var(--ink) / .06)", border: "none", cursor: "pointer", color: "rgb(var(--ink) / calc(.5 + var(--ink-boost)))", display: "flex", alignItems: "center", justifyContent: "center" }}><Edit3 size={11} /></button>
+                <button onClick={e => { e.stopPropagation(); handleDelete(p.id); }} style={{ width: 26, height: 26, borderRadius: 7, background: "rgba(248,113,113,.1)", border: "none", cursor: "pointer", color: "var(--c-red)", display: "flex", alignItems: "center", justifyContent: "center" }}><Trash2 size={11} /></button>
               </div>
             </div>
           ))}
@@ -450,12 +450,12 @@ export default function ProjectsPage() {
       {/* ── PROJECT DETAIL DRAWER ── */}
       {detail && (
         <div onClick={e => { if (e.target === e.currentTarget) setDetail(null); }} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.7)", backdropFilter: "blur(8px)", zIndex: 100, display: "flex", justifyContent: "flex-end" }}>
-          <div style={{ width: "min(96vw,520px)", background: "#111318", height: "100%", overflowY: "auto", borderLeft: "1px solid rgba(255,255,255,.1)", padding: "32px 28px" }}>
+          <div style={{ width: "min(96vw,520px)", background: "hsl(var(--card))", height: "100%", overflowY: "auto", borderLeft: "1px solid rgb(var(--ink) / .1)", padding: "32px 28px" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 28 }}>
-              <h2 style={{ fontSize: 20, fontWeight: 800, color: "#fff", margin: 0, letterSpacing: "-.02em" }}>{detail.title}</h2>
+              <h2 style={{ fontSize: 20, fontWeight: 800, color: "hsl(var(--foreground))", margin: 0, letterSpacing: "-.02em" }}>{detail.title}</h2>
               <div style={{ display: "flex", gap: 8 }}>
-                <button onClick={() => { setModal(detail); setDetail(null); }} style={{ width: 32, height: 32, borderRadius: 9, background: `${OR}22`, border: `1px solid ${OR}44`, cursor: "pointer", color: OR, display: "flex", alignItems: "center", justifyContent: "center" }}><Edit3 size={13} /></button>
-                <button onClick={() => setDetail(null)} style={{ width: 32, height: 32, borderRadius: 9, background: "rgba(255,255,255,.06)", border: "none", cursor: "pointer", color: "rgba(255,255,255,.5)", display: "flex", alignItems: "center", justifyContent: "center" }}><X size={15} /></button>
+                <button onClick={() => { setModal(detail); setDetail(null); }} style={{ width: 32, height: 32, borderRadius: 9, background: `color-mix(in srgb, ${OR} 13%, transparent)`, border: `1px solid color-mix(in srgb, ${OR} 27%, transparent)`, cursor: "pointer", color: OR, display: "flex", alignItems: "center", justifyContent: "center" }}><Edit3 size={13} /></button>
+                <button onClick={() => setDetail(null)} style={{ width: 32, height: 32, borderRadius: 9, background: "rgb(var(--ink) / .06)", border: "none", cursor: "pointer", color: "rgb(var(--ink) / calc(.5 + var(--ink-boost)))", display: "flex", alignItems: "center", justifyContent: "center" }}><X size={15} /></button>
               </div>
             </div>
 
@@ -463,17 +463,17 @@ export default function ProjectsPage() {
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 24 }}>
               <StatusBadge status={detail.status} />
               <PriorityDot priority={detail.priority} />
-              {detail.projectType && <span style={{ fontSize: 11, padding: "3px 10px", borderRadius: 100, background: "rgba(255,255,255,.06)", color: "rgba(255,255,255,.5)", fontWeight: 600 }}>{detail.projectType}</span>}
+              {detail.projectType && <span style={{ fontSize: 11, padding: "3px 10px", borderRadius: 100, background: "rgb(var(--ink) / .06)", color: "rgb(var(--ink) / calc(.5 + var(--ink-boost)))", fontWeight: 600 }}>{detail.projectType}</span>}
             </div>
 
             {/* Progress */}
-            <div style={{ padding: "18px", borderRadius: 14, background: "rgba(255,255,255,.03)", border: "1px solid rgba(255,255,255,.07)", marginBottom: 20 }}>
+            <div style={{ padding: "18px", borderRadius: 14, background: "rgb(var(--ink) / .03)", border: "1px solid rgb(var(--ink) / .07)", marginBottom: 20 }}>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
-                <span style={{ fontSize: 12, fontWeight: 700, color: "rgba(255,255,255,.5)" }}>Progress</span>
-                <span style={{ fontSize: 18, fontWeight: 900, color: detail.progress >= 100 ? "#4ade80" : OR }}>{detail.progress}%</span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: "rgb(var(--ink) / calc(.5 + var(--ink-boost)))" }}>Progress</span>
+                <span style={{ fontSize: 18, fontWeight: 900, color: detail.progress >= 100 ? "var(--c-green)" : OR }}>{detail.progress}%</span>
               </div>
-              <div style={{ height: 8, borderRadius: 100, background: "rgba(255,255,255,.07)", overflow: "hidden" }}>
-                <div style={{ height: "100%", width: `${detail.progress}%`, borderRadius: 100, background: detail.progress >= 100 ? "#4ade80" : OR, transition: "width .5s" }} />
+              <div style={{ height: 8, borderRadius: 100, background: "rgb(var(--ink) / .07)", overflow: "hidden" }}>
+                <div style={{ height: "100%", width: `${detail.progress}%`, borderRadius: 100, background: detail.progress >= 100 ? "var(--c-green)" : OR, transition: "width .5s" }} />
               </div>
             </div>
 
@@ -485,16 +485,16 @@ export default function ProjectsPage() {
                 { l: "Start Date", v: detail.startDate ? formatDate(detail.startDate) : null },
                 { l: "Deadline", v: detail.deadline ? formatDate(detail.deadline) : null },
               ].filter(r => r.v).map(row => (
-                <div key={row.l} style={{ padding: "12px 14px", borderRadius: 12, background: "rgba(255,255,255,.03)", border: "1px solid rgba(255,255,255,.06)" }}>
-                  <p style={{ fontSize: 9, fontWeight: 700, color: "rgba(255,255,255,.3)", textTransform: "uppercase", letterSpacing: ".14em", margin: "0 0 5px" }}>{row.l}</p>
-                  <p style={{ fontSize: 14, fontWeight: 700, color: "#fff", margin: 0 }}>{row.v}</p>
+                <div key={row.l} style={{ padding: "12px 14px", borderRadius: 12, background: "rgb(var(--ink) / .03)", border: "1px solid rgb(var(--ink) / .06)" }}>
+                  <p style={{ fontSize: 9, fontWeight: 700, color: "rgb(var(--ink) / calc(.3 + var(--ink-boost)))", textTransform: "uppercase", letterSpacing: ".14em", margin: "0 0 5px" }}>{row.l}</p>
+                  <p style={{ fontSize: 14, fontWeight: 700, color: "hsl(var(--foreground))", margin: 0 }}>{row.v}</p>
                 </div>
               ))}
             </div>
 
-            {detail.description && <div style={{ marginBottom: 20 }}><p style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,.35)", textTransform: "uppercase", letterSpacing: ".14em", marginBottom: 8 }}>Description</p><p style={{ fontSize: 13, color: "rgba(255,255,255,.6)", lineHeight: 1.7 }}>{detail.description}</p></div>}
-            {detail.notes && <div style={{ marginBottom: 20 }}><p style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,.35)", textTransform: "uppercase", letterSpacing: ".14em", marginBottom: 8 }}>Notes</p><p style={{ fontSize: 13, color: "rgba(255,255,255,.5)", lineHeight: 1.7, padding: "12px 14px", background: "rgba(255,255,255,.03)", borderRadius: 10 }}>{detail.notes}</p></div>}
-            {detail.driveUrl && <a href={detail.driveUrl} target="_blank" rel="noopener noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "10px 18px", borderRadius: 10, background: "rgba(66,133,244,.1)", border: "1px solid rgba(66,133,244,.2)", color: "#60a5fa", textDecoration: "none", fontSize: 13, fontWeight: 600 }}><FolderOpen size={14} /> Open Drive Folder</a>}
+            {detail.description && <div style={{ marginBottom: 20 }}><p style={{ fontSize: 10, fontWeight: 700, color: "rgb(var(--ink) / calc(.35 + var(--ink-boost)))", textTransform: "uppercase", letterSpacing: ".14em", marginBottom: 8 }}>Description</p><p style={{ fontSize: 13, color: "rgb(var(--ink) / calc(.6 + var(--ink-boost)))", lineHeight: 1.7 }}>{detail.description}</p></div>}
+            {detail.notes && <div style={{ marginBottom: 20 }}><p style={{ fontSize: 10, fontWeight: 700, color: "rgb(var(--ink) / calc(.35 + var(--ink-boost)))", textTransform: "uppercase", letterSpacing: ".14em", marginBottom: 8 }}>Notes</p><p style={{ fontSize: 13, color: "rgb(var(--ink) / calc(.5 + var(--ink-boost)))", lineHeight: 1.7, padding: "12px 14px", background: "rgb(var(--ink) / .03)", borderRadius: 10 }}>{detail.notes}</p></div>}
+            {detail.driveUrl && <a href={detail.driveUrl} target="_blank" rel="noopener noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "10px 18px", borderRadius: 10, background: "rgba(66,133,244,.1)", border: "1px solid rgba(66,133,244,.2)", color: "var(--c-blue)", textDecoration: "none", fontSize: 13, fontWeight: 600 }}><FolderOpen size={14} /> Open Drive Folder</a>}
           </div>
         </div>
       )}
