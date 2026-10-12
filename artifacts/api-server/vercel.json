@@ -3,7 +3,8 @@
   "buildCommand": "pnpm build",
   "functions": {
     "api/index.js": {
-      "includeFiles": "dist/**"
+      "maxDuration": 60,
+      "includeFiles": "{dist/**,node_modules/@sparticuz/chromium/**}"
     }
   },
   "routes": [
