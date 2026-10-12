@@ -1858,10 +1858,6 @@ export default function LandingPage() {
                 return (
                   <motion.div
                     key={member.id || idx}
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ delay: Math.min(idx * 0.03, 0.3) }}
                     whileHover={{ scale: 1.02, y: -4 }}
                     style={{
                       background: "rgba(255,255,255,0.04)",
