@@ -44,6 +44,9 @@ import {
   X,
   PlayCircle,
   StopCircle,
+  Link2,
+  FileText,
+  Loader2,
 } from "lucide-react";
 
 import { useBrand } from "@/lib/brand";
@@ -1253,7 +1256,7 @@ function CrewDashboard({ user, onLogout }: { user: CrewUser; onLogout: () => voi
           .crew-main{padding:14px 12px;padding-bottom:calc(80px + env(safe-area-inset-bottom,0px))}
           .toolbar-wrap{flex-direction:column;align-items:stretch!important;gap:10px!important}
         }
-        @media(max-width:480px){.metric-grid{grid-template-columns:1fr!important}}
+        @media(max-width:480px){.metric-grid{grid-template-columns:1fr 1fr!important;gap:10px!important}}
       `}</style>
 
       {/* Modern Glass Header */}
@@ -2071,7 +2074,7 @@ function CrewDashboard({ user, onLogout }: { user: CrewUser; onLogout: () => voi
                         opacity: uploadingToProject ? 0.7 : 1
                       }}
                     >
-                      {uploadingToProject ? "⏳ Uploading..." : "📁 Upload File"}
+                      {uploadingToProject ? <><Loader2 size={14} className="animate-spin" /> Mengunggah…</> : <><Upload size={14} /> Unggah File</>}
                     </button>
 
                     {/* Link / Google Drive */}
@@ -2175,7 +2178,7 @@ function CrewDashboard({ user, onLogout }: { user: CrewUser; onLogout: () => voi
                             background: file.category === 'link' ? 'rgba(59,130,246,0.15)' : 'rgb(var(--ink) / 0.08)',
                             display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
                           }}>
-                            {file.category === 'link' ? '🔗' : '📄'}
+                            {file.category === 'link' ? <Link2 size={16} /> : <FileText size={16} />}
                           </div>
                           <div style={{ minWidth: 0 }}>
                             <div style={{ fontWeight: 700, fontSize: 14, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{file.title}</div>
