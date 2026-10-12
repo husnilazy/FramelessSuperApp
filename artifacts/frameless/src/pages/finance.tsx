@@ -1,5 +1,7 @@
 // artifacts/frameless/src/pages/finance.tsx
 import { useState, useEffect, useRef, useCallback } from "react";
+import { fetchBrand, reportHeaderHtml, REPORT_BRAND_CSS, brandContactLine } from "@/lib/report-brand";
+import { createPrintSink } from "@/lib/print-sink";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency } from "@/lib/formatters";
 import { getToken } from "@/lib/auth";
@@ -14,7 +16,7 @@ import {
   ArrowUpRight, ArrowDownRight, Calendar, Tag, Layers,
 } from "lucide-react";
 
-const OR = "#FF6A20";
+const OR = "hsl(var(--primary))";
 const FONT = "'Plus Jakarta Sans',sans-serif";
 const MONTHS_ID = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
 
@@ -52,6 +54,17 @@ async function api(path: string, opts: RequestInit = {}) {
 }
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
+// Uang masuk invoice per TANGGAL PEMBAYARAN (DP & termin ikut terhitung di bulan masing-masing)
+interface CashEvent {
+  id: string;
+  invoiceId: string;
+  invoiceNumber: string;
+  clientName: string | null;
+  amount: number;
+  date: string;
+  method: string;
+  legacy: boolean;
+}
 interface Invoice {
   id: string;
   number: string;
@@ -119,18 +132,18 @@ function StatCard({
   return (
     <div style={{
       padding: "14px 14px", borderRadius: 14,
-      background: "rgba(255,255,255,.03)", border: "1px solid rgba(255,255,255,.07)",
+      background: "rgb(var(--ink) / .03)", border: "1px solid rgb(var(--ink) / .07)",
       display: "flex", flexDirection: "column", gap: 8,
     }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 6 }}>
-        <p style={{ fontSize: 9, fontWeight: 700, color: "rgba(255,255,255,.35)", textTransform: "uppercase", letterSpacing: ".1em", margin: 0, lineHeight: 1.3, flex: 1 }}>{label}</p>
-        <div style={{ width: 28, height: 28, borderRadius: 8, background: `${color}18`, display: "flex", alignItems: "center", justifyContent: "center", color, flexShrink: 0 }}>{icon}</div>
+        <p style={{ fontSize: 9, fontWeight: 700, color: "rgb(var(--ink) / calc(.35 + var(--ink-boost)))", textTransform: "uppercase", letterSpacing: ".1em", margin: 0, lineHeight: 1.3, flex: 1 }}>{label}</p>
+        <div style={{ width: 28, height: 28, borderRadius: 8, background: `color-mix(in srgb, ${color} 9%, transparent)`, display: "flex", alignItems: "center", justifyContent: "center", color, flexShrink: 0 }}>{icon}</div>
       </div>
-      <p style={{ fontSize: 18, fontWeight: 900, color: "#fff", margin: 0, letterSpacing: "-.02em", lineHeight: 1 }}>{value}</p>
+      <p style={{ fontSize: 18, fontWeight: 900, color: "hsl(var(--foreground))", margin: 0, letterSpacing: "-.02em", lineHeight: 1 }}>{value}</p>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        {sub && <p style={{ fontSize: 10, color: "rgba(255,255,255,.3)", margin: 0, lineHeight: 1.2 }}>{sub}</p>}
+        {sub && <p style={{ fontSize: 10, color: "rgb(var(--ink) / calc(.3 + var(--ink-boost)))", margin: 0, lineHeight: 1.2 }}>{sub}</p>}
         {delta && (
-          <span style={{ fontSize: 10, fontWeight: 700, color: deltaUp ? "#4ade80" : "#f87171", display: "flex", alignItems: "center", gap: 2 }}>
+          <span style={{ fontSize: 10, fontWeight: 700, color: deltaUp ? "var(--c-green)" : "var(--c-red)", display: "flex", alignItems: "center", gap: 2 }}>
             {deltaUp ? <ArrowUpRight size={11} /> : <ArrowDownRight size={11} />} {delta}
           </span>
         )}
@@ -147,8 +160,8 @@ function Section({ title, icon, children, action }: {
     <div style={{ marginBottom: 32 }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
-          <div style={{ width: 30, height: 30, borderRadius: 8, background: `${OR}18`, display: "flex", alignItems: "center", justifyContent: "center", color: OR }}>{icon}</div>
-          <h3 style={{ fontSize: 16, fontWeight: 800, color: "#fff", margin: 0 }}>{title}</h3>
+          <div style={{ width: 30, height: 30, borderRadius: 8, background: `color-mix(in srgb, ${OR} 9%, transparent)`, display: "flex", alignItems: "center", justifyContent: "center", color: OR }}>{icon}</div>
+          <h3 style={{ fontSize: 16, fontWeight: 800, color: "hsl(var(--foreground))", margin: 0 }}>{title}</h3>
         </div>
         {action}
       </div>
@@ -161,8 +174,8 @@ function Section({ title, icon, children, action }: {
 const ChartTooltip = ({ active, payload, label }: any) => {
   if (!active || !payload?.length) return null;
   return (
-    <div style={{ background: "rgba(12,14,22,.98)", border: "1px solid rgba(255,255,255,.12)", borderRadius: 10, padding: "10px 14px", fontSize: 12 }}>
-      <p style={{ color: "rgba(255,255,255,.6)", marginBottom: 6, fontWeight: 600 }}>{label}</p>
+    <div style={{ background: "rgba(12,14,22,.98)", border: "1px solid rgb(var(--ink) / .12)", borderRadius: 10, padding: "10px 14px", fontSize: 12 }}>
+      <p style={{ color: "rgb(var(--ink) / calc(.6 + var(--ink-boost)))", marginBottom: 6, fontWeight: 600 }}>{label}</p>
       {payload.map((p: any) => (
         <p key={p.name} style={{ color: p.color, margin: "2px 0", fontWeight: 700 }}>{p.name}: {formatCurrency(p.value)}</p>
       ))}
@@ -191,9 +204,9 @@ function IncomeModal({ item, onClose, onSave }: {
   return (
     <div onClick={e => { if (e.target === e.currentTarget) onClose(); }}
       style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.85)", backdropFilter: "blur(12px)", zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
-      <div style={{ background: "#111318", border: "1px solid rgba(255,255,255,.1)", borderRadius: 22, padding: 32, width: "100%", maxWidth: 460, position: "relative" }}>
-        <button onClick={onClose} style={{ position: "absolute", top: 14, right: 14, width: 30, height: 30, borderRadius: "50%", background: "rgba(255,255,255,.06)", border: "none", cursor: "pointer", color: "rgba(255,255,255,.5)", display: "flex", alignItems: "center", justifyContent: "center" }}><X size={14} /></button>
-        <h3 style={{ fontSize: 18, fontWeight: 800, color: "#fff", marginBottom: 22 }}>{item ? "Edit" : "Tambah"} Pemasukan</h3>
+      <div style={{ background: "hsl(var(--card))", border: "1px solid rgb(var(--ink) / .1)", borderRadius: 22, padding: 32, width: "100%", maxWidth: 460, position: "relative" }}>
+        <button onClick={onClose} style={{ position: "absolute", top: 14, right: 14, width: 30, height: 30, borderRadius: "50%", background: "rgb(var(--ink) / .06)", border: "none", cursor: "pointer", color: "rgb(var(--ink) / calc(.5 + var(--ink-boost)))", display: "flex", alignItems: "center", justifyContent: "center" }}><X size={14} /></button>
+        <h3 style={{ fontSize: 18, fontWeight: 800, color: "hsl(var(--foreground))", marginBottom: 22 }}>{item ? "Edit" : "Tambah"} Pemasukan</h3>
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           {[
             { k: "description", l: "Keterangan *", ph: "mis. Pembayaran proyek video klip" },
@@ -203,23 +216,23 @@ function IncomeModal({ item, onClose, onSave }: {
             { k: "notes", l: "Catatan", ph: "Opsional" },
           ].map((field: any) => (
             <div key={field.k}>
-              <label style={{ display: "block", fontSize: 10, fontWeight: 700, letterSpacing: ".14em", textTransform: "uppercase", color: "rgba(255,255,255,.35)", marginBottom: 6 }}>{field.l}</label>
+              <label style={{ display: "block", fontSize: 10, fontWeight: 700, letterSpacing: ".14em", textTransform: "uppercase", color: "rgb(var(--ink) / calc(.35 + var(--ink-boost)))", marginBottom: 6 }}>{field.l}</label>
               <input type={field.type || "text"} value={(form as any)[field.k] || ""}
                 onChange={e => f(field.k as any, field.type === "number" ? Number(e.target.value) : e.target.value)}
                 placeholder={field.ph || ""}
-                style={{ width: "100%", background: "rgba(255,255,255,.05)", border: "1px solid rgba(255,255,255,.1)", borderRadius: 10, padding: "10px 12px", color: "#fff", fontSize: 13, outline: "none", boxSizing: "border-box", fontFamily: FONT }} />
+                style={{ width: "100%", background: "rgb(var(--ink) / .05)", border: "1px solid rgb(var(--ink) / .1)", borderRadius: 10, padding: "10px 12px", color: "hsl(var(--foreground))", fontSize: 13, outline: "none", boxSizing: "border-box", fontFamily: FONT }} />
             </div>
           ))}
           <div>
-            <label style={{ display: "block", fontSize: 10, fontWeight: 700, letterSpacing: ".14em", textTransform: "uppercase", color: "rgba(255,255,255,.35)", marginBottom: 6 }}>Kategori</label>
+            <label style={{ display: "block", fontSize: 10, fontWeight: 700, letterSpacing: ".14em", textTransform: "uppercase", color: "rgb(var(--ink) / calc(.35 + var(--ink-boost)))", marginBottom: 6 }}>Kategori</label>
             <select value={form.category || ""} onChange={e => f("category", e.target.value)}
-              style={{ width: "100%", background: "rgba(255,255,255,.05)", border: "1px solid rgba(255,255,255,.1)", borderRadius: 10, padding: "10px 12px", color: "#fff", fontSize: 13, outline: "none", fontFamily: FONT, cursor: "pointer" }}>
-              {cats.map(c => <option key={c} value={c} style={{ background: "#111318" }}>{c}</option>)}
+              style={{ width: "100%", background: "rgb(var(--ink) / .05)", border: "1px solid rgb(var(--ink) / .1)", borderRadius: 10, padding: "10px 12px", color: "hsl(var(--foreground))", fontSize: 13, outline: "none", fontFamily: FONT, cursor: "pointer" }}>
+              {cats.map(c => <option key={c} value={c} style={{ background: "hsl(var(--card))" }}>{c}</option>)}
             </select>
           </div>
         </div>
         <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 24 }}>
-          <button onClick={onClose} style={{ padding: "9px 18px", borderRadius: 9, background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.1)", color: "rgba(255,255,255,.6)", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: FONT }}>Batal</button>
+          <button onClick={onClose} style={{ padding: "9px 18px", borderRadius: 9, background: "rgb(var(--ink) / .06)", border: "1px solid rgb(var(--ink) / .1)", color: "rgb(var(--ink) / calc(.6 + var(--ink-boost)))", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: FONT }}>Batal</button>
           <button onClick={save} disabled={saving || !form.description || !form.amount}
             style={{ padding: "9px 20px", borderRadius: 9, background: OR, border: "none", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: FONT, opacity: saving || !form.description || !form.amount ? 0.5 : 1 }}>
             {saving ? "Menyimpan..." : "Simpan"}
@@ -251,9 +264,9 @@ function EquipmentModal({ item, onClose, onSave }: {
   return (
     <div onClick={e => { if (e.target === e.currentTarget) onClose(); }}
       style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.85)", backdropFilter: "blur(12px)", zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
-      <div style={{ background: "#111318", border: "1px solid rgba(255,255,255,.1)", borderRadius: 22, padding: 32, width: "100%", maxWidth: 500, position: "relative", maxHeight: "90vh", overflowY: "auto" }}>
-        <button onClick={onClose} style={{ position: "absolute", top: 14, right: 14, width: 30, height: 30, borderRadius: "50%", background: "rgba(255,255,255,.06)", border: "none", cursor: "pointer", color: "rgba(255,255,255,.5)", display: "flex", alignItems: "center", justifyContent: "center" }}><X size={14} /></button>
-        <h3 style={{ fontSize: 18, fontWeight: 800, color: "#fff", marginBottom: 22 }}>{item ? "Edit" : "Tambah"} Aset/Alat</h3>
+      <div style={{ background: "hsl(var(--card))", border: "1px solid rgb(var(--ink) / .1)", borderRadius: 22, padding: 32, width: "100%", maxWidth: 500, position: "relative", maxHeight: "90vh", overflowY: "auto" }}>
+        <button onClick={onClose} style={{ position: "absolute", top: 14, right: 14, width: 30, height: 30, borderRadius: "50%", background: "rgb(var(--ink) / .06)", border: "none", cursor: "pointer", color: "rgb(var(--ink) / calc(.5 + var(--ink-boost)))", display: "flex", alignItems: "center", justifyContent: "center" }}><X size={14} /></button>
+        <h3 style={{ fontSize: 18, fontWeight: 800, color: "hsl(var(--foreground))", marginBottom: 22 }}>{item ? "Edit" : "Tambah"} Aset/Alat</h3>
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           {[
             { k: "name", l: "Nama Alat *", ph: "Sony FX3" },
@@ -264,33 +277,33 @@ function EquipmentModal({ item, onClose, onSave }: {
             { k: "notes", l: "Catatan", ph: "Kondisi, lokasi penyimpanan, dll" },
           ].map((field: any) => (
             <div key={field.k}>
-              <label style={{ display: "block", fontSize: 10, fontWeight: 700, letterSpacing: ".14em", textTransform: "uppercase", color: "rgba(255,255,255,.35)", marginBottom: 6 }}>{field.l}</label>
+              <label style={{ display: "block", fontSize: 10, fontWeight: 700, letterSpacing: ".14em", textTransform: "uppercase", color: "rgb(var(--ink) / calc(.35 + var(--ink-boost)))", marginBottom: 6 }}>{field.l}</label>
               <input type={field.type || "text"} value={(form as any)[field.k] || ""}
                 onChange={e => f(field.k as any, field.type === "number" ? Number(e.target.value) : e.target.value)}
                 placeholder={field.ph || ""}
-                style={{ width: "100%", background: "rgba(255,255,255,.05)", border: "1px solid rgba(255,255,255,.1)", borderRadius: 10, padding: "10px 12px", color: "#fff", fontSize: 13, outline: "none", boxSizing: "border-box", fontFamily: FONT }} />
+                style={{ width: "100%", background: "rgb(var(--ink) / .05)", border: "1px solid rgb(var(--ink) / .1)", borderRadius: 10, padding: "10px 12px", color: "hsl(var(--foreground))", fontSize: 13, outline: "none", boxSizing: "border-box", fontFamily: FONT }} />
             </div>
           ))}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <div>
-              <label style={{ display: "block", fontSize: 10, fontWeight: 700, letterSpacing: ".14em", textTransform: "uppercase", color: "rgba(255,255,255,.35)", marginBottom: 6 }}>Kategori</label>
+              <label style={{ display: "block", fontSize: 10, fontWeight: 700, letterSpacing: ".14em", textTransform: "uppercase", color: "rgb(var(--ink) / calc(.35 + var(--ink-boost)))", marginBottom: 6 }}>Kategori</label>
               <select value={form.category || ""} onChange={e => f("category", e.target.value)}
-                style={{ width: "100%", background: "rgba(255,255,255,.05)", border: "1px solid rgba(255,255,255,.1)", borderRadius: 10, padding: "10px 12px", color: "#fff", fontSize: 13, outline: "none", fontFamily: FONT, cursor: "pointer" }}>
-                <option value="" style={{ background: "#111318" }}>— Pilih —</option>
-                {cats.map(c => <option key={c} value={c} style={{ background: "#111318" }}>{c}</option>)}
+                style={{ width: "100%", background: "rgb(var(--ink) / .05)", border: "1px solid rgb(var(--ink) / .1)", borderRadius: 10, padding: "10px 12px", color: "hsl(var(--foreground))", fontSize: 13, outline: "none", fontFamily: FONT, cursor: "pointer" }}>
+                <option value="" style={{ background: "hsl(var(--card))" }}>— Pilih —</option>
+                {cats.map(c => <option key={c} value={c} style={{ background: "hsl(var(--card))" }}>{c}</option>)}
               </select>
             </div>
             <div>
-              <label style={{ display: "block", fontSize: 10, fontWeight: 700, letterSpacing: ".14em", textTransform: "uppercase", color: "rgba(255,255,255,.35)", marginBottom: 6 }}>Kondisi</label>
+              <label style={{ display: "block", fontSize: 10, fontWeight: 700, letterSpacing: ".14em", textTransform: "uppercase", color: "rgb(var(--ink) / calc(.35 + var(--ink-boost)))", marginBottom: 6 }}>Kondisi</label>
               <select value={form.condition || "Baik"} onChange={e => f("condition", e.target.value)}
-                style={{ width: "100%", background: "rgba(255,255,255,.05)", border: "1px solid rgba(255,255,255,.1)", borderRadius: 10, padding: "10px 12px", color: "#fff", fontSize: 13, outline: "none", fontFamily: FONT, cursor: "pointer" }}>
-                {conditions.map(c => <option key={c} value={c} style={{ background: "#111318" }}>{c}</option>)}
+                style={{ width: "100%", background: "rgb(var(--ink) / .05)", border: "1px solid rgb(var(--ink) / .1)", borderRadius: 10, padding: "10px 12px", color: "hsl(var(--foreground))", fontSize: 13, outline: "none", fontFamily: FONT, cursor: "pointer" }}>
+                {conditions.map(c => <option key={c} value={c} style={{ background: "hsl(var(--card))" }}>{c}</option>)}
               </select>
             </div>
           </div>
         </div>
         <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 24 }}>
-          <button onClick={onClose} style={{ padding: "9px 18px", borderRadius: 9, background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.1)", color: "rgba(255,255,255,.6)", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: FONT }}>Batal</button>
+          <button onClick={onClose} style={{ padding: "9px 18px", borderRadius: 9, background: "rgb(var(--ink) / .06)", border: "1px solid rgb(var(--ink) / .1)", color: "rgb(var(--ink) / calc(.6 + var(--ink-boost)))", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: FONT }}>Batal</button>
           <button onClick={save} disabled={saving || !form.name || !form.purchasePrice}
             style={{ padding: "9px 20px", borderRadius: 9, background: OR, border: "none", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: FONT, opacity: saving ? 0.7 : 1 }}>
             {saving ? "Menyimpan..." : "Simpan"}
@@ -317,8 +330,8 @@ function TabBtn({ label, active, onClick }: { label: string; active: boolean; on
     <button onClick={onClick} style={{
       padding: "8px 18px", borderRadius: 10, fontSize: 12, fontWeight: 700,
       cursor: "pointer", border: "none", fontFamily: FONT,
-      background: active ? OR : "rgba(255,255,255,.05)",
-      color: active ? "#fff" : "rgba(255,255,255,.45)",
+      background: active ? OR : "rgb(var(--ink) / .05)",
+      color: active ? "#fff" : "rgb(var(--ink) / calc(.45 + var(--ink-boost)))",
       transition: "all .2s",
     }}>{label}</button>
   );
@@ -337,7 +350,7 @@ function PrintPeriodModal({ onClose, onConfirm }: {
   const [endDate, setEndDate] = useState(new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split("T")[0]);
 
   const years = Array.from({ length: 5 }, (_, i) => now.getFullYear() - i);
-  const ipt: React.CSSProperties = { background: "rgba(255,255,255,.05)", border: "1px solid rgba(255,255,255,.1)", borderRadius: 10, padding: "9px 12px", color: "#fff", fontSize: 13, outline: "none", fontFamily: FONT, width: "100%", boxSizing: "border-box" };
+  const ipt: React.CSSProperties = { background: "rgb(var(--ink) / .05)", border: "1px solid rgb(var(--ink) / .1)", borderRadius: 10, padding: "9px 12px", color: "hsl(var(--foreground))", fontSize: 13, outline: "none", fontFamily: FONT, width: "100%", boxSizing: "border-box" };
   const btnBase: React.CSSProperties = { display: "flex", alignItems: "center", gap: 6, padding: "9px 16px", borderRadius: 10, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: FONT, border: "none" };
 
   function getRange(): { from: Date; to: Date; label: string } {
@@ -358,16 +371,16 @@ function PrintPeriodModal({ onClose, onConfirm }: {
   return (
     <div onClick={e => { if (e.target === e.currentTarget) onClose(); }}
       style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.85)", backdropFilter: "blur(12px)", zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
-      <div style={{ background: "#111318", border: "1px solid rgba(255,255,255,.1)", borderRadius: 22, padding: 30, width: "100%", maxWidth: 440, position: "relative" }}>
-        <button onClick={onClose} style={{ position: "absolute", top: 14, right: 14, width: 30, height: 30, borderRadius: "50%", background: "rgba(255,255,255,.06)", border: "none", cursor: "pointer", color: "rgba(255,255,255,.5)", display: "flex", alignItems: "center", justifyContent: "center" }}><X size={14} /></button>
+      <div style={{ background: "hsl(var(--card))", border: "1px solid rgb(var(--ink) / .1)", borderRadius: 22, padding: 30, width: "100%", maxWidth: 440, position: "relative" }}>
+        <button onClick={onClose} style={{ position: "absolute", top: 14, right: 14, width: 30, height: 30, borderRadius: "50%", background: "rgb(var(--ink) / .06)", border: "none", cursor: "pointer", color: "rgb(var(--ink) / calc(.5 + var(--ink-boost)))", display: "flex", alignItems: "center", justifyContent: "center" }}><X size={14} /></button>
 
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
-          <div style={{ width: 34, height: 34, borderRadius: 9, background: `${OR}18`, display: "flex", alignItems: "center", justifyContent: "center", color: OR }}>
+          <div style={{ width: 34, height: 34, borderRadius: 9, background: `color-mix(in srgb, ${OR} 9%, transparent)`, display: "flex", alignItems: "center", justifyContent: "center", color: OR }}>
             <Printer size={16} />
           </div>
           <div>
-            <h3 style={{ fontSize: 17, fontWeight: 800, color: "#fff", margin: 0 }}>Cetak Laporan Keuangan</h3>
-            <p style={{ fontSize: 11, color: "rgba(255,255,255,.4)", margin: "2px 0 0" }}>Pilih periode arus kas yang ingin dicetak</p>
+            <h3 style={{ fontSize: 17, fontWeight: 800, color: "hsl(var(--foreground))", margin: 0 }}>Cetak Laporan Keuangan</h3>
+            <p style={{ fontSize: 11, color: "rgb(var(--ink) / calc(.4 + var(--ink-boost)))", margin: "2px 0 0" }}>Pilih periode arus kas yang ingin dicetak</p>
           </div>
         </div>
 
@@ -376,8 +389,8 @@ function PrintPeriodModal({ onClose, onConfirm }: {
             <button key={m} onClick={() => setMode(m)} style={{
               flex: 1, padding: "8px 12px", borderRadius: 9, fontSize: 12, fontWeight: 700,
               cursor: "pointer", border: "none", fontFamily: FONT,
-              background: mode === m ? OR : "rgba(255,255,255,.05)",
-              color: mode === m ? "#fff" : "rgba(255,255,255,.45)",
+              background: mode === m ? OR : "rgb(var(--ink) / .05)",
+              color: mode === m ? "#fff" : "rgb(var(--ink) / calc(.45 + var(--ink-boost)))",
             }}>
               {m === "month" ? "Per Bulan" : "Rentang Custom"}
             </button>
@@ -387,32 +400,32 @@ function PrintPeriodModal({ onClose, onConfirm }: {
         {mode === "month" ? (
           <div style={{ display: "grid", gridTemplateColumns: "1fr 110px", gap: 10, marginBottom: 18 }}>
             <select value={month} onChange={e => setMonth(Number(e.target.value))} style={{ ...ipt, cursor: "pointer" }}>
-              {MONTHS_ID.map((m, i) => <option key={m} value={i} style={{ background: "#111318" }}>{m}</option>)}
+              {MONTHS_ID.map((m, i) => <option key={m} value={i} style={{ background: "hsl(var(--card))" }}>{m}</option>)}
             </select>
             <select value={year} onChange={e => setYear(Number(e.target.value))} style={{ ...ipt, cursor: "pointer" }}>
-              {years.map(y => <option key={y} value={y} style={{ background: "#111318" }}>{y}</option>)}
+              {years.map(y => <option key={y} value={y} style={{ background: "hsl(var(--card))" }}>{y}</option>)}
             </select>
           </div>
         ) : (
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 18 }}>
             <div>
-              <label style={{ display: "block", fontSize: 10, fontWeight: 700, letterSpacing: ".1em", textTransform: "uppercase", color: "rgba(255,255,255,.35)", marginBottom: 6 }}>Dari</label>
+              <label style={{ display: "block", fontSize: 10, fontWeight: 700, letterSpacing: ".1em", textTransform: "uppercase", color: "rgb(var(--ink) / calc(.35 + var(--ink-boost)))", marginBottom: 6 }}>Dari</label>
               <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} style={ipt} />
             </div>
             <div>
-              <label style={{ display: "block", fontSize: 10, fontWeight: 700, letterSpacing: ".1em", textTransform: "uppercase", color: "rgba(255,255,255,.35)", marginBottom: 6 }}>Sampai</label>
+              <label style={{ display: "block", fontSize: 10, fontWeight: 700, letterSpacing: ".1em", textTransform: "uppercase", color: "rgb(var(--ink) / calc(.35 + var(--ink-boost)))", marginBottom: 6 }}>Sampai</label>
               <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} style={ipt} />
             </div>
           </div>
         )}
 
-        <div style={{ padding: "12px 16px", borderRadius: 12, background: "rgba(255,255,255,.03)", border: "1px solid rgba(255,255,255,.07)", marginBottom: 20 }}>
-          <p style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,.35)", textTransform: "uppercase", letterSpacing: ".1em", margin: "0 0 4px" }}>Periode terpilih</p>
+        <div style={{ padding: "12px 16px", borderRadius: 12, background: "rgb(var(--ink) / .03)", border: "1px solid rgb(var(--ink) / .07)", marginBottom: 20 }}>
+          <p style={{ fontSize: 10, fontWeight: 700, color: "rgb(var(--ink) / calc(.35 + var(--ink-boost)))", textTransform: "uppercase", letterSpacing: ".1em", margin: "0 0 4px" }}>Periode terpilih</p>
           <p style={{ fontSize: 15, fontWeight: 800, color: OR, margin: 0 }}>{label}</p>
         </div>
 
         <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-          <button onClick={onClose} style={{ ...btnBase, background: "rgba(255,255,255,.06)", color: "rgba(255,255,255,.6)", border: "1px solid rgba(255,255,255,.1)" }}>Batal</button>
+          <button onClick={onClose} style={{ ...btnBase, background: "rgb(var(--ink) / .06)", color: "rgb(var(--ink) / calc(.6 + var(--ink-boost)))", border: "1px solid rgb(var(--ink) / .1)" }}>Batal</button>
           <button onClick={() => onConfirm(getRange())} style={{ ...btnBase, background: OR, color: "#fff" }}>
             <Printer size={14} /> Cetak PDF
           </button>
@@ -436,6 +449,7 @@ export default function FinancePage() {
 
   // Data state
   const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [cashEvents, setCashEvents] = useState<CashEvent[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [incomeEntries, setIncomeEntries] = useState<IncomeEntry[]>([]);
   const [equipment, setEquipment] = useState<Equipment[]>([]);
@@ -450,7 +464,7 @@ export default function FinancePage() {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const [inv, exp, inc, eq, sum] = await Promise.all([
+      const [inv, exp, inc, eq, sum, ce] = await Promise.all([
         api("/api/invoices").catch(() => []),
         api("/api/expenses").catch(() => []),
         api("/api/income").catch(() => []),
@@ -460,7 +474,9 @@ export default function FinancePage() {
           return stored ? JSON.parse(stored) : [];
         }),
         api("/api/finance/summary").catch(() => null),
+        api("/api/invoices/cash-events").catch(() => []),
       ]);
+      setCashEvents(Array.isArray(ce) ? ce : []);
       setInvoices(Array.isArray(inv) ? inv : []);
       setExpenses(Array.isArray(exp) ? exp : []);
       setIncomeEntries(Array.isArray(inc) ? inc : []);
@@ -489,20 +505,16 @@ export default function FinancePage() {
   const netProfit = totalRevenue - totalExpenses;
   const profitMargin = totalRevenue > 0 ? ((netProfit / totalRevenue) * 100).toFixed(1) : "0.0";
   const unpaidAmount = invoices.reduce((s, i) => {
-    if (i.status === "PAID") return s;
+    if (i.status === "PAID" || i.status === "DRAFT" || i.status === "CANCELLED") return s; // Draft belum ditagihkan
     return s + Math.max(0, Number(i.total || 0) - Number(i.paidAmount || 0));
   }, 0);
 
   // Monthly cashflow (filtered by period year)
   const MONTHS = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
   const cashFlow = MONTHS.map((m, mi) => {
-    const invIncome = invoices
-      .filter(i => {
-        if (Number(i.paidAmount || 0) === 0) return false;
-        const ref = i.paidAt ? new Date(i.paidAt) : i.updatedAt ? new Date(i.updatedAt) : i.createdAt ? new Date(i.createdAt) : null;
-        return !!ref && ref.getMonth() === mi && ref.getFullYear() === yr;
-      })
-      .reduce((s, i) => s + Number(i.paidAmount || 0), 0);
+    const invIncome = cashEvents
+      .filter(ev => { const d = new Date(ev.date); return d.getMonth() === mi && d.getFullYear() === yr; })
+      .reduce((s, ev) => s + ev.amount, 0);
 
     const manIncome = incomeEntries
       .filter(i => { const d = new Date(i.date); return d.getMonth() === mi && d.getFullYear() === yr; })
@@ -521,7 +533,7 @@ export default function FinancePage() {
     return acc;
   }, {} as Record<string, number>);
   const expPieData = Object.entries(expCats).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
-  const PIE_COLORS = ["#FF6A20", "#7c3aed", "#2563eb", "#4ade80", "#fbbf24", "#f472b6", "#06b6d4", "#a78bfa"];
+  const PIE_COLORS = ["#FF6A20", "var(--c-violet)", "var(--c-blue)", "var(--c-green)", "var(--c-amber)", "#f472b6", "#06b6d4", "var(--c-violet)"];
 
   // Income by category
   const incCats = [
@@ -606,9 +618,9 @@ export default function FinancePage() {
   }
 
   // ── PDF Print ────────────────────────────────────────────────────────────────
-  function handlePrint(range: { from: Date; to: Date; label: string }) {
-    const w = window.open("", "_blank", "width=960,height=720");
-    if (!w) return;
+  async function handlePrint(range: { from: Date; to: Date; label: string }) {
+    const w = createPrintSink();
+    const brand = await fetchBrand();
 
     const { from, to, label } = range;
 
@@ -616,15 +628,11 @@ export default function FinancePage() {
     // this is what lets the report cover a single month or an arbitrary custom range instead of
     // always being locked to a full calendar year.
     //
-    // Reference date fallback chain: paidAt (set when a payment is recorded) → updatedAt (set on
-    // any edit, including a manual status change to PAID) → createdAt (last resort, for legacy
-    // invoices that were marked PAID before paidAt/updatedAt were reliably populated). Without this
-    // last fallback, invoices with missing payment timestamps disappear from period reports entirely
-    // instead of at least showing up under the invoice's creation date.
-    const rangeInvoicePayments = invoices.filter(i => {
-      if (Number(i.paidAmount || 0) === 0) return false;
-      const ref = i.paidAt ? new Date(i.paidAt) : i.updatedAt ? new Date(i.updatedAt) : i.createdAt ? new Date(i.createdAt) : null;
-      return !!ref && ref >= from && ref <= to;
+    // Uang masuk invoice dihitung per tanggal PEMBAYARAN (bukan tanggal update invoice), sehingga
+    // DP dan termin masuk ke periode saat uang benar-benar diterima.
+    const rangeInvoicePayments = cashEvents.filter(ev => {
+      const d = new Date(ev.date);
+      return d >= from && d <= to;
     });
     const rangeIncomeEntries = incomeEntries.filter(i => {
       const d = new Date(i.date);
@@ -635,7 +643,7 @@ export default function FinancePage() {
       return d >= from && d <= to;
     });
 
-    const rangeInvoiceRevenue = rangeInvoicePayments.reduce((s, i) => s + Number(i.paidAmount || 0), 0);
+    const rangeInvoiceRevenue = rangeInvoicePayments.reduce((s, ev) => s + ev.amount, 0);
     const rangeManualIncome = rangeIncomeEntries.reduce((s, i) => s + Number(i.amount || 0), 0);
     const rangeTotalIncome = rangeInvoiceRevenue + rangeManualIncome;
     const rangeTotalExpenses = rangeExpenses.reduce((s, e) => s + Number(e.amount || 0), 0);
@@ -651,13 +659,9 @@ export default function FinancePage() {
       const mStart = new Date(Math.max(cursor.getTime(), from.getTime()));
       const mEnd = new Date(Math.min(new Date(cursor.getFullYear(), cursor.getMonth() + 1, 0, 23, 59, 59).getTime(), to.getTime()));
 
-      const invInc = invoices
-        .filter(i => {
-          if (Number(i.paidAmount || 0) === 0) return false;
-          const ref = i.paidAt ? new Date(i.paidAt) : i.updatedAt ? new Date(i.updatedAt) : i.createdAt ? new Date(i.createdAt) : null;
-          return !!ref && ref >= mStart && ref <= mEnd;
-        })
-        .reduce((s, i) => s + Number(i.paidAmount || 0), 0);
+      const invInc = cashEvents
+        .filter(ev => { const d = new Date(ev.date); return d >= mStart && d <= mEnd; })
+        .reduce((s, ev) => s + ev.amount, 0);
 
       const manInc = incomeEntries
         .filter(i => { const d = new Date(i.date); return d >= mStart && d <= mEnd; })
@@ -730,21 +734,10 @@ export default function FinancePage() {
   .progress-bar { height: 5px; border-radius: 100px; background: #f3f4f6; overflow: hidden; }
   .progress-fill { height: 100%; border-radius: 100px; }
   @media print { body { padding: 20px 24px; } .no-print { display: none !important; } }
+${REPORT_BRAND_CSS}
 </style></head><body>
 
-<div class="header">
-  <div>
-    <div class="logo-mark">FRAMELESS™</div>
-    <div class="logo-sub">Creative Production House · Wonosobo, Central Java</div>
-    <div class="logo-sub" style="margin-top:2px;">framelesscreative.com</div>
-  </div>
-  <div class="header-right">
-    <div class="report-title">Laporan Keuangan</div>
-    <div class="report-meta">Periode: ${label}</div>
-    <div class="report-meta">Dicetak: ${new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}</div>
-    <div class="report-meta">Waktu: ${new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}</div>
-  </div>
-</div>
+${reportHeaderHtml(brand, "Laporan", "Keuangan", [`Periode: ${label}`, `Dicetak: ${new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })} · ${new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}`])}
 
 <div class="kpi-grid">
   <div class="kpi"><div class="kpi-label">Total Pemasukan</div><div class="kpi-value kv-green">${formatCurrency(rangeTotalIncome)}</div></div>
@@ -787,13 +780,13 @@ export default function FinancePage() {
   <div class="section">
     <div class="section-title">Pemasukan dari Invoice · ${label}</div>
     <table>
-      <thead><tr><th>No. Invoice</th><th>Klien</th><th>Dibayar</th><th>Status</th></tr></thead>
+      <thead><tr><th>No. Invoice</th><th>Klien</th><th>Dibayar</th><th>Tanggal</th></tr></thead>
       <tbody>
-        ${rangeInvoicePayments.slice(0, 20).map(i => `<tr>
-          <td class="bold">${i.number}</td>
-          <td>${(i as any).clientName || "—"}</td>
-          <td class="pos">${formatCurrency(Number(i.paidAmount))}</td>
-          <td><span class="badge ${i.status === "PAID" ? "badge-green" : "badge-yellow"}">${i.status}</span></td>
+        ${rangeInvoicePayments.slice(0, 20).map(ev => `<tr>
+          <td class="bold">${ev.invoiceNumber}</td>
+          <td>${ev.clientName || "—"}</td>
+          <td class="pos">${formatCurrency(ev.amount)}</td>
+          <td>${new Date(ev.date).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}</td>
         </tr>`).join("") || '<tr><td colspan="4" style="text-align:center;color:#9ca3af;">Tidak ada pembayaran pada periode ini</td></tr>'}
       </tbody>
     </table>
@@ -873,17 +866,16 @@ ${equipment.length > 0 ? `<div class="section">
 </div>` : ""}
 
 <div class="footer">
-  <span>Frameless Creative Production House · Wonosobo, Central Java · framelesscreative.com</span>
+  <span>${brand.name} · ${brandContactLine(brand)}</span>
   <span>Dokumen dibuat otomatis oleh sistem manajemen Frameless Creative</span>
 </div>
 
 </body></html>`);
     w.document.close();
-    setTimeout(() => { w.print(); }, 600);
   }
 
   const years = Array.from({ length: 5 }, (_, i) => String(new Date().getFullYear() - i));
-  const ipt: React.CSSProperties = { background: "rgba(255,255,255,.05)", border: "1px solid rgba(255,255,255,.1)", borderRadius: 10, padding: "8px 12px", color: "#fff", fontSize: 13, outline: "none", fontFamily: FONT };
+  const ipt: React.CSSProperties = { background: "rgb(var(--ink) / .05)", border: "1px solid rgb(var(--ink) / .1)", borderRadius: 10, padding: "8px 12px", color: "hsl(var(--foreground))", fontSize: 13, outline: "none", fontFamily: FONT };
   const btnBase: React.CSSProperties = { display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 10, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: FONT, border: "none" };
 
   // ── Render ──────────────────────────────────────────────────────────────────
@@ -900,25 +892,25 @@ ${equipment.length > 0 ? `<div class="section">
       {/* ── Header ── */}
       <div style={{ display: "flex", alignItems: isMobile ? "flex-start" : "flex-end", justifyContent: "space-between", marginBottom: isMobile ? 20 : 28, flexDirection: isMobile ? "column" : "row", gap: isMobile ? 12 : 16 }}>
         <div>
-          <h1 style={{ fontSize: isMobile ? 26 : 34, fontWeight: 900, color: "#fff", letterSpacing: "-.03em", margin: "0 0 4px" }}>Keuangan</h1>
-          <p style={{ fontSize: 11, color: "rgba(255,255,255,.35)", textTransform: "uppercase", letterSpacing: ".12em", fontWeight: 600 }}>Finance & Accounting · Frameless Creative</p>
+          <h1 style={{ fontSize: isMobile ? 26 : 34, fontWeight: 900, color: "hsl(var(--foreground))", letterSpacing: "-.03em", margin: "0 0 4px" }}>Keuangan</h1>
+          <p style={{ fontSize: 11, color: "rgb(var(--ink) / calc(.35 + var(--ink-boost)))", textTransform: "uppercase", letterSpacing: ".12em", fontWeight: 600 }}>Finance & Accounting · Frameless Creative</p>
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center", width: isMobile ? "100%" : "auto" }}>
           <select value={period} onChange={e => setPeriod(e.target.value)} style={{ ...ipt, cursor: "pointer", flex: isMobile ? 1 : "none", width: isMobile ? "auto" : "auto" }}>
-            {years.map(y => <option key={y} value={y} style={{ background: "#111318" }}>{y}</option>)}
+            {years.map(y => <option key={y} value={y} style={{ background: "hsl(var(--card))" }}>{y}</option>)}
           </select>
-          <button onClick={loadData} title="Refresh" style={{ width: 36, height: 36, borderRadius: 10, background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.1)", cursor: "pointer", color: "rgba(255,255,255,.5)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><RefreshCw size={14} /></button>
+          <button onClick={loadData} title="Refresh" style={{ width: 36, height: 36, borderRadius: 10, background: "rgb(var(--ink) / .06)", border: "1px solid rgb(var(--ink) / .1)", cursor: "pointer", color: "rgb(var(--ink) / calc(.5 + var(--ink-boost)))", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><RefreshCw size={14} /></button>
           <button onClick={() => setPrintModal(true)} style={{ ...btnBase, background: OR, color: "#fff", flexShrink: 0, whiteSpace: "nowrap" }}><Printer size={14} /> {isMobile ? "Cetak" : "Cetak PDF"}</button>
         </div>
       </div>
 
       {/* ── KPI Stats ── */}
       <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(auto-fit,minmax(160px,1fr))", gap: isMobile ? 10 : 12, marginBottom: 24 }}>
-        <StatCard label="Total Pemasukan" value={formatCurrency(totalRevenue)} icon={<TrendingUp size={16} />} color="#4ade80" sub={`Invoice: ${formatCurrency(invoiceRevenue)}`} />
-        <StatCard label="Total Pengeluaran" value={formatCurrency(totalExpenses)} icon={<TrendingDown size={16} />} color="#f87171" sub={`${expenses.length} transaksi`} />
-        <StatCard label="Laba Bersih" value={formatCurrency(netProfit)} icon={<DollarSign size={16} />} color={netProfit >= 0 ? "#4ade80" : "#f87171"} sub={netProfit >= 0 ? "Untung 🎉" : "Rugi ⚠️"} />
-        <StatCard label="Profit Margin" value={`${profitMargin}%`} icon={<BarChart2 size={16} />} color={Number(profitMargin) >= 30 ? "#4ade80" : Number(profitMargin) >= 10 ? "#fbbf24" : "#f87171"} sub="Margin bersih" />
-        <StatCard label="Piutang" value={formatCurrency(unpaidAmount)} icon={<Receipt size={16} />} color="#fbbf24" sub={`${invoices.filter(i => i.status !== "PAID" && Number(i.paidAmount) < Number(i.total)).length} pending`} />
+        <StatCard label="Total Pemasukan" value={formatCurrency(totalRevenue)} icon={<TrendingUp size={16} />} color="var(--c-green)" sub={`Invoice: ${formatCurrency(invoiceRevenue)}`} />
+        <StatCard label="Total Pengeluaran" value={formatCurrency(totalExpenses)} icon={<TrendingDown size={16} />} color="var(--c-red)" sub={`${expenses.length} transaksi`} />
+        <StatCard label="Laba Bersih" value={formatCurrency(netProfit)} icon={<DollarSign size={16} />} color={netProfit >= 0 ? "var(--c-green)" : "var(--c-red)"} sub={netProfit >= 0 ? "Untung 🎉" : "Rugi ⚠️"} />
+        <StatCard label="Profit Margin" value={`${profitMargin}%`} icon={<BarChart2 size={16} />} color={Number(profitMargin) >= 30 ? "var(--c-green)" : Number(profitMargin) >= 10 ? "var(--c-amber)" : "var(--c-red)"} sub="Margin bersih" />
+        <StatCard label="Piutang" value={formatCurrency(unpaidAmount)} icon={<Receipt size={16} />} color="var(--c-amber)" sub={`${invoices.filter(i => i.status !== "PAID" && Number(i.paidAmount) < Number(i.total)).length} pending`} />
         <StatCard label="Nilai Buku Aset" value={formatCurrency(totalBookValue)} icon={<Package size={16} />} color={OR} sub={`${equipment.length} item`} />
       </div>
 
@@ -939,21 +931,21 @@ ${equipment.length > 0 ? `<div class="section">
         <>
           {/* Cash Flow Chart */}
           <Section title={`Arus Kas ${period}`} icon={<BarChart2 size={14} />}>
-            <div style={{ background: "rgba(255,255,255,.025)", borderRadius: 18, border: "1px solid rgba(255,255,255,.07)", padding: "22px" }}>
+            <div style={{ background: "rgb(var(--ink) / .025)", borderRadius: 18, border: "1px solid rgb(var(--ink) / .07)", padding: "22px" }}>
               <div style={{ height: 270 }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={cashFlow} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                     <defs>
-                      <linearGradient id="gi" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#4ade80" stopOpacity={0.25} /><stop offset="95%" stopColor="#4ade80" stopOpacity={0} /></linearGradient>
-                      <linearGradient id="ge" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#f87171" stopOpacity={0.25} /><stop offset="95%" stopColor="#f87171" stopOpacity={0} /></linearGradient>
+                      <linearGradient id="gi" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="var(--c-green)" stopOpacity={0.25} /><stop offset="95%" stopColor="var(--c-green)" stopOpacity={0} /></linearGradient>
+                      <linearGradient id="ge" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="var(--c-red)" stopOpacity={0.25} /><stop offset="95%" stopColor="var(--c-red)" stopOpacity={0} /></linearGradient>
                     </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,.05)" vertical={false} />
-                    <XAxis dataKey="month" stroke="rgba(255,255,255,.3)" fontSize={11} tickLine={false} axisLine={false} />
-                    <YAxis stroke="rgba(255,255,255,.3)" fontSize={11} tickFormatter={v => `${(v / 1e6).toFixed(0)}M`} tickLine={false} axisLine={false} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgb(var(--ink) / .05)" vertical={false} />
+                    <XAxis dataKey="month" stroke="rgb(var(--ink) / .3)" fontSize={11} tickLine={false} axisLine={false} />
+                    <YAxis stroke="rgb(var(--ink) / .3)" fontSize={11} tickFormatter={v => `${(v / 1e6).toFixed(0)}M`} tickLine={false} axisLine={false} />
                     <Tooltip content={<ChartTooltip />} />
-                    <Legend wrapperStyle={{ fontSize: 11, color: "rgba(255,255,255,.5)" }} />
-                    <Area type="monotone" dataKey="income" name="Pemasukan" stroke="#4ade80" strokeWidth={2} fill="url(#gi)" />
-                    <Area type="monotone" dataKey="expenses" name="Pengeluaran" stroke="#f87171" strokeWidth={2} fill="url(#ge)" />
+                    <Legend wrapperStyle={{ fontSize: 11, color: "rgb(var(--ink) / calc(.5 + var(--ink-boost)))" }} />
+                    <Area type="monotone" dataKey="income" name="Pemasukan" stroke="var(--c-green)" strokeWidth={2} fill="url(#gi)" />
+                    <Area type="monotone" dataKey="expenses" name="Pengeluaran" stroke="var(--c-red)" strokeWidth={2} fill="url(#ge)" />
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
@@ -962,23 +954,23 @@ ${equipment.length > 0 ? `<div class="section">
                 <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
                   <thead>
                     <tr>{["Bulan", "Pemasukan", "Pengeluaran", "Arus Bersih"].map(h => (
-                      <th key={h} style={{ padding: "8px 10px", textAlign: "left", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".12em", color: "rgba(255,255,255,.3)", borderBottom: "1px solid rgba(255,255,255,.07)" }}>{h}</th>
+                      <th key={h} style={{ padding: "8px 10px", textAlign: "left", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".12em", color: "rgb(var(--ink) / calc(.3 + var(--ink-boost)))", borderBottom: "1px solid rgb(var(--ink) / .07)" }}>{h}</th>
                     ))}</tr>
                   </thead>
                   <tbody>
                     {cashFlow.map(r => (
-                      <tr key={r.month} style={{ borderBottom: "1px solid rgba(255,255,255,.04)" }}>
-                        <td style={{ padding: "8px 10px", color: "rgba(255,255,255,.6)", fontWeight: 600 }}>{r.month}</td>
-                        <td style={{ padding: "8px 10px", color: "#4ade80", fontWeight: 700 }}>{r.income > 0 ? formatCurrency(r.income) : "—"}</td>
-                        <td style={{ padding: "8px 10px", color: "#f87171", fontWeight: 700 }}>{r.expenses > 0 ? formatCurrency(r.expenses) : "—"}</td>
-                        <td style={{ padding: "8px 10px", color: r.net >= 0 ? "#4ade80" : "#f87171", fontWeight: 800 }}>{(r.income > 0 || r.expenses > 0) ? formatCurrency(r.net) : "—"}</td>
+                      <tr key={r.month} style={{ borderBottom: "1px solid rgb(var(--ink) / .04)" }}>
+                        <td style={{ padding: "8px 10px", color: "rgb(var(--ink) / calc(.6 + var(--ink-boost)))", fontWeight: 600 }}>{r.month}</td>
+                        <td style={{ padding: "8px 10px", color: "var(--c-green)", fontWeight: 700 }}>{r.income > 0 ? formatCurrency(r.income) : "—"}</td>
+                        <td style={{ padding: "8px 10px", color: "var(--c-red)", fontWeight: 700 }}>{r.expenses > 0 ? formatCurrency(r.expenses) : "—"}</td>
+                        <td style={{ padding: "8px 10px", color: r.net >= 0 ? "var(--c-green)" : "var(--c-red)", fontWeight: 800 }}>{(r.income > 0 || r.expenses > 0) ? formatCurrency(r.net) : "—"}</td>
                       </tr>
                     ))}
-                    <tr style={{ borderTop: `2px solid ${OR}`, background: `${OR}08` }}>
-                      <td style={{ padding: "10px 10px", color: "#fff", fontWeight: 800 }}>TOTAL {period}</td>
-                      <td style={{ padding: "10px 10px", color: "#4ade80", fontWeight: 900 }}>{formatCurrency(totalRevenue)}</td>
-                      <td style={{ padding: "10px 10px", color: "#f87171", fontWeight: 900 }}>{formatCurrency(totalExpenses)}</td>
-                      <td style={{ padding: "10px 10px", color: netProfit >= 0 ? "#4ade80" : "#f87171", fontWeight: 900 }}>{formatCurrency(netProfit)}</td>
+                    <tr style={{ borderTop: `2px solid ${OR}`, background: `color-mix(in srgb, ${OR} 3%, transparent)` }}>
+                      <td style={{ padding: "10px 10px", color: "hsl(var(--foreground))", fontWeight: 800 }}>TOTAL {period}</td>
+                      <td style={{ padding: "10px 10px", color: "var(--c-green)", fontWeight: 900 }}>{formatCurrency(totalRevenue)}</td>
+                      <td style={{ padding: "10px 10px", color: "var(--c-red)", fontWeight: 900 }}>{formatCurrency(totalExpenses)}</td>
+                      <td style={{ padding: "10px 10px", color: netProfit >= 0 ? "var(--c-green)" : "var(--c-red)", fontWeight: 900 }}>{formatCurrency(netProfit)}</td>
                     </tr>
                   </tbody>
                 </table>
@@ -990,7 +982,7 @@ ${equipment.length > 0 ? `<div class="section">
           <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: isMobile ? 16 : 24, marginBottom: 32 }}>
             {/* Expense Pie */}
             <Section title="Distribusi Pengeluaran" icon={<Filter size={14} />}>
-              <div style={{ background: "rgba(255,255,255,.025)", borderRadius: 18, border: "1px solid rgba(255,255,255,.07)", padding: 20 }}>
+              <div style={{ background: "rgb(var(--ink) / .025)", borderRadius: 18, border: "1px solid rgb(var(--ink) / .07)", padding: 20 }}>
                 {expPieData.length > 0 ? (
                   <>
                     <div style={{ height: 200 }}>
@@ -1008,35 +1000,35 @@ ${equipment.length > 0 ? `<div class="section">
                         <div key={d.name} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                           <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
                             <span style={{ width: 9, height: 9, borderRadius: 3, background: PIE_COLORS[i % PIE_COLORS.length], display: "inline-block", flexShrink: 0 }} />
-                            <span style={{ fontSize: 12, color: "rgba(255,255,255,.6)" }}>{d.name}</span>
+                            <span style={{ fontSize: 12, color: "rgb(var(--ink) / calc(.6 + var(--ink-boost)))" }}>{d.name}</span>
                           </div>
-                          <span style={{ fontSize: 12, fontWeight: 700, color: "rgba(255,255,255,.7)" }}>{formatCurrency(d.value)}</span>
+                          <span style={{ fontSize: 12, fontWeight: 700, color: "rgb(var(--ink) / calc(.7 + var(--ink-boost)))" }}>{formatCurrency(d.value)}</span>
                         </div>
                       ))}
                     </div>
                   </>
-                ) : <p style={{ color: "rgba(255,255,255,.3)", fontSize: 13, textAlign: "center", padding: 32 }}>Belum ada data pengeluaran.</p>}
+                ) : <p style={{ color: "rgb(var(--ink) / calc(.3 + var(--ink-boost)))", fontSize: 13, textAlign: "center", padding: 32 }}>Belum ada data pengeluaran.</p>}
               </div>
             </Section>
 
             {/* P&L Summary */}
             <Section title="Ringkasan Laba Rugi" icon={<DollarSign size={14} />}>
-              <div style={{ background: "rgba(255,255,255,.025)", borderRadius: 18, border: "1px solid rgba(255,255,255,.07)", padding: 20 }}>
+              <div style={{ background: "rgb(var(--ink) / .025)", borderRadius: 18, border: "1px solid rgb(var(--ink) / .07)", padding: 20 }}>
                 <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                   <div style={{ padding: "14px 16px", borderRadius: 12, background: "rgba(74,222,128,.06)", border: "1px solid rgba(74,222,128,.15)" }}>
                     <p style={{ fontSize: 10, color: "rgba(74,222,128,.7)", fontWeight: 700, margin: "0 0 3px", textTransform: "uppercase", letterSpacing: ".1em" }}>Total Pemasukan</p>
-                    <p style={{ fontSize: 22, fontWeight: 900, color: "#4ade80", margin: 0 }}>{formatCurrency(totalRevenue)}</p>
-                    <p style={{ fontSize: 10, color: "rgba(255,255,255,.3)", margin: "3px 0 0" }}>Invoice: {formatCurrency(invoiceRevenue)} · Manual: {formatCurrency(manualIncome)}</p>
+                    <p style={{ fontSize: 22, fontWeight: 900, color: "var(--c-green)", margin: 0 }}>{formatCurrency(totalRevenue)}</p>
+                    <p style={{ fontSize: 10, color: "rgb(var(--ink) / calc(.3 + var(--ink-boost)))", margin: "3px 0 0" }}>Invoice: {formatCurrency(invoiceRevenue)} · Manual: {formatCurrency(manualIncome)}</p>
                   </div>
                   <div style={{ padding: "14px 16px", borderRadius: 12, background: "rgba(248,113,113,.06)", border: "1px solid rgba(248,113,113,.15)" }}>
                     <p style={{ fontSize: 10, color: "rgba(248,113,113,.7)", fontWeight: 700, margin: "0 0 3px", textTransform: "uppercase", letterSpacing: ".1em" }}>Total Pengeluaran</p>
-                    <p style={{ fontSize: 22, fontWeight: 900, color: "#f87171", margin: 0 }}>{formatCurrency(totalExpenses)}</p>
-                    <p style={{ fontSize: 10, color: "rgba(255,255,255,.3)", margin: "3px 0 0" }}>{expenses.length} transaksi · {expPieData.length} kategori</p>
+                    <p style={{ fontSize: 22, fontWeight: 900, color: "var(--c-red)", margin: 0 }}>{formatCurrency(totalExpenses)}</p>
+                    <p style={{ fontSize: 10, color: "rgb(var(--ink) / calc(.3 + var(--ink-boost)))", margin: "3px 0 0" }}>{expenses.length} transaksi · {expPieData.length} kategori</p>
                   </div>
                   <div style={{ padding: "14px 16px", borderRadius: 12, background: `${netProfit >= 0 ? "rgba(74,222,128,.06)" : "rgba(248,113,113,.06)"}`, border: `1px solid ${netProfit >= 0 ? "rgba(74,222,128,.2)" : "rgba(248,113,113,.2)"}` }}>
                     <p style={{ fontSize: 10, color: `${netProfit >= 0 ? "rgba(74,222,128,.7)" : "rgba(248,113,113,.7)"}`, fontWeight: 700, margin: "0 0 3px", textTransform: "uppercase", letterSpacing: ".1em" }}>{netProfit >= 0 ? "Net Profit" : "Net Loss"}</p>
-                    <p style={{ fontSize: 26, fontWeight: 900, color: netProfit >= 0 ? "#4ade80" : "#f87171", margin: 0 }}>{formatCurrency(Math.abs(netProfit))}</p>
-                    <p style={{ fontSize: 11, color: "rgba(255,255,255,.35)", margin: "4px 0 0" }}>Margin: {profitMargin}%</p>
+                    <p style={{ fontSize: 26, fontWeight: 900, color: netProfit >= 0 ? "var(--c-green)" : "var(--c-red)", margin: 0 }}>{formatCurrency(Math.abs(netProfit))}</p>
+                    <p style={{ fontSize: 11, color: "rgb(var(--ink) / calc(.35 + var(--ink-boost)))", margin: "4px 0 0" }}>Margin: {profitMargin}%</p>
                   </div>
                 </div>
               </div>
@@ -1052,27 +1044,27 @@ ${equipment.length > 0 ? `<div class="section">
         <>
           {/* Invoice Revenue (otomatis) */}
           <Section title="Pemasukan dari Invoice (Otomatis)" icon={<Receipt size={14} />}>
-            <div style={{ background: "rgba(255,255,255,.025)", borderRadius: 18, border: "1px solid rgba(74,222,128,.1)", overflow: "hidden" }}>
-              <div style={{ padding: "14px 18px", borderBottom: "1px solid rgba(255,255,255,.06)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <p style={{ fontSize: 12, color: "rgba(255,255,255,.5)", margin: 0 }}>Semua pembayaran invoice otomatis tercatat sebagai pemasukan</p>
-                <span style={{ fontSize: 13, fontWeight: 900, color: "#4ade80" }}>{formatCurrency(invoiceRevenue)}</span>
+            <div style={{ background: "rgb(var(--ink) / .025)", borderRadius: 18, border: "1px solid rgba(74,222,128,.1)", overflow: "hidden" }}>
+              <div style={{ padding: "14px 18px", borderBottom: "1px solid rgb(var(--ink) / .06)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <p style={{ fontSize: 12, color: "rgb(var(--ink) / calc(.5 + var(--ink-boost)))", margin: 0 }}>Semua pembayaran invoice otomatis tercatat sebagai pemasukan</p>
+                <span style={{ fontSize: 13, fontWeight: 900, color: "var(--c-green)" }}>{formatCurrency(invoiceRevenue)}</span>
               </div>
               {invoices.filter(i => Number(i.paidAmount) > 0).length === 0 ? (
-                <p style={{ color: "rgba(255,255,255,.3)", fontSize: 13, textAlign: "center", padding: "32px 16px" }}>Belum ada invoice yang dibayar.</p>
+                <p style={{ color: "rgb(var(--ink) / calc(.3 + var(--ink-boost)))", fontSize: 13, textAlign: "center", padding: "32px 16px" }}>Belum ada invoice yang dibayar.</p>
               ) : isMobile ? (
                   /* Mobile: card stack */
                   <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
                     {invoices.filter(i => Number(i.paidAmount) > 0).map(inv => {
                       const remaining = Math.max(0, Number(inv.total) - Number(inv.paidAmount));
                       return (
-                        <div key={inv.id} style={{ padding: "12px 16px", borderBottom: "1px solid rgba(255,255,255,.05)", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
+                        <div key={inv.id} style={{ padding: "12px 16px", borderBottom: "1px solid rgb(var(--ink) / .05)", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
                           <div style={{ minWidth: 0 }}>
-                            <p style={{ fontSize: 13, fontWeight: 700, color: "#fff", margin: 0 }}>{inv.number}</p>
-                            <p style={{ fontSize: 11, color: "rgba(255,255,255,.4)", margin: "2px 0 0" }}>{(inv as any).clientName || "—"}</p>
+                            <p style={{ fontSize: 13, fontWeight: 700, color: "hsl(var(--foreground))", margin: 0 }}>{inv.number}</p>
+                            <p style={{ fontSize: 11, color: "rgb(var(--ink) / calc(.4 + var(--ink-boost)))", margin: "2px 0 0" }}>{(inv as any).clientName || "—"}</p>
                           </div>
                           <div style={{ textAlign: "right", flexShrink: 0 }}>
-                            <p style={{ fontSize: 13, fontWeight: 700, color: "#4ade80", margin: 0 }}>{formatCurrency(Number(inv.paidAmount))}</p>
-                            <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 6px", borderRadius: 5, background: inv.status === "PAID" ? "rgba(74,222,128,.15)" : "rgba(251,191,36,.15)", color: inv.status === "PAID" ? "#4ade80" : "#fbbf24" }}>{inv.status}</span>
+                            <p style={{ fontSize: 13, fontWeight: 700, color: "var(--c-green)", margin: 0 }}>{formatCurrency(Number(inv.paidAmount))}</p>
+                            <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 6px", borderRadius: 5, background: inv.status === "PAID" ? "rgba(74,222,128,.15)" : "rgba(251,191,36,.15)", color: inv.status === "PAID" ? "var(--c-green)" : "var(--c-amber)" }}>{inv.status}</span>
                           </div>
                         </div>
                       );
@@ -1084,21 +1076,21 @@ ${equipment.length > 0 ? `<div class="section">
                     <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
                       <thead>
                         <tr>{["No. Invoice", "Klien", "Total Invoice", "Sudah Dibayar", "Sisa", "Status"].map(h => (
-                          <th key={h} style={{ padding: "9px 14px", textAlign: "left", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".1em", color: "rgba(255,255,255,.3)", borderBottom: "1px solid rgba(255,255,255,.07)" }}>{h}</th>
+                          <th key={h} style={{ padding: "9px 14px", textAlign: "left", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".1em", color: "rgb(var(--ink) / calc(.3 + var(--ink-boost)))", borderBottom: "1px solid rgb(var(--ink) / .07)" }}>{h}</th>
                         ))}</tr>
                       </thead>
                       <tbody>
                         {invoices.filter(i => Number(i.paidAmount) > 0).map(inv => {
                           const remaining = Math.max(0, Number(inv.total) - Number(inv.paidAmount));
                           return (
-                            <tr key={inv.id} style={{ borderBottom: "1px solid rgba(255,255,255,.04)" }}>
-                              <td style={{ padding: "10px 14px", fontWeight: 700, color: "#fff" }}>{inv.number}</td>
-                              <td style={{ padding: "10px 14px", color: "rgba(255,255,255,.6)" }}>{(inv as any).clientName || "—"}</td>
-                              <td style={{ padding: "10px 14px", color: "rgba(255,255,255,.7)" }}>{formatCurrency(Number(inv.total))}</td>
-                              <td style={{ padding: "10px 14px", color: "#4ade80", fontWeight: 700 }}>{formatCurrency(Number(inv.paidAmount))}</td>
-                              <td style={{ padding: "10px 14px", color: remaining > 0 ? "#fbbf24" : "#4ade80", fontWeight: 600 }}>{remaining > 0 ? formatCurrency(remaining) : "✓ Lunas"}</td>
+                            <tr key={inv.id} style={{ borderBottom: "1px solid rgb(var(--ink) / .04)" }}>
+                              <td style={{ padding: "10px 14px", fontWeight: 700, color: "hsl(var(--foreground))" }}>{inv.number}</td>
+                              <td style={{ padding: "10px 14px", color: "rgb(var(--ink) / calc(.6 + var(--ink-boost)))" }}>{(inv as any).clientName || "—"}</td>
+                              <td style={{ padding: "10px 14px", color: "rgb(var(--ink) / calc(.7 + var(--ink-boost)))" }}>{formatCurrency(Number(inv.total))}</td>
+                              <td style={{ padding: "10px 14px", color: "var(--c-green)", fontWeight: 700 }}>{formatCurrency(Number(inv.paidAmount))}</td>
+                              <td style={{ padding: "10px 14px", color: remaining > 0 ? "var(--c-amber)" : "var(--c-green)", fontWeight: 600 }}>{remaining > 0 ? formatCurrency(remaining) : "✓ Lunas"}</td>
                               <td style={{ padding: "10px 14px" }}>
-                                <span style={{ fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 6, background: inv.status === "PAID" ? "rgba(74,222,128,.15)" : "rgba(251,191,36,.15)", color: inv.status === "PAID" ? "#4ade80" : "#fbbf24" }}>{inv.status}</span>
+                                <span style={{ fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 6, background: inv.status === "PAID" ? "rgba(74,222,128,.15)" : "rgba(251,191,36,.15)", color: inv.status === "PAID" ? "var(--c-green)" : "var(--c-amber)" }}>{inv.status}</span>
                               </td>
                             </tr>
                           );
@@ -1113,36 +1105,36 @@ ${equipment.length > 0 ? `<div class="section">
           {/* Manual Income */}
           <Section title="Pemasukan Manual" icon={<Wallet size={14} />}
             action={<button onClick={() => setIncomeModal("new")} style={{ ...btnBase, background: OR, color: "#fff" }}><Plus size={13} /> Tambah</button>}>
-            <div style={{ background: "rgba(255,255,255,.025)", borderRadius: 18, border: "1px solid rgba(255,255,255,.07)", overflow: "hidden" }}>
+            <div style={{ background: "rgb(var(--ink) / .025)", borderRadius: 18, border: "1px solid rgb(var(--ink) / .07)", overflow: "hidden" }}>
               {incomeEntries.length === 0 ? (
                 <div style={{ padding: 48, textAlign: "center" }}>
-                  <Wallet size={36} color="rgba(255,255,255,.1)" style={{ margin: "0 auto 12px" }} />
-                  <p style={{ color: "rgba(255,255,255,.3)", fontSize: 13 }}>Belum ada pemasukan manual. Gunakan ini untuk mencatat pendapatan di luar invoice.</p>
+                  <Wallet size={36} color="rgb(var(--ink) / .1)" style={{ margin: "0 auto 12px" }} />
+                  <p style={{ color: "rgb(var(--ink) / calc(.3 + var(--ink-boost)))", fontSize: 13 }}>Belum ada pemasukan manual. Gunakan ini untuk mencatat pendapatan di luar invoice.</p>
                   <button onClick={() => setIncomeModal("new")} style={{ ...btnBase, background: OR, color: "#fff", margin: "16px auto 0" }}><Plus size={13} /> Tambah Pemasukan</button>
                 </div>
               ) : isMobile ? (
                 /* Mobile: card stack */
                 <div>
                   {incomeEntries.map(inc => (
-                    <div key={inc.id} style={{ padding: "12px 16px", borderBottom: "1px solid rgba(255,255,255,.05)", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
+                    <div key={inc.id} style={{ padding: "12px 16px", borderBottom: "1px solid rgb(var(--ink) / .05)", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
                       <div style={{ minWidth: 0 }}>
-                        <p style={{ fontSize: 13, fontWeight: 600, color: "#fff", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{inc.description}</p>
-                        <p style={{ fontSize: 10, color: "rgba(255,255,255,.4)", margin: "2px 0 0" }}>
+                        <p style={{ fontSize: 13, fontWeight: 600, color: "hsl(var(--foreground))", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{inc.description}</p>
+                        <p style={{ fontSize: 10, color: "rgb(var(--ink) / calc(.4 + var(--ink-boost)))", margin: "2px 0 0" }}>
                           {new Date(inc.date).toLocaleDateString("id-ID", { day: "numeric", month: "short" })} · {inc.category || "—"}
                         </p>
                       </div>
                       <div style={{ textAlign: "right", flexShrink: 0, display: "flex", alignItems: "center", gap: 8 }}>
-                        <span style={{ fontSize: 13, fontWeight: 700, color: "#4ade80" }}>{formatCurrency(Number(inc.amount))}</span>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: "var(--c-green)" }}>{formatCurrency(Number(inc.amount))}</span>
                         <div style={{ display: "flex", gap: 3 }}>
-                          <button onClick={() => setIncomeModal(inc)} style={{ width: 26, height: 26, borderRadius: 7, background: "rgba(255,255,255,.06)", border: "none", cursor: "pointer", color: "rgba(255,255,255,.5)", display: "flex", alignItems: "center", justifyContent: "center" }}><Edit3Icon /></button>
-                          <button onClick={() => deleteIncome(inc.id)} style={{ width: 26, height: 26, borderRadius: 7, background: "rgba(248,113,113,.1)", border: "none", cursor: "pointer", color: "#f87171", display: "flex", alignItems: "center", justifyContent: "center" }}><Trash2 size={11} /></button>
+                          <button onClick={() => setIncomeModal(inc)} style={{ width: 26, height: 26, borderRadius: 7, background: "rgb(var(--ink) / .06)", border: "none", cursor: "pointer", color: "rgb(var(--ink) / calc(.5 + var(--ink-boost)))", display: "flex", alignItems: "center", justifyContent: "center" }}><Edit3Icon /></button>
+                          <button onClick={() => deleteIncome(inc.id)} style={{ width: 26, height: 26, borderRadius: 7, background: "rgba(248,113,113,.1)", border: "none", cursor: "pointer", color: "var(--c-red)", display: "flex", alignItems: "center", justifyContent: "center" }}><Trash2 size={11} /></button>
                         </div>
                       </div>
                     </div>
                   ))}
-                  <div style={{ padding: "12px 16px", background: `${OR}08`, borderTop: `2px solid ${OR}`, display: "flex", justifyContent: "space-between" }}>
-                    <span style={{ fontSize: 12, fontWeight: 800, color: "#fff" }}>Total Manual</span>
-                    <span style={{ fontSize: 13, fontWeight: 900, color: "#4ade80" }}>{formatCurrency(manualIncome)}</span>
+                  <div style={{ padding: "12px 16px", background: `color-mix(in srgb, ${OR} 3%, transparent)`, borderTop: `2px solid ${OR}`, display: "flex", justifyContent: "space-between" }}>
+                    <span style={{ fontSize: 12, fontWeight: 800, color: "hsl(var(--foreground))" }}>Total Manual</span>
+                    <span style={{ fontSize: 13, fontWeight: 900, color: "var(--c-green)" }}>{formatCurrency(manualIncome)}</span>
                   </div>
                 </div>
               ) : (
@@ -1151,28 +1143,28 @@ ${equipment.length > 0 ? `<div class="section">
                   <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
                     <thead>
                       <tr>{["Tanggal", "Keterangan", "Kategori", "Sumber", "Jumlah", ""].map(h => (
-                        <th key={h} style={{ padding: "9px 14px", textAlign: "left", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".1em", color: "rgba(255,255,255,.3)", borderBottom: "1px solid rgba(255,255,255,.07)" }}>{h}</th>
+                        <th key={h} style={{ padding: "9px 14px", textAlign: "left", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".1em", color: "rgb(var(--ink) / calc(.3 + var(--ink-boost)))", borderBottom: "1px solid rgb(var(--ink) / .07)" }}>{h}</th>
                       ))}</tr>
                     </thead>
                     <tbody>
                       {incomeEntries.map(inc => (
-                        <tr key={inc.id} style={{ borderBottom: "1px solid rgba(255,255,255,.04)" }}>
-                          <td style={{ padding: "10px 14px", color: "rgba(255,255,255,.5)" }}>{new Date(inc.date).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}</td>
-                          <td style={{ padding: "10px 14px", color: "#fff", fontWeight: 600 }}>{inc.description}</td>
-                          <td style={{ padding: "10px 14px", color: "rgba(255,255,255,.5)" }}>{inc.category || "—"}</td>
-                          <td style={{ padding: "10px 14px", color: "rgba(255,255,255,.5)" }}>{inc.source || "—"}</td>
-                          <td style={{ padding: "10px 14px", color: "#4ade80", fontWeight: 700 }}>{formatCurrency(Number(inc.amount))}</td>
+                        <tr key={inc.id} style={{ borderBottom: "1px solid rgb(var(--ink) / .04)" }}>
+                          <td style={{ padding: "10px 14px", color: "rgb(var(--ink) / calc(.5 + var(--ink-boost)))" }}>{new Date(inc.date).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}</td>
+                          <td style={{ padding: "10px 14px", color: "hsl(var(--foreground))", fontWeight: 600 }}>{inc.description}</td>
+                          <td style={{ padding: "10px 14px", color: "rgb(var(--ink) / calc(.5 + var(--ink-boost)))" }}>{inc.category || "—"}</td>
+                          <td style={{ padding: "10px 14px", color: "rgb(var(--ink) / calc(.5 + var(--ink-boost)))" }}>{inc.source || "—"}</td>
+                          <td style={{ padding: "10px 14px", color: "var(--c-green)", fontWeight: 700 }}>{formatCurrency(Number(inc.amount))}</td>
                           <td style={{ padding: "10px 14px" }}>
                             <div style={{ display: "flex", gap: 4 }}>
-                              <button onClick={() => setIncomeModal(inc)} style={{ width: 26, height: 26, borderRadius: 7, background: "rgba(255,255,255,.06)", border: "none", cursor: "pointer", color: "rgba(255,255,255,.5)", display: "flex", alignItems: "center", justifyContent: "center" }}><Edit3Icon /></button>
-                              <button onClick={() => deleteIncome(inc.id)} style={{ width: 26, height: 26, borderRadius: 7, background: "rgba(248,113,113,.1)", border: "none", cursor: "pointer", color: "#f87171", display: "flex", alignItems: "center", justifyContent: "center" }}><Trash2 size={11} /></button>
+                              <button onClick={() => setIncomeModal(inc)} style={{ width: 26, height: 26, borderRadius: 7, background: "rgb(var(--ink) / .06)", border: "none", cursor: "pointer", color: "rgb(var(--ink) / calc(.5 + var(--ink-boost)))", display: "flex", alignItems: "center", justifyContent: "center" }}><Edit3Icon /></button>
+                              <button onClick={() => deleteIncome(inc.id)} style={{ width: 26, height: 26, borderRadius: 7, background: "rgba(248,113,113,.1)", border: "none", cursor: "pointer", color: "var(--c-red)", display: "flex", alignItems: "center", justifyContent: "center" }}><Trash2 size={11} /></button>
                             </div>
                           </td>
                         </tr>
                       ))}
-                      <tr style={{ borderTop: `2px solid ${OR}`, background: `${OR}08` }}>
-                        <td colSpan={4} style={{ padding: "10px 14px", color: "#fff", fontWeight: 800 }}>Total Pemasukan Manual</td>
-                        <td style={{ padding: "10px 14px", color: "#4ade80", fontWeight: 900 }}>{formatCurrency(manualIncome)}</td>
+                      <tr style={{ borderTop: `2px solid ${OR}`, background: `color-mix(in srgb, ${OR} 3%, transparent)` }}>
+                        <td colSpan={4} style={{ padding: "10px 14px", color: "hsl(var(--foreground))", fontWeight: 800 }}>Total Pemasukan Manual</td>
+                        <td style={{ padding: "10px 14px", color: "var(--c-green)", fontWeight: 900 }}>{formatCurrency(manualIncome)}</td>
                         <td />
                       </tr>
                     </tbody>
@@ -1192,29 +1184,29 @@ ${equipment.length > 0 ? `<div class="section">
           <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3,1fr)", gap: 12, marginBottom: 24 }}>
             <div style={{ padding: "16px 20px", borderRadius: 14, background: "rgba(248,113,113,.08)", border: "1px solid rgba(248,113,113,.2)" }}>
               <p style={{ fontSize: 10, fontWeight: 700, color: "rgba(248,113,113,.7)", textTransform: "uppercase", letterSpacing: ".1em", margin: "0 0 5px" }}>Total Pengeluaran</p>
-              <p style={{ fontSize: 22, fontWeight: 900, color: "#f87171", margin: 0 }}>{formatCurrency(totalExpenses)}</p>
+              <p style={{ fontSize: 22, fontWeight: 900, color: "var(--c-red)", margin: 0 }}>{formatCurrency(totalExpenses)}</p>
             </div>
-            <div style={{ padding: "16px 20px", borderRadius: 14, background: "rgba(255,255,255,.03)", border: "1px solid rgba(255,255,255,.07)" }}>
-              <p style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,.35)", textTransform: "uppercase", letterSpacing: ".1em", margin: "0 0 5px" }}>Jumlah Transaksi</p>
-              <p style={{ fontSize: 22, fontWeight: 900, color: "#fff", margin: 0 }}>{expenses.length}</p>
+            <div style={{ padding: "16px 20px", borderRadius: 14, background: "rgb(var(--ink) / .03)", border: "1px solid rgb(var(--ink) / .07)" }}>
+              <p style={{ fontSize: 10, fontWeight: 700, color: "rgb(var(--ink) / calc(.35 + var(--ink-boost)))", textTransform: "uppercase", letterSpacing: ".1em", margin: "0 0 5px" }}>Jumlah Transaksi</p>
+              <p style={{ fontSize: 22, fontWeight: 900, color: "hsl(var(--foreground))", margin: 0 }}>{expenses.length}</p>
             </div>
-            <div style={{ padding: "16px 20px", borderRadius: 14, background: "rgba(255,255,255,.03)", border: "1px solid rgba(255,255,255,.07)" }}>
-              <p style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,.35)", textTransform: "uppercase", letterSpacing: ".1em", margin: "0 0 5px" }}>Rata-rata per Transaksi</p>
-              <p style={{ fontSize: 22, fontWeight: 900, color: "#fff", margin: 0 }}>{formatCurrency(expenses.length > 0 ? totalExpenses / expenses.length : 0)}</p>
+            <div style={{ padding: "16px 20px", borderRadius: 14, background: "rgb(var(--ink) / .03)", border: "1px solid rgb(var(--ink) / .07)" }}>
+              <p style={{ fontSize: 10, fontWeight: 700, color: "rgb(var(--ink) / calc(.35 + var(--ink-boost)))", textTransform: "uppercase", letterSpacing: ".1em", margin: "0 0 5px" }}>Rata-rata per Transaksi</p>
+              <p style={{ fontSize: 22, fontWeight: 900, color: "hsl(var(--foreground))", margin: 0 }}>{formatCurrency(expenses.length > 0 ? totalExpenses / expenses.length : 0)}</p>
             </div>
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: isMobile ? 16 : 24 }}>
             {/* Chart */}
             <Section title="Per Kategori" icon={<Filter size={14} />}>
-              <div style={{ background: "rgba(255,255,255,.025)", borderRadius: 18, border: "1px solid rgba(255,255,255,.07)", padding: 20 }}>
+              <div style={{ background: "rgb(var(--ink) / .025)", borderRadius: 18, border: "1px solid rgb(var(--ink) / .07)", padding: 20 }}>
                 {expPieData.length > 0 ? (
                   <>
                     <div style={{ height: 180 }}>
                       <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={expPieData} layout="vertical" margin={{ left: 0, right: 10 }}>
-                          <XAxis type="number" stroke="rgba(255,255,255,.2)" fontSize={10} tickFormatter={v => `${(v / 1e6).toFixed(0)}M`} tickLine={false} axisLine={false} />
-                          <YAxis type="category" dataKey="name" stroke="rgba(255,255,255,.3)" fontSize={10} tickLine={false} axisLine={false} width={80} />
+                          <XAxis type="number" stroke="rgb(var(--ink) / .2)" fontSize={10} tickFormatter={v => `${(v / 1e6).toFixed(0)}M`} tickLine={false} axisLine={false} />
+                          <YAxis type="category" dataKey="name" stroke="rgb(var(--ink) / .3)" fontSize={10} tickLine={false} axisLine={false} width={80} />
                           <Tooltip content={<ChartTooltip />} />
                           <Bar dataKey="value" name="Jumlah" radius={[0, 6, 6, 0]}>
                             {expPieData.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
@@ -1227,31 +1219,31 @@ ${equipment.length > 0 ? `<div class="section">
                         <div key={d.name} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                           <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
                             <span style={{ width: 9, height: 9, borderRadius: 3, background: PIE_COLORS[i % PIE_COLORS.length], display: "inline-block", flexShrink: 0 }} />
-                            <span style={{ fontSize: 12, color: "rgba(255,255,255,.6)" }}>{d.name}</span>
+                            <span style={{ fontSize: 12, color: "rgb(var(--ink) / calc(.6 + var(--ink-boost)))" }}>{d.name}</span>
                           </div>
                           <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-                            <span style={{ fontSize: 11, color: "rgba(255,255,255,.35)" }}>{totalExpenses > 0 ? ((d.value / totalExpenses) * 100).toFixed(1) : 0}%</span>
-                            <span style={{ fontSize: 12, fontWeight: 700, color: "#f87171" }}>{formatCurrency(d.value)}</span>
+                            <span style={{ fontSize: 11, color: "rgb(var(--ink) / calc(.35 + var(--ink-boost)))" }}>{totalExpenses > 0 ? ((d.value / totalExpenses) * 100).toFixed(1) : 0}%</span>
+                            <span style={{ fontSize: 12, fontWeight: 700, color: "var(--c-red)" }}>{formatCurrency(d.value)}</span>
                           </div>
                         </div>
                       ))}
                     </div>
                   </>
-                ) : <p style={{ color: "rgba(255,255,255,.3)", fontSize: 13, textAlign: "center", padding: 32 }}>Belum ada data.</p>}
+                ) : <p style={{ color: "rgb(var(--ink) / calc(.3 + var(--ink-boost)))", fontSize: 13, textAlign: "center", padding: 32 }}>Belum ada data.</p>}
               </div>
             </Section>
 
             {/* Expense list */}
             <Section title="Semua Pengeluaran" icon={<TrendingDown size={14} />}
               action={<a href="/expenses" style={{ ...btnBase, background: OR, color: "#fff", textDecoration: "none" }}><Plus size={13} /> Kelola</a>}>
-              <div style={{ background: "rgba(255,255,255,.025)", borderRadius: 18, border: "1px solid rgba(255,255,255,.07)", overflow: "hidden" }}>
+              <div style={{ background: "rgb(var(--ink) / .025)", borderRadius: 18, border: "1px solid rgb(var(--ink) / .07)", overflow: "hidden" }}>
                 {expenses.slice(0, 8).map(e => (
-                  <div key={e.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "11px 16px", borderBottom: "1px solid rgba(255,255,255,.04)" }}>
+                  <div key={e.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "11px 16px", borderBottom: "1px solid rgb(var(--ink) / .04)" }}>
                     <div>
-                      <p style={{ fontSize: 13, fontWeight: 600, color: "#fff", margin: 0 }}>{e.description}</p>
-                      <p style={{ fontSize: 10, color: "rgba(255,255,255,.4)", margin: "2px 0 0" }}>{e.category} · {e.date ? new Date(e.date).toLocaleDateString("id-ID", { day: "numeric", month: "short" }) : "—"}</p>
+                      <p style={{ fontSize: 13, fontWeight: 600, color: "hsl(var(--foreground))", margin: 0 }}>{e.description}</p>
+                      <p style={{ fontSize: 10, color: "rgb(var(--ink) / calc(.4 + var(--ink-boost)))", margin: "2px 0 0" }}>{e.category} · {e.date ? new Date(e.date).toLocaleDateString("id-ID", { day: "numeric", month: "short" }) : "—"}</p>
                     </div>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: "#f87171" }}>{formatCurrency(Number(e.amount))}</span>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: "var(--c-red)" }}>{formatCurrency(Number(e.amount))}</span>
                   </div>
                 ))}
                 {expenses.length > 8 && (
@@ -1260,7 +1252,7 @@ ${equipment.length > 0 ? `<div class="section">
                   </div>
                 )}
                 {expenses.length === 0 && (
-                  <p style={{ color: "rgba(255,255,255,.3)", fontSize: 13, textAlign: "center", padding: "32px 16px" }}>Belum ada pengeluaran.</p>
+                  <p style={{ color: "rgb(var(--ink) / calc(.3 + var(--ink-boost)))", fontSize: 13, textAlign: "center", padding: "32px 16px" }}>Belum ada pengeluaran.</p>
                 )}
               </div>
             </Section>
@@ -1274,25 +1266,25 @@ ${equipment.length > 0 ? `<div class="section">
       {activeTab === "assets" && (
         <Section title="Inventaris & Depresiasi Aset" icon={<Package size={14} />}
           action={<button onClick={() => setEqModal("new")} style={{ ...btnBase, background: OR, color: "#fff" }}><Plus size={13} /> Tambah Aset</button>}>
-          <div style={{ background: "rgba(255,255,255,.025)", borderRadius: 18, border: "1px solid rgba(255,255,255,.07)", overflow: "hidden" }}>
+          <div style={{ background: "rgb(var(--ink) / .025)", borderRadius: 18, border: "1px solid rgb(var(--ink) / .07)", overflow: "hidden" }}>
             {/* Summary bar */}
-            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4,1fr)", gap: 0, borderBottom: "1px solid rgba(255,255,255,.07)" }}>
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4,1fr)", gap: 0, borderBottom: "1px solid rgb(var(--ink) / .07)" }}>
               {[
-                { l: "Total Nilai Beli", v: formatCurrency(totalEquipValue), c: "rgba(255,255,255,.8)" },
+                { l: "Total Nilai Beli", v: formatCurrency(totalEquipValue), c: "rgb(var(--ink) / .8)" },
                 { l: "Total Nilai Buku", v: formatCurrency(totalBookValue), c: OR },
-                { l: "Dep. Tahunan", v: formatCurrency(totalAnnualDepr), c: "#fbbf24" },
-                { l: "Jumlah Aset", v: `${equipment.length} item`, c: "rgba(255,255,255,.7)" },
+                { l: "Dep. Tahunan", v: formatCurrency(totalAnnualDepr), c: "var(--c-amber)" },
+                { l: "Jumlah Aset", v: `${equipment.length} item`, c: "rgb(var(--ink) / .7)" },
               ].map((s, i) => (
-                <div key={s.l} style={{ padding: "16px 20px", borderRight: i < 3 ? "1px solid rgba(255,255,255,.07)" : "none" }}>
-                  <p style={{ fontSize: 9, fontWeight: 700, color: "rgba(255,255,255,.3)", textTransform: "uppercase", letterSpacing: ".12em", margin: "0 0 5px" }}>{s.l}</p>
+                <div key={s.l} style={{ padding: "16px 20px", borderRight: i < 3 ? "1px solid rgb(var(--ink) / .07)" : "none" }}>
+                  <p style={{ fontSize: 9, fontWeight: 700, color: "rgb(var(--ink) / calc(.3 + var(--ink-boost)))", textTransform: "uppercase", letterSpacing: ".12em", margin: "0 0 5px" }}>{s.l}</p>
                   <p style={{ fontSize: 18, fontWeight: 900, color: s.c, margin: 0 }}>{s.v}</p>
                 </div>
               ))}
             </div>
             {equipment.length === 0 ? (
               <div style={{ padding: 56, textAlign: "center" }}>
-                <Package size={40} color="rgba(255,255,255,.08)" style={{ margin: "0 auto 14px" }} />
-                <p style={{ color: "rgba(255,255,255,.3)", fontSize: 13, marginBottom: 16 }}>Belum ada aset terdaftar. Daftarkan peralatan produksi untuk menghitung depresiasi.</p>
+                <Package size={40} color="rgb(var(--ink) / .08)" style={{ margin: "0 auto 14px" }} />
+                <p style={{ color: "rgb(var(--ink) / calc(.3 + var(--ink-boost)))", fontSize: 13, marginBottom: 16 }}>Belum ada aset terdaftar. Daftarkan peralatan produksi untuk menghitung depresiasi.</p>
                 <button onClick={() => setEqModal("new")} style={{ ...btnBase, background: OR, color: "#fff", margin: "0 auto" }}><Plus size={13} /> Tambah Aset Pertama</button>
               </div>
             ) : isMobile ? (
@@ -1300,40 +1292,40 @@ ${equipment.length > 0 ? `<div class="section">
               <div>
                 {equipment.map(eq => {
                   const d = calcDep(eq);
-                  const condColor = eq.condition === "Baru" || eq.condition === "Baik" ? "#4ade80" : eq.condition === "Perlu Service" ? "#fbbf24" : "#f87171";
+                  const condColor = eq.condition === "Baru" || eq.condition === "Baik" ? "var(--c-green)" : eq.condition === "Perlu Service" ? "var(--c-amber)" : "var(--c-red)";
                   return (
-                    <div key={eq.id} style={{ padding: "14px 16px", borderBottom: "1px solid rgba(255,255,255,.05)" }}>
+                    <div key={eq.id} style={{ padding: "14px 16px", borderBottom: "1px solid rgb(var(--ink) / .05)" }}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <p style={{ fontSize: 14, fontWeight: 700, color: "#fff", margin: 0 }}>{eq.name}</p>
+                          <p style={{ fontSize: 14, fontWeight: 700, color: "hsl(var(--foreground))", margin: 0 }}>{eq.name}</p>
                           <div style={{ display: "flex", gap: 6, alignItems: "center", marginTop: 4, flexWrap: "wrap" }}>
-                            {eq.category && <span style={{ fontSize: 10, color: "rgba(255,255,255,.4)" }}>{eq.category}</span>}
-                            <span style={{ fontSize: 10, fontWeight: 700, padding: "1px 6px", borderRadius: 5, background: `${condColor}18`, color: condColor }}>{eq.condition || "—"}</span>
+                            {eq.category && <span style={{ fontSize: 10, color: "rgb(var(--ink) / calc(.4 + var(--ink-boost)))" }}>{eq.category}</span>}
+                            <span style={{ fontSize: 10, fontWeight: 700, padding: "1px 6px", borderRadius: 5, background: `color-mix(in srgb, ${condColor} 9%, transparent)`, color: condColor }}>{eq.condition || "—"}</span>
                           </div>
                         </div>
                         <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
-                          <button onClick={() => setEqModal(eq)} style={{ width: 28, height: 28, borderRadius: 7, background: "rgba(255,255,255,.06)", border: "none", cursor: "pointer", color: "rgba(255,255,255,.5)", display: "flex", alignItems: "center", justifyContent: "center" }}><Edit3Icon /></button>
-                          <button onClick={() => deleteEquipment(eq.id)} style={{ width: 28, height: 28, borderRadius: 7, background: "rgba(248,113,113,.1)", border: "none", cursor: "pointer", color: "#f87171", display: "flex", alignItems: "center", justifyContent: "center" }}><Trash2 size={11} /></button>
+                          <button onClick={() => setEqModal(eq)} style={{ width: 28, height: 28, borderRadius: 7, background: "rgb(var(--ink) / .06)", border: "none", cursor: "pointer", color: "rgb(var(--ink) / calc(.5 + var(--ink-boost)))", display: "flex", alignItems: "center", justifyContent: "center" }}><Edit3Icon /></button>
+                          <button onClick={() => deleteEquipment(eq.id)} style={{ width: 28, height: 28, borderRadius: 7, background: "rgba(248,113,113,.1)", border: "none", cursor: "pointer", color: "var(--c-red)", display: "flex", alignItems: "center", justifyContent: "center" }}><Trash2 size={11} /></button>
                         </div>
                       </div>
                       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                         {[
-                          { l: "Harga Beli", v: formatCurrency(eq.purchasePrice), c: "rgba(255,255,255,.7)" },
-                          { l: "Nilai Buku", v: formatCurrency(d.bookValue), c: d.bookValue > 0 ? OR : "#f87171" },
-                          { l: "Dep/Tahun", v: formatCurrency(d.annualDep), c: "#fbbf24" },
-                          { l: "Akumulasi", v: formatCurrency(d.accumulated), c: "#f87171" },
+                          { l: "Harga Beli", v: formatCurrency(eq.purchasePrice), c: "rgb(var(--ink) / .7)" },
+                          { l: "Nilai Buku", v: formatCurrency(d.bookValue), c: d.bookValue > 0 ? OR : "var(--c-red)" },
+                          { l: "Dep/Tahun", v: formatCurrency(d.annualDep), c: "var(--c-amber)" },
+                          { l: "Akumulasi", v: formatCurrency(d.accumulated), c: "var(--c-red)" },
                         ].map(row => (
-                          <div key={row.l} style={{ padding: "8px 10px", borderRadius: 8, background: "rgba(255,255,255,.03)", border: "1px solid rgba(255,255,255,.05)" }}>
-                            <p style={{ fontSize: 9, color: "rgba(255,255,255,.35)", fontWeight: 700, textTransform: "uppercase", letterSpacing: ".1em", margin: "0 0 3px" }}>{row.l}</p>
+                          <div key={row.l} style={{ padding: "8px 10px", borderRadius: 8, background: "rgb(var(--ink) / .03)", border: "1px solid rgb(var(--ink) / .05)" }}>
+                            <p style={{ fontSize: 9, color: "rgb(var(--ink) / calc(.35 + var(--ink-boost)))", fontWeight: 700, textTransform: "uppercase", letterSpacing: ".1em", margin: "0 0 3px" }}>{row.l}</p>
                             <p style={{ fontSize: 13, fontWeight: 700, color: row.c, margin: 0 }}>{row.v}</p>
                           </div>
                         ))}
                       </div>
                       <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 8 }}>
-                        <div style={{ flex: 1, height: 4, borderRadius: 100, background: "rgba(255,255,255,.1)", overflow: "hidden" }}>
-                          <div style={{ height: "100%", width: `${d.deprPct}%`, background: d.deprPct > 80 ? "#f87171" : d.deprPct > 50 ? "#fbbf24" : OR, borderRadius: 100 }} />
+                        <div style={{ flex: 1, height: 4, borderRadius: 100, background: "rgb(var(--ink) / .1)", overflow: "hidden" }}>
+                          <div style={{ height: "100%", width: `${d.deprPct}%`, background: d.deprPct > 80 ? "var(--c-red)" : d.deprPct > 50 ? "var(--c-amber)" : OR, borderRadius: 100 }} />
                         </div>
-                        <span style={{ fontSize: 10, color: "rgba(255,255,255,.4)", fontWeight: 600, flexShrink: 0 }}>{d.deprPct.toFixed(0)}% terdepresiasi</span>
+                        <span style={{ fontSize: 10, color: "rgb(var(--ink) / calc(.4 + var(--ink-boost)))", fontWeight: 600, flexShrink: 0 }}>{d.deprPct.toFixed(0)}% terdepresiasi</span>
                       </div>
                     </div>
                   );
@@ -1345,40 +1337,40 @@ ${equipment.length > 0 ? `<div class="section">
                 <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
                   <thead>
                     <tr>{["Nama Alat", "Kategori", "S/N", "Kondisi", "Harga Beli", "Dep/Thn", "Akumulasi", "Nilai Buku", "Dep%", ""].map(h => (
-                      <th key={h} style={{ padding: "9px 12px", textAlign: "left", fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".1em", color: "rgba(255,255,255,.3)", borderBottom: "1px solid rgba(255,255,255,.07)", whiteSpace: "nowrap" }}>{h}</th>
+                      <th key={h} style={{ padding: "9px 12px", textAlign: "left", fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".1em", color: "rgb(var(--ink) / calc(.3 + var(--ink-boost)))", borderBottom: "1px solid rgb(var(--ink) / .07)", whiteSpace: "nowrap" }}>{h}</th>
                     ))}</tr>
                   </thead>
                   <tbody>
                     {equipment.map(eq => {
                       const d = calcDep(eq);
-                      const condColor = eq.condition === "Baru" || eq.condition === "Baik" ? "#4ade80" : eq.condition === "Perlu Service" ? "#fbbf24" : "#f87171";
+                      const condColor = eq.condition === "Baru" || eq.condition === "Baik" ? "var(--c-green)" : eq.condition === "Perlu Service" ? "var(--c-amber)" : "var(--c-red)";
                       return (
-                        <tr key={eq.id} style={{ borderBottom: "1px solid rgba(255,255,255,.04)" }}>
+                        <tr key={eq.id} style={{ borderBottom: "1px solid rgb(var(--ink) / .04)" }}>
                           <td style={{ padding: "11px 12px" }}>
-                            <p style={{ fontSize: 13, fontWeight: 700, color: "#fff", margin: 0 }}>{eq.name}</p>
-                            {eq.notes && <p style={{ fontSize: 9, color: "rgba(255,255,255,.35)", margin: "2px 0 0" }}>{eq.notes}</p>}
+                            <p style={{ fontSize: 13, fontWeight: 700, color: "hsl(var(--foreground))", margin: 0 }}>{eq.name}</p>
+                            {eq.notes && <p style={{ fontSize: 9, color: "rgb(var(--ink) / calc(.35 + var(--ink-boost)))", margin: "2px 0 0" }}>{eq.notes}</p>}
                           </td>
-                          <td style={{ padding: "11px 12px", color: "rgba(255,255,255,.5)", fontSize: 11 }}>{eq.category || "—"}</td>
-                          <td style={{ padding: "11px 12px", color: "rgba(255,255,255,.35)", fontSize: 10 }}>{eq.serialNumber || "—"}</td>
+                          <td style={{ padding: "11px 12px", color: "rgb(var(--ink) / calc(.5 + var(--ink-boost)))", fontSize: 11 }}>{eq.category || "—"}</td>
+                          <td style={{ padding: "11px 12px", color: "rgb(var(--ink) / calc(.35 + var(--ink-boost)))", fontSize: 10 }}>{eq.serialNumber || "—"}</td>
                           <td style={{ padding: "11px 12px" }}>
-                            <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 5, background: `${condColor}18`, color: condColor }}>{eq.condition || "—"}</span>
+                            <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 5, background: `color-mix(in srgb, ${condColor} 9%, transparent)`, color: condColor }}>{eq.condition || "—"}</span>
                           </td>
-                          <td style={{ padding: "11px 12px", color: "rgba(255,255,255,.7)", fontWeight: 600 }}>{formatCurrency(eq.purchasePrice)}</td>
-                          <td style={{ padding: "11px 12px", color: "#fbbf24", fontWeight: 600 }}>{formatCurrency(d.annualDep)}</td>
-                          <td style={{ padding: "11px 12px", color: "#f87171", fontWeight: 600 }}>{formatCurrency(d.accumulated)}</td>
-                          <td style={{ padding: "11px 12px", color: d.bookValue > 0 ? OR : "rgba(255,255,255,.3)", fontWeight: 700 }}>{formatCurrency(d.bookValue)}</td>
+                          <td style={{ padding: "11px 12px", color: "rgb(var(--ink) / calc(.7 + var(--ink-boost)))", fontWeight: 600 }}>{formatCurrency(eq.purchasePrice)}</td>
+                          <td style={{ padding: "11px 12px", color: "var(--c-amber)", fontWeight: 600 }}>{formatCurrency(d.annualDep)}</td>
+                          <td style={{ padding: "11px 12px", color: "var(--c-red)", fontWeight: 600 }}>{formatCurrency(d.accumulated)}</td>
+                          <td style={{ padding: "11px 12px", color: d.bookValue > 0 ? OR : "rgb(var(--ink) / calc(.3 + var(--ink-boost)))", fontWeight: 700 }}>{formatCurrency(d.bookValue)}</td>
                           <td style={{ padding: "11px 12px" }}>
                             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                              <div style={{ width: 44, height: 4, borderRadius: 100, background: "rgba(255,255,255,.1)", overflow: "hidden" }}>
-                                <div style={{ height: "100%", width: `${d.deprPct}%`, background: d.deprPct > 80 ? "#f87171" : d.deprPct > 50 ? "#fbbf24" : OR, borderRadius: 100 }} />
+                              <div style={{ width: 44, height: 4, borderRadius: 100, background: "rgb(var(--ink) / .1)", overflow: "hidden" }}>
+                                <div style={{ height: "100%", width: `${d.deprPct}%`, background: d.deprPct > 80 ? "var(--c-red)" : d.deprPct > 50 ? "var(--c-amber)" : OR, borderRadius: 100 }} />
                               </div>
-                              <span style={{ fontSize: 10, color: "rgba(255,255,255,.4)", fontWeight: 600 }}>{d.deprPct.toFixed(0)}%</span>
+                              <span style={{ fontSize: 10, color: "rgb(var(--ink) / calc(.4 + var(--ink-boost)))", fontWeight: 600 }}>{d.deprPct.toFixed(0)}%</span>
                             </div>
                           </td>
                           <td style={{ padding: "11px 12px" }}>
                             <div style={{ display: "flex", gap: 4 }}>
-                              <button onClick={() => setEqModal(eq)} style={{ width: 26, height: 26, borderRadius: 7, background: "rgba(255,255,255,.06)", border: "none", cursor: "pointer", color: "rgba(255,255,255,.5)", display: "flex", alignItems: "center", justifyContent: "center" }}><Edit3Icon /></button>
-                              <button onClick={() => deleteEquipment(eq.id)} style={{ width: 26, height: 26, borderRadius: 7, background: "rgba(248,113,113,.1)", border: "none", cursor: "pointer", color: "#f87171", display: "flex", alignItems: "center", justifyContent: "center" }}><Trash2 size={11} /></button>
+                              <button onClick={() => setEqModal(eq)} style={{ width: 26, height: 26, borderRadius: 7, background: "rgb(var(--ink) / .06)", border: "none", cursor: "pointer", color: "rgb(var(--ink) / calc(.5 + var(--ink-boost)))", display: "flex", alignItems: "center", justifyContent: "center" }}><Edit3Icon /></button>
+                              <button onClick={() => deleteEquipment(eq.id)} style={{ width: 26, height: 26, borderRadius: 7, background: "rgba(248,113,113,.1)", border: "none", cursor: "pointer", color: "var(--c-red)", display: "flex", alignItems: "center", justifyContent: "center" }}><Trash2 size={11} /></button>
                             </div>
                           </td>
                         </tr>

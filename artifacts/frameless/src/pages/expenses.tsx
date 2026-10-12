@@ -1,5 +1,7 @@
 // artifacts/frameless/src/pages/expenses.tsx
 import { useState, useEffect, useCallback } from "react";
+import { fetchBrand, reportHeaderHtml, REPORT_BRAND_CSS, brandContactLine } from "@/lib/report-brand";
+import { createPrintSink } from "@/lib/print-sink";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency } from "@/lib/formatters";
 import { getToken } from "@/lib/auth";
@@ -11,7 +13,7 @@ import {
 } from "lucide-react";
 import { BarChart, Bar, Cell, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 
-const OR = "#FF6A20";
+const OR = "hsl(var(--primary))";
 const FONT = "'Plus Jakarta Sans',sans-serif";
 
 // ─── Responsive hook ────────────────────────────────────────────────────────────
@@ -37,7 +39,7 @@ const EXPENSE_CATS = [
   "Sewa Tempat", "Komunikasi", "Administrasi", "Lainnya",
 ];
 
-const PIE_COLORS = ["#FF6A20", "#7c3aed", "#2563eb", "#4ade80", "#fbbf24", "#f472b6", "#06b6d4", "#a78bfa", "#34d399", "#fb923c", "#f97316", "#60a5fa"];
+const PIE_COLORS = ["#FF6A20", "var(--c-violet)", "var(--c-blue)", "var(--c-green)", "var(--c-amber)", "#f472b6", "#06b6d4", "var(--c-violet)", "#34d399", "var(--c-amber)", "#f97316", "var(--c-blue)"];
 
 async function api(path: string, opts: RequestInit = {}) {
   const token = getToken();
@@ -118,8 +120,8 @@ function newBatchRow(category: string): BatchRow {
 
 // ─── Shared styles ──────────────────────────────────────────────────────────────
 const ipt: React.CSSProperties = {
-  background: "rgba(255,255,255,.05)", border: "1px solid rgba(255,255,255,.1)",
-  borderRadius: 10, padding: "9px 12px", color: "#fff", fontSize: 13,
+  background: "rgb(var(--ink) / .05)", border: "1px solid rgb(var(--ink) / .1)",
+  borderRadius: 10, padding: "9px 12px", color: "hsl(var(--foreground))", fontSize: 13,
   outline: "none", fontFamily: FONT, width: "100%", boxSizing: "border-box",
 };
 
@@ -181,68 +183,68 @@ function ExpenseModal({ item, projects, onClose, onSave }: {
   return (
     <div onClick={e => { if (e.target === e.currentTarget) onClose(); }}
       style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.85)", backdropFilter: "blur(12px)", zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
-      <div style={{ background: "#111318", border: "1px solid rgba(255,255,255,.1)", borderRadius: 22, padding: 32, width: "100%", maxWidth: 480, maxHeight: "90vh", overflowY: "auto", position: "relative" }}>
-        <button onClick={onClose} style={{ position: "absolute", top: 14, right: 14, width: 30, height: 30, borderRadius: "50%", background: "rgba(255,255,255,.06)", border: "none", cursor: "pointer", color: "rgba(255,255,255,.5)", display: "flex", alignItems: "center", justifyContent: "center" }}><X size={14} /></button>
-        <h3 style={{ fontSize: 18, fontWeight: 800, color: "#fff", marginBottom: 22 }}>Edit Pengeluaran</h3>
+      <div style={{ background: "hsl(var(--card))", border: "1px solid rgb(var(--ink) / .1)", borderRadius: 22, padding: 32, width: "100%", maxWidth: 480, maxHeight: "90vh", overflowY: "auto", position: "relative" }}>
+        <button onClick={onClose} style={{ position: "absolute", top: 14, right: 14, width: 30, height: 30, borderRadius: "50%", background: "rgb(var(--ink) / .06)", border: "none", cursor: "pointer", color: "rgb(var(--ink) / calc(.5 + var(--ink-boost)))", display: "flex", alignItems: "center", justifyContent: "center" }}><X size={14} /></button>
+        <h3 style={{ fontSize: 18, fontWeight: 800, color: "hsl(var(--foreground))", marginBottom: 22 }}>Edit Pengeluaran</h3>
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           <div>
-            <label style={{ display: "block", fontSize: 10, fontWeight: 700, letterSpacing: ".14em", textTransform: "uppercase", color: "rgba(255,255,255,.35)", marginBottom: 6 }}>Kategori *</label>
+            <label style={{ display: "block", fontSize: 10, fontWeight: 700, letterSpacing: ".14em", textTransform: "uppercase", color: "rgb(var(--ink) / calc(.35 + var(--ink-boost)))", marginBottom: 6 }}>Kategori *</label>
             <select value={form.category || ""} onChange={e => f("category", e.target.value)} style={{ ...ipt, cursor: "pointer" }}>
-              {EXPENSE_CATS.map(c => <option key={c} value={c} style={{ background: "#111318" }}>{c}</option>)}
+              {EXPENSE_CATS.map(c => <option key={c} value={c} style={{ background: "hsl(var(--card))" }}>{c}</option>)}
             </select>
           </div>
           <div>
-            <label style={{ display: "block", fontSize: 10, fontWeight: 700, letterSpacing: ".14em", textTransform: "uppercase", color: "rgba(255,255,255,.35)", marginBottom: 6 }}>Keterangan *</label>
+            <label style={{ display: "block", fontSize: 10, fontWeight: 700, letterSpacing: ".14em", textTransform: "uppercase", color: "rgb(var(--ink) / calc(.35 + var(--ink-boost)))", marginBottom: 6 }}>Keterangan *</label>
             <input value={form.description || ""} onChange={e => f("description", e.target.value)} placeholder="mis. Sewa drone DJI Air 3" style={ipt} />
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <div>
-              <label style={{ display: "block", fontSize: 10, fontWeight: 700, letterSpacing: ".14em", textTransform: "uppercase", color: "rgba(255,255,255,.35)", marginBottom: 6 }}>Jumlah (IDR) *</label>
+              <label style={{ display: "block", fontSize: 10, fontWeight: 700, letterSpacing: ".14em", textTransform: "uppercase", color: "rgb(var(--ink) / calc(.35 + var(--ink-boost)))", marginBottom: 6 }}>Jumlah (IDR) *</label>
               <input type="number" value={form.amount ?? ""} onChange={e => f("amount", Number(e.target.value))} placeholder="500000" style={ipt} />
             </div>
             <div>
-              <label style={{ display: "block", fontSize: 10, fontWeight: 700, letterSpacing: ".14em", textTransform: "uppercase", color: "rgba(255,255,255,.35)", marginBottom: 6 }}>Tanggal</label>
+              <label style={{ display: "block", fontSize: 10, fontWeight: 700, letterSpacing: ".14em", textTransform: "uppercase", color: "rgb(var(--ink) / calc(.35 + var(--ink-boost)))", marginBottom: 6 }}>Tanggal</label>
               <input type="date" value={form.date ? String(form.date).slice(0, 10) : ""} onChange={e => f("date", e.target.value)} style={ipt} />
             </div>
           </div>
           {projects.length > 0 && (
             <div>
-              <label style={{ display: "block", fontSize: 10, fontWeight: 700, letterSpacing: ".14em", textTransform: "uppercase", color: "rgba(255,255,255,.35)", marginBottom: 6 }}>Proyek (opsional)</label>
+              <label style={{ display: "block", fontSize: 10, fontWeight: 700, letterSpacing: ".14em", textTransform: "uppercase", color: "rgb(var(--ink) / calc(.35 + var(--ink-boost)))", marginBottom: 6 }}>Proyek (opsional)</label>
               <select value={form.projectId || ""} onChange={e => f("projectId", e.target.value || null)} style={{ ...ipt, cursor: "pointer" }}>
-                <option value="" style={{ background: "#111318" }}>— Tidak terkait proyek —</option>
-                {projects.map(p => <option key={p.id} value={p.id} style={{ background: "#111318" }}>{p.title}</option>)}
+                <option value="" style={{ background: "hsl(var(--card))" }}>— Tidak terkait proyek —</option>
+                {projects.map(p => <option key={p.id} value={p.id} style={{ background: "hsl(var(--card))" }}>{p.title}</option>)}
               </select>
             </div>
           )}
           <div>
-            <label style={{ display: "block", fontSize: 10, fontWeight: 700, letterSpacing: ".14em", textTransform: "uppercase", color: "rgba(255,255,255,.35)", marginBottom: 6 }}>Struk/Bukti Pembayaran (opsional)</label>
+            <label style={{ display: "block", fontSize: 10, fontWeight: 700, letterSpacing: ".14em", textTransform: "uppercase", color: "rgb(var(--ink) / calc(.35 + var(--ink-boost)))", marginBottom: 6 }}>Struk/Bukti Pembayaran (opsional)</label>
             {form.receiptUrl ? (
               <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 10, background: "rgba(74,222,128,.06)", border: "1px solid rgba(74,222,128,.2)" }}>
                 <div style={{ width: 36, height: 36, borderRadius: 8, background: "rgba(74,222,128,.12)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                  {isPdf ? <FileText size={16} color="#4ade80" /> : <ImageIcon size={16} color="#4ade80" />}
+                  {isPdf ? <FileText size={16} color="var(--c-green)" /> : <ImageIcon size={16} color="var(--c-green)" />}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <a href={form.receiptUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, fontWeight: 700, color: "#4ade80", textDecoration: "none", display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>Lihat file terlampir ↗</a>
-                  <p style={{ fontSize: 10, color: "rgba(255,255,255,.35)", margin: "2px 0 0" }}>File berhasil diunggah</p>
+                  <a href={form.receiptUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, fontWeight: 700, color: "var(--c-green)", textDecoration: "none", display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>Lihat file terlampir ↗</a>
+                  <p style={{ fontSize: 10, color: "rgb(var(--ink) / calc(.35 + var(--ink-boost)))", margin: "2px 0 0" }}>File berhasil diunggah</p>
                 </div>
-                <button type="button" onClick={() => f("receiptUrl", null)} style={{ width: 26, height: 26, borderRadius: 7, background: "rgba(248,113,113,.1)", border: "none", cursor: "pointer", color: "#f87171", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><Trash2 size={12} /></button>
+                <button type="button" onClick={() => f("receiptUrl", null)} style={{ width: 26, height: 26, borderRadius: 7, background: "rgba(248,113,113,.1)", border: "none", cursor: "pointer", color: "var(--c-red)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><Trash2 size={12} /></button>
               </div>
             ) : (
-              <label style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 6, padding: "20px 14px", borderRadius: 10, border: "1.5px dashed rgba(255,255,255,.15)", background: "rgba(255,255,255,.02)", cursor: uploading ? "wait" : "pointer" }}>
+              <label style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 6, padding: "20px 14px", borderRadius: 10, border: "1.5px dashed rgb(var(--ink) / .15)", background: "rgb(var(--ink) / .02)", cursor: uploading ? "wait" : "pointer" }}>
                 <input type="file" accept="image/jpeg,image/png,image/webp,application/pdf,.jpg,.jpeg,.png,.webp,.pdf" onChange={e => handleFileSelect(e.target.files?.[0])} disabled={uploading} style={{ display: "none" }} />
                 {uploading ? (
-                  <><Loader2 size={20} color={OR} style={{ animation: "spin .8s linear infinite" }} /><span style={{ fontSize: 12, color: "rgba(255,255,255,.5)" }}>Mengunggah...</span></>
+                  <><Loader2 size={20} color={OR} style={{ animation: "spin .8s linear infinite" }} /><span style={{ fontSize: 12, color: "rgb(var(--ink) / calc(.5 + var(--ink-boost)))" }}>Mengunggah...</span></>
                 ) : (
-                  <><Upload size={20} color="rgba(255,255,255,.3)" /><span style={{ fontSize: 12, color: "rgba(255,255,255,.5)", fontWeight: 600 }}>Klik untuk unggah foto/PDF struk</span><span style={{ fontSize: 10, color: "rgba(255,255,255,.25)" }}>JPG, PNG, WEBP, atau PDF · maks 20MB</span></>
+                  <><Upload size={20} color="rgb(var(--ink) / .3)" /><span style={{ fontSize: 12, color: "rgb(var(--ink) / calc(.5 + var(--ink-boost)))", fontWeight: 600 }}>Klik untuk unggah foto/PDF struk</span><span style={{ fontSize: 10, color: "rgb(var(--ink) / calc(.25 + var(--ink-boost)))" }}>JPG, PNG, WEBP, atau PDF · maks 20MB</span></>
                 )}
               </label>
             )}
-            {uploadError && <p style={{ fontSize: 11, color: "#f87171", margin: "6px 0 0", display: "flex", alignItems: "center", gap: 4 }}><AlertCircle size={11} /> {uploadError}</p>}
+            {uploadError && <p style={{ fontSize: 11, color: "var(--c-red)", margin: "6px 0 0", display: "flex", alignItems: "center", gap: 4 }}><AlertCircle size={11} /> {uploadError}</p>}
           </div>
         </div>
         <style>{`@keyframes spin{to{transform:rotate(360deg);}}`}</style>
         <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 24 }}>
-          <button onClick={onClose} style={{ ...btnBase, background: "rgba(255,255,255,.06)", color: "rgba(255,255,255,.6)", border: "1px solid rgba(255,255,255,.1)" }}>Batal</button>
+          <button onClick={onClose} style={{ ...btnBase, background: "rgb(var(--ink) / .06)", color: "rgb(var(--ink) / calc(.6 + var(--ink-boost)))", border: "1px solid rgb(var(--ink) / .1)" }}>Batal</button>
           <button onClick={save} disabled={saving || !form.description || !form.amount} style={{ ...btnBase, background: OR, color: "#fff", opacity: saving || !form.description || !form.amount ? 0.5 : 1 }}>
             {saving ? "Menyimpan..." : <><Check size={14} /> Simpan Perubahan</>}
           </button>
@@ -322,31 +324,31 @@ function BatchExpenseModal({ projects, onClose, onSaveAll }: {
   return (
     <div onClick={e => { if (e.target === e.currentTarget) onClose(); }}
       style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.85)", backdropFilter: "blur(12px)", zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
-      <div style={{ background: "#111318", border: "1px solid rgba(255,255,255,.1)", borderRadius: 22, padding: 28, width: "100%", maxWidth: 900, maxHeight: "92vh", display: "flex", flexDirection: "column", position: "relative" }}>
+      <div style={{ background: "hsl(var(--card))", border: "1px solid rgb(var(--ink) / .1)", borderRadius: 22, padding: 28, width: "100%", maxWidth: 900, maxHeight: "92vh", display: "flex", flexDirection: "column", position: "relative" }}>
 
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18, flexShrink: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ width: 34, height: 34, borderRadius: 9, background: `${OR}18`, display: "flex", alignItems: "center", justifyContent: "center", color: OR }}>
+            <div style={{ width: 34, height: 34, borderRadius: 9, background: `color-mix(in srgb, ${OR} 9%, transparent)`, display: "flex", alignItems: "center", justifyContent: "center", color: OR }}>
               <Layers size={16} />
             </div>
             <div>
-              <h3 style={{ fontSize: 17, fontWeight: 800, color: "#fff", margin: 0 }}>Tambah Banyak Pengeluaran</h3>
-              <p style={{ fontSize: 11, color: "rgba(255,255,255,.4)", margin: "2px 0 0" }}>Untuk tanggal yang sama — isi semua transaksi sekaligus.</p>
+              <h3 style={{ fontSize: 17, fontWeight: 800, color: "hsl(var(--foreground))", margin: 0 }}>Tambah Banyak Pengeluaran</h3>
+              <p style={{ fontSize: 11, color: "rgb(var(--ink) / calc(.4 + var(--ink-boost)))", margin: "2px 0 0" }}>Untuk tanggal yang sama — isi semua transaksi sekaligus.</p>
             </div>
           </div>
-          <button onClick={onClose} style={{ width: 30, height: 30, borderRadius: "50%", background: "rgba(255,255,255,.06)", border: "none", cursor: "pointer", color: "rgba(255,255,255,.5)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><X size={14} /></button>
+          <button onClick={onClose} style={{ width: 30, height: 30, borderRadius: "50%", background: "rgb(var(--ink) / .06)", border: "none", cursor: "pointer", color: "rgb(var(--ink) / calc(.5 + var(--ink-boost)))", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><X size={14} /></button>
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16, flexShrink: 0 }}>
-          <Calendar size={14} color="rgba(255,255,255,.4)" />
-          <label style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,.5)", textTransform: "uppercase", letterSpacing: ".1em" }}>Tanggal untuk semua baris:</label>
+          <Calendar size={14} color="rgb(var(--ink) / .4)" />
+          <label style={{ fontSize: 11, fontWeight: 700, color: "rgb(var(--ink) / calc(.5 + var(--ink-boost)))", textTransform: "uppercase", letterSpacing: ".1em" }}>Tanggal untuk semua baris:</label>
           <input type="date" value={date} onChange={e => setDate(e.target.value)} style={{ ...ipt, width: 170 }} />
         </div>
 
         <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: 10, paddingRight: 4, marginBottom: 14 }}>
           <div style={{ display: "grid", gridTemplateColumns: "150px 1fr 130px 130px 70px 80px", gap: 8, padding: "0 6px" }}>
             {["Kategori", "Keterangan", "Jumlah (IDR)", "Proyek", "Struk", ""].map(h => (
-              <span key={h} style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".1em", color: "rgba(255,255,255,.3)" }}>{h}</span>
+              <span key={h} style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".1em", color: "rgb(var(--ink) / calc(.3 + var(--ink-boost)))" }}>{h}</span>
             ))}
           </div>
 
@@ -356,12 +358,12 @@ function BatchExpenseModal({ projects, onClose, onSaveAll }: {
             return (
               <div key={row.rowId} style={{
                 display: "grid", gridTemplateColumns: "150px 1fr 130px 130px 70px 80px", gap: 8,
-                padding: "8px 6px", borderRadius: 10, background: "rgba(255,255,255,.025)",
-                border: "1px solid rgba(255,255,255,.06)", alignItems: "center",
+                padding: "8px 6px", borderRadius: 10, background: "rgb(var(--ink) / .025)",
+                border: "1px solid rgb(var(--ink) / .06)", alignItems: "center",
               }}>
                 <select value={row.category} onChange={e => updateRow(row.rowId, { category: e.target.value })}
                   style={{ ...ipt, padding: "7px 8px", fontSize: 12, cursor: "pointer" }}>
-                  {EXPENSE_CATS.map(c => <option key={c} value={c} style={{ background: "#111318" }}>{c}</option>)}
+                  {EXPENSE_CATS.map(c => <option key={c} value={c} style={{ background: "hsl(var(--card))" }}>{c}</option>)}
                 </select>
 
                 <input value={row.description} onChange={e => updateRow(row.rowId, { description: e.target.value })}
@@ -372,18 +374,18 @@ function BatchExpenseModal({ projects, onClose, onSaveAll }: {
 
                 <select value={row.projectId || ""} onChange={e => updateRow(row.rowId, { projectId: e.target.value || null })}
                   style={{ ...ipt, padding: "7px 8px", fontSize: 12, cursor: "pointer" }}>
-                  <option value="" style={{ background: "#111318" }}>—</option>
-                  {projects.map(p => <option key={p.id} value={p.id} style={{ background: "#111318" }}>{p.title.slice(0, 16)}</option>)}
+                  <option value="" style={{ background: "hsl(var(--card))" }}>—</option>
+                  {projects.map(p => <option key={p.id} value={p.id} style={{ background: "hsl(var(--card))" }}>{p.title.slice(0, 16)}</option>)}
                 </select>
 
                 <div style={{ display: "flex", justifyContent: "center" }}>
                   {row.receiptUrl ? (
                     <a href={row.receiptUrl} target="_blank" rel="noopener noreferrer"
-                      style={{ width: 30, height: 30, borderRadius: 7, background: "rgba(74,222,128,.12)", display: "flex", alignItems: "center", justifyContent: "center", color: "#4ade80" }}>
+                      style={{ width: 30, height: 30, borderRadius: 7, background: "rgba(74,222,128,.12)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--c-green)" }}>
                       {isPdf ? <FileText size={13} /> : <ImageIcon size={13} />}
                     </a>
                   ) : (
-                    <label style={{ width: 30, height: 30, borderRadius: 7, background: "rgba(255,255,255,.05)", border: "1px dashed rgba(255,255,255,.15)", display: "flex", alignItems: "center", justifyContent: "center", cursor: isUploading ? "wait" : "pointer", color: "rgba(255,255,255,.35)" }}>
+                    <label style={{ width: 30, height: 30, borderRadius: 7, background: "rgb(var(--ink) / .05)", border: "1px dashed rgb(var(--ink) / .15)", display: "flex", alignItems: "center", justifyContent: "center", cursor: isUploading ? "wait" : "pointer", color: "rgb(var(--ink) / calc(.35 + var(--ink-boost)))" }}>
                       <input type="file" accept="image/jpeg,image/png,image/webp,application/pdf,.jpg,.jpeg,.png,.webp,.pdf"
                         onChange={e => handleRowFile(row.rowId, e.target.files?.[0])} disabled={isUploading} style={{ display: "none" }} />
                       {isUploading ? <Loader2 size={12} style={{ animation: "spin .8s linear infinite" }} /> : <Upload size={12} />}
@@ -393,11 +395,11 @@ function BatchExpenseModal({ projects, onClose, onSaveAll }: {
 
                 <div style={{ display: "flex", gap: 4, justifyContent: "flex-end" }}>
                   <button onClick={() => duplicateRow(row.rowId)} title="Duplikat baris"
-                    style={{ width: 26, height: 26, borderRadius: 7, background: "rgba(255,255,255,.06)", border: "none", cursor: "pointer", color: "rgba(255,255,255,.4)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    style={{ width: 26, height: 26, borderRadius: 7, background: "rgb(var(--ink) / .06)", border: "none", cursor: "pointer", color: "rgb(var(--ink) / calc(.4 + var(--ink-boost)))", display: "flex", alignItems: "center", justifyContent: "center" }}>
                     <Copy size={11} />
                   </button>
                   <button onClick={() => removeRow(row.rowId)} disabled={rows.length === 1} title="Hapus baris"
-                    style={{ width: 26, height: 26, borderRadius: 7, background: "rgba(248,113,113,.1)", border: "none", cursor: rows.length === 1 ? "not-allowed" : "pointer", color: "#f87171", display: "flex", alignItems: "center", justifyContent: "center", opacity: rows.length === 1 ? 0.3 : 1 }}>
+                    style={{ width: 26, height: 26, borderRadius: 7, background: "rgba(248,113,113,.1)", border: "none", cursor: rows.length === 1 ? "not-allowed" : "pointer", color: "var(--c-red)", display: "flex", alignItems: "center", justifyContent: "center", opacity: rows.length === 1 ? 0.3 : 1 }}>
                     <Trash2 size={11} />
                   </button>
                 </div>
@@ -407,8 +409,8 @@ function BatchExpenseModal({ projects, onClose, onSaveAll }: {
 
           <button onClick={addRow} style={{
             display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-            padding: "10px", borderRadius: 10, border: "1.5px dashed rgba(255,255,255,.15)",
-            background: "rgba(255,255,255,.02)", color: "rgba(255,255,255,.45)",
+            padding: "10px", borderRadius: 10, border: "1.5px dashed rgb(var(--ink) / .15)",
+            background: "rgb(var(--ink) / .02)", color: "rgb(var(--ink) / calc(.45 + var(--ink-boost)))",
             cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: FONT, marginTop: 2,
           }}>
             <ListPlus size={14} /> Tambah Baris
@@ -417,15 +419,15 @@ function BatchExpenseModal({ projects, onClose, onSaveAll }: {
 
         <style>{`@keyframes spin{to{transform:rotate(360deg);}}`}</style>
 
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingTop: 14, borderTop: "1px solid rgba(255,255,255,.08)", flexShrink: 0, flexWrap: "wrap", gap: 12 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingTop: 14, borderTop: "1px solid rgb(var(--ink) / .08)", flexShrink: 0, flexWrap: "wrap", gap: 12 }}>
           <div>
-            <p style={{ fontSize: 10, color: "rgba(255,255,255,.35)", margin: 0, textTransform: "uppercase", letterSpacing: ".1em", fontWeight: 700 }}>
+            <p style={{ fontSize: 10, color: "rgb(var(--ink) / calc(.35 + var(--ink-boost)))", margin: 0, textTransform: "uppercase", letterSpacing: ".1em", fontWeight: 700 }}>
               {validRows.length} dari {rows.length} baris siap disimpan
             </p>
-            <p style={{ fontSize: 18, fontWeight: 900, color: "#f87171", margin: "2px 0 0" }}>{formatCurrency(totalAmount)}</p>
+            <p style={{ fontSize: 18, fontWeight: 900, color: "var(--c-red)", margin: "2px 0 0" }}>{formatCurrency(totalAmount)}</p>
           </div>
           <div style={{ display: "flex", gap: 10 }}>
-            <button onClick={onClose} style={{ ...btnBase, background: "rgba(255,255,255,.06)", color: "rgba(255,255,255,.6)", border: "1px solid rgba(255,255,255,.1)" }}>Batal</button>
+            <button onClick={onClose} style={{ ...btnBase, background: "rgb(var(--ink) / .06)", color: "rgb(var(--ink) / calc(.6 + var(--ink-boost)))", border: "1px solid rgb(var(--ink) / .1)" }}>Batal</button>
             <button onClick={handleSaveAll} disabled={!canSave}
               style={{ ...btnBase, background: OR, color: "#fff", opacity: canSave ? 1 : 0.4 }}>
               {saving ? "Menyimpan..." : <><Check size={14} /> Simpan {validRows.length > 0 ? `${validRows.length} Pengeluaran` : ""}</>}
@@ -484,9 +486,9 @@ function PrintExpenseModal({ expenses, projects, onClose }: {
     return projects.find(p => p.id === id)?.title || "—";
   }
 
-  function handlePrint() {
-    const w = window.open("", "_blank", "width=960,height=720");
-    if (!w) return;
+  async function handlePrint() {
+    const w = createPrintSink();
+    const brand = await fetchBrand();
 
     const sorted = [...filtered].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
@@ -526,20 +528,10 @@ function PrintExpenseModal({ expenses, projects, onClose }: {
   .progress-track { height: 6px; border-radius: 100px; background: #f3f4f6; overflow: hidden; margin-top: 4px; }
   .progress-fill { height: 100%; border-radius: 100px; background: #FF6A20; }
   @media print { body { padding: 20px 24px; } }
+${REPORT_BRAND_CSS}
 </style></head><body>
 
-<div class="header">
-  <div>
-    <div class="logo-mark">FRAMELESS™</div>
-    <div class="logo-sub">Creative Production House · Wonosobo, Central Java</div>
-    <div class="logo-sub" style="margin-top:2px;">framelesscreative.com</div>
-  </div>
-  <div class="header-right">
-    <div class="report-title">Laporan Pengeluaran</div>
-    <div class="report-meta">Periode: ${label}</div>
-    <div class="report-meta">Dicetak: ${new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })} · ${new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}</div>
-  </div>
-</div>
+${reportHeaderHtml(brand, "Laporan", "Pengeluaran", [`Periode: ${label}`, `Dicetak: ${new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })} · ${new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}`])}
 
 <div class="kpi-grid">
   <div class="kpi"><div class="kpi-label">Total Pengeluaran</div><div class="kpi-value kv-red">${formatCurrency(total)}</div></div>
@@ -584,26 +576,25 @@ function PrintExpenseModal({ expenses, projects, onClose }: {
 </div>
 
 <div class="footer">
-  <span>Frameless Creative Production House · Wonosobo, Central Java · framelesscreative.com</span>
+  <span>${brand.name} · ${brandContactLine(brand)}</span>
   <span>Dokumen dibuat otomatis oleh sistem manajemen Frameless Creative</span>
 </div>
 
 </body></html>`);
     w.document.close();
-    setTimeout(() => { w.print(); }, 600);
   }
 
   return (
     <div onClick={e => { if (e.target === e.currentTarget) onClose(); }}
       style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.85)", backdropFilter: "blur(12px)", zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
-      <div style={{ background: "#111318", border: "1px solid rgba(255,255,255,.1)", borderRadius: 22, padding: 30, width: "100%", maxWidth: 460, position: "relative" }}>
-        <button onClick={onClose} style={{ position: "absolute", top: 14, right: 14, width: 30, height: 30, borderRadius: "50%", background: "rgba(255,255,255,.06)", border: "none", cursor: "pointer", color: "rgba(255,255,255,.5)", display: "flex", alignItems: "center", justifyContent: "center" }}><X size={14} /></button>
+      <div style={{ background: "hsl(var(--card))", border: "1px solid rgb(var(--ink) / .1)", borderRadius: 22, padding: 30, width: "100%", maxWidth: 460, position: "relative" }}>
+        <button onClick={onClose} style={{ position: "absolute", top: 14, right: 14, width: 30, height: 30, borderRadius: "50%", background: "rgb(var(--ink) / .06)", border: "none", cursor: "pointer", color: "rgb(var(--ink) / calc(.5 + var(--ink-boost)))", display: "flex", alignItems: "center", justifyContent: "center" }}><X size={14} /></button>
 
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
-          <div style={{ width: 34, height: 34, borderRadius: 9, background: `${OR}18`, display: "flex", alignItems: "center", justifyContent: "center", color: OR }}>
+          <div style={{ width: 34, height: 34, borderRadius: 9, background: `color-mix(in srgb, ${OR} 9%, transparent)`, display: "flex", alignItems: "center", justifyContent: "center", color: OR }}>
             <Printer size={16} />
           </div>
-          <h3 style={{ fontSize: 17, fontWeight: 800, color: "#fff", margin: 0 }}>Cetak Laporan Pengeluaran</h3>
+          <h3 style={{ fontSize: 17, fontWeight: 800, color: "hsl(var(--foreground))", margin: 0 }}>Cetak Laporan Pengeluaran</h3>
         </div>
 
         <div style={{ display: "flex", gap: 6, marginBottom: 16 }}>
@@ -611,8 +602,8 @@ function PrintExpenseModal({ expenses, projects, onClose }: {
             <button key={m} onClick={() => setMode(m)} style={{
               flex: 1, padding: "8px 12px", borderRadius: 9, fontSize: 12, fontWeight: 700,
               cursor: "pointer", border: "none", fontFamily: FONT,
-              background: mode === m ? OR : "rgba(255,255,255,.05)",
-              color: mode === m ? "#fff" : "rgba(255,255,255,.45)",
+              background: mode === m ? OR : "rgb(var(--ink) / .05)",
+              color: mode === m ? "#fff" : "rgb(var(--ink) / calc(.45 + var(--ink-boost)))",
             }}>
               {m === "month" ? "Per Bulan" : "Rentang Custom"}
             </button>
@@ -622,35 +613,35 @@ function PrintExpenseModal({ expenses, projects, onClose }: {
         {mode === "month" ? (
           <div style={{ display: "grid", gridTemplateColumns: "1fr 110px", gap: 10, marginBottom: 18 }}>
             <select value={month} onChange={e => setMonth(Number(e.target.value))} style={{ ...ipt, cursor: "pointer" }}>
-              {MONTHS_ID.map((m, i) => <option key={m} value={i} style={{ background: "#111318" }}>{m}</option>)}
+              {MONTHS_ID.map((m, i) => <option key={m} value={i} style={{ background: "hsl(var(--card))" }}>{m}</option>)}
             </select>
             <select value={year} onChange={e => setYear(Number(e.target.value))} style={{ ...ipt, cursor: "pointer" }}>
-              {years.map(y => <option key={y} value={y} style={{ background: "#111318" }}>{y}</option>)}
+              {years.map(y => <option key={y} value={y} style={{ background: "hsl(var(--card))" }}>{y}</option>)}
             </select>
           </div>
         ) : (
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 18 }}>
             <div>
-              <label style={{ display: "block", fontSize: 10, fontWeight: 700, letterSpacing: ".1em", textTransform: "uppercase", color: "rgba(255,255,255,.35)", marginBottom: 6 }}>Dari</label>
+              <label style={{ display: "block", fontSize: 10, fontWeight: 700, letterSpacing: ".1em", textTransform: "uppercase", color: "rgb(var(--ink) / calc(.35 + var(--ink-boost)))", marginBottom: 6 }}>Dari</label>
               <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} style={ipt} />
             </div>
             <div>
-              <label style={{ display: "block", fontSize: 10, fontWeight: 700, letterSpacing: ".1em", textTransform: "uppercase", color: "rgba(255,255,255,.35)", marginBottom: 6 }}>Sampai</label>
+              <label style={{ display: "block", fontSize: 10, fontWeight: 700, letterSpacing: ".1em", textTransform: "uppercase", color: "rgb(var(--ink) / calc(.35 + var(--ink-boost)))", marginBottom: 6 }}>Sampai</label>
               <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} style={ipt} />
             </div>
           </div>
         )}
 
-        <div style={{ padding: "14px 16px", borderRadius: 12, background: "rgba(255,255,255,.03)", border: "1px solid rgba(255,255,255,.07)", marginBottom: 20 }}>
-          <p style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,.35)", textTransform: "uppercase", letterSpacing: ".1em", margin: "0 0 8px" }}>Pratinjau · {label}</p>
+        <div style={{ padding: "14px 16px", borderRadius: 12, background: "rgb(var(--ink) / .03)", border: "1px solid rgb(var(--ink) / .07)", marginBottom: 20 }}>
+          <p style={{ fontSize: 10, fontWeight: 700, color: "rgb(var(--ink) / calc(.35 + var(--ink-boost)))", textTransform: "uppercase", letterSpacing: ".1em", margin: "0 0 8px" }}>Pratinjau · {label}</p>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-            <span style={{ fontSize: 12, color: "rgba(255,255,255,.5)" }}>{filtered.length} transaksi</span>
-            <span style={{ fontSize: 20, fontWeight: 900, color: "#f87171" }}>{formatCurrency(total)}</span>
+            <span style={{ fontSize: 12, color: "rgb(var(--ink) / calc(.5 + var(--ink-boost)))" }}>{filtered.length} transaksi</span>
+            <span style={{ fontSize: 20, fontWeight: 900, color: "var(--c-red)" }}>{formatCurrency(total)}</span>
           </div>
         </div>
 
         <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-          <button onClick={onClose} style={{ ...btnBase, background: "rgba(255,255,255,.06)", color: "rgba(255,255,255,.6)", border: "1px solid rgba(255,255,255,.1)" }}>Batal</button>
+          <button onClick={onClose} style={{ ...btnBase, background: "rgb(var(--ink) / .06)", color: "rgb(var(--ink) / calc(.6 + var(--ink-boost)))", border: "1px solid rgb(var(--ink) / .1)" }}>Batal</button>
           <button onClick={handlePrint} disabled={filtered.length === 0}
             style={{ ...btnBase, background: OR, color: "#fff", opacity: filtered.length === 0 ? 0.4 : 1 }}>
             <Printer size={14} /> Cetak PDF
@@ -665,8 +656,8 @@ function PrintExpenseModal({ expenses, projects, onClose }: {
 const ChartTip = ({ active, payload, label }: any) => {
   if (!active || !payload?.length) return null;
   return (
-    <div style={{ background: "rgba(12,14,22,.98)", border: "1px solid rgba(255,255,255,.12)", borderRadius: 10, padding: "10px 14px", fontSize: 12 }}>
-      <p style={{ color: "rgba(255,255,255,.6)", marginBottom: 4, fontWeight: 600 }}>{label}</p>
+    <div style={{ background: "rgba(12,14,22,.98)", border: "1px solid rgb(var(--ink) / .12)", borderRadius: 10, padding: "10px 14px", fontSize: 12 }}>
+      <p style={{ color: "rgb(var(--ink) / calc(.6 + var(--ink-boost)))", marginBottom: 4, fontWeight: 600 }}>{label}</p>
       <p style={{ color: OR, fontWeight: 700 }}>{formatCurrency(payload[0].value)}</p>
     </div>
   );
@@ -819,40 +810,40 @@ export default function ExpensesPage() {
 
       <div style={{ display: "flex", alignItems: isMobile ? "flex-start" : "flex-end", justifyContent: "space-between", marginBottom: isMobile ? 18 : 28, flexDirection: isMobile ? "column" : "row", gap: isMobile ? 12 : 16 }}>
         <div>
-          <h1 style={{ fontSize: isMobile ? 26 : 34, fontWeight: 900, color: "#fff", letterSpacing: "-.03em", margin: "0 0 4px" }}>Pengeluaran</h1>
-          <p style={{ fontSize: 11, color: "rgba(255,255,255,.35)", textTransform: "uppercase", letterSpacing: ".12em", fontWeight: 600 }}>Expense Tracker · Frameless Creative</p>
+          <h1 style={{ fontSize: isMobile ? 26 : 34, fontWeight: 900, color: "hsl(var(--foreground))", letterSpacing: "-.03em", margin: "0 0 4px" }}>Pengeluaran</h1>
+          <p style={{ fontSize: 11, color: "rgb(var(--ink) / calc(.35 + var(--ink-boost)))", textTransform: "uppercase", letterSpacing: ".12em", fontWeight: 600 }}>Expense Tracker · Frameless Creative</p>
         </div>
         <div style={{ display: "flex", gap: 8, width: isMobile ? "100%" : "auto" }}>
-          <button onClick={loadData} style={{ width: 36, height: 36, borderRadius: 10, background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.1)", cursor: "pointer", color: "rgba(255,255,255,.5)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><RefreshCw size={14} /></button>
-          {!isMobile && <button onClick={() => setPrintModal(true)} style={{ ...btnBase, background: "rgba(255,255,255,.06)", color: "rgba(255,255,255,.7)", border: "1px solid rgba(255,255,255,.1)", whiteSpace: "nowrap" }}><Printer size={14} /> Cetak Laporan</button>}
-          {isMobile && <button onClick={() => setPrintModal(true)} style={{ width: 36, height: 36, borderRadius: 10, background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.1)", cursor: "pointer", color: "rgba(255,255,255,.5)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><Printer size={14} /></button>}
+          <button onClick={loadData} style={{ width: 36, height: 36, borderRadius: 10, background: "rgb(var(--ink) / .06)", border: "1px solid rgb(var(--ink) / .1)", cursor: "pointer", color: "rgb(var(--ink) / calc(.5 + var(--ink-boost)))", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><RefreshCw size={14} /></button>
+          {!isMobile && <button onClick={() => setPrintModal(true)} style={{ ...btnBase, background: "rgb(var(--ink) / .06)", color: "rgb(var(--ink) / calc(.7 + var(--ink-boost)))", border: "1px solid rgb(var(--ink) / .1)", whiteSpace: "nowrap" }}><Printer size={14} /> Cetak Laporan</button>}
+          {isMobile && <button onClick={() => setPrintModal(true)} style={{ width: 36, height: 36, borderRadius: 10, background: "rgb(var(--ink) / .06)", border: "1px solid rgb(var(--ink) / .1)", cursor: "pointer", color: "rgb(var(--ink) / calc(.5 + var(--ink-boost)))", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><Printer size={14} /></button>}
           <button onClick={() => setBatchModal(true)} style={{ ...btnBase, background: OR, color: "#fff", flex: isMobile ? 1 : "none", justifyContent: "center", whiteSpace: "nowrap" }}><Layers size={14} /> {isMobile ? "Tambah" : "Tambah Banyak"}</button>
         </div>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(auto-fit,minmax(160px,1fr))", gap: isMobile ? 10 : 12, marginBottom: isMobile ? 20 : 28 }}>
         {[
-          { l: "Total Pengeluaran", v: formatCurrency(totalAll), c: "#f87171", sub: `${expenses.length} transaksi` },
+          { l: "Total Pengeluaran", v: formatCurrency(totalAll), c: "var(--c-red)", sub: `${expenses.length} transaksi` },
           { l: "Terbanyak", v: catData[0]?.name || "—", c: OR, sub: catData[0] ? formatCurrency(catData[0].value) : "" },
-          { l: "Rata-rata", v: formatCurrency(expenses.length > 0 ? totalAll / expenses.length : 0), c: "#fbbf24", sub: "per transaksi" },
-          { l: "Bulan Ini", v: formatCurrency(monthlyData[monthlyData.length - 1]?.total || 0), c: "#a78bfa", sub: new Date().toLocaleString("id-ID", { month: "short", year: "numeric" }) },
+          { l: "Rata-rata", v: formatCurrency(expenses.length > 0 ? totalAll / expenses.length : 0), c: "var(--c-amber)", sub: "per transaksi" },
+          { l: "Bulan Ini", v: formatCurrency(monthlyData[monthlyData.length - 1]?.total || 0), c: "var(--c-violet)", sub: new Date().toLocaleString("id-ID", { month: "short", year: "numeric" }) },
         ].map(s => (
-          <div key={s.l} style={{ padding: isMobile ? "14px" : "18px 20px", borderRadius: 14, background: "rgba(255,255,255,.03)", border: "1px solid rgba(255,255,255,.07)" }}>
-            <p style={{ fontSize: 9, fontWeight: 700, color: "rgba(255,255,255,.3)", textTransform: "uppercase", letterSpacing: ".12em", margin: "0 0 6px", lineHeight: 1.3 }}>{s.l}</p>
+          <div key={s.l} style={{ padding: isMobile ? "14px" : "18px 20px", borderRadius: 14, background: "rgb(var(--ink) / .03)", border: "1px solid rgb(var(--ink) / .07)" }}>
+            <p style={{ fontSize: 9, fontWeight: 700, color: "rgb(var(--ink) / calc(.3 + var(--ink-boost)))", textTransform: "uppercase", letterSpacing: ".12em", margin: "0 0 6px", lineHeight: 1.3 }}>{s.l}</p>
             <p style={{ fontSize: 20, fontWeight: 900, color: s.c, margin: "0 0 4px", letterSpacing: "-.01em" }}>{s.v}</p>
-            {s.sub && <p style={{ fontSize: 11, color: "rgba(255,255,255,.3)", margin: 0 }}>{s.sub}</p>}
+            {s.sub && <p style={{ fontSize: 11, color: "rgb(var(--ink) / calc(.3 + var(--ink-boost)))", margin: 0 }}>{s.sub}</p>}
           </div>
         ))}
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: isMobile ? 14 : 20, marginBottom: isMobile ? 20 : 28 }}>
-        <div style={{ background: "rgba(255,255,255,.025)", borderRadius: 18, border: "1px solid rgba(255,255,255,.07)", padding: "20px 22px" }}>
-          <p style={{ fontSize: 13, fontWeight: 800, color: "#fff", margin: "0 0 16px" }}>Tren 6 Bulan Terakhir</p>
+        <div style={{ background: "rgb(var(--ink) / .025)", borderRadius: 18, border: "1px solid rgb(var(--ink) / .07)", padding: "20px 22px" }}>
+          <p style={{ fontSize: 13, fontWeight: 800, color: "hsl(var(--foreground))", margin: "0 0 16px" }}>Tren 6 Bulan Terakhir</p>
           <div style={{ height: 160 }}>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={monthlyData} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
-                <XAxis dataKey="month" stroke="rgba(255,255,255,.3)" fontSize={11} tickLine={false} axisLine={false} />
-                <YAxis stroke="rgba(255,255,255,.2)" fontSize={10} tickFormatter={v => `${(v / 1e6).toFixed(0)}M`} tickLine={false} axisLine={false} />
+                <XAxis dataKey="month" stroke="rgb(var(--ink) / .3)" fontSize={11} tickLine={false} axisLine={false} />
+                <YAxis stroke="rgb(var(--ink) / .2)" fontSize={10} tickFormatter={v => `${(v / 1e6).toFixed(0)}M`} tickLine={false} axisLine={false} />
                 <Tooltip content={<ChartTip />} />
                 <Bar dataKey="total" name="Pengeluaran" radius={[6, 6, 0, 0]}>
                   {monthlyData.map((_, i) => (
@@ -864,8 +855,8 @@ export default function ExpensesPage() {
           </div>
         </div>
 
-        <div style={{ background: "rgba(255,255,255,.025)", borderRadius: 18, border: "1px solid rgba(255,255,255,.07)", padding: "20px 22px" }}>
-          <p style={{ fontSize: 13, fontWeight: 800, color: "#fff", margin: "0 0 16px" }}>Per Kategori</p>
+        <div style={{ background: "rgb(var(--ink) / .025)", borderRadius: 18, border: "1px solid rgb(var(--ink) / .07)", padding: "20px 22px" }}>
+          <p style={{ fontSize: 13, fontWeight: 800, color: "hsl(var(--foreground))", margin: "0 0 16px" }}>Per Kategori</p>
           {catData.length > 0 ? (
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {catData.slice(0, 6).map((d, i) => (
@@ -873,35 +864,35 @@ export default function ExpensesPage() {
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
                       <span style={{ width: 9, height: 9, borderRadius: 3, background: PIE_COLORS[i % PIE_COLORS.length], display: "inline-block", flexShrink: 0 }} />
-                      <span style={{ fontSize: 12, color: "rgba(255,255,255,.65)" }}>{d.name}</span>
+                      <span style={{ fontSize: 12, color: "rgb(var(--ink) / calc(.65 + var(--ink-boost)))" }}>{d.name}</span>
                     </div>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: "#f87171" }}>{formatCurrency(d.value)}</span>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: "var(--c-red)" }}>{formatCurrency(d.value)}</span>
                   </div>
-                  <div style={{ height: 3, borderRadius: 100, background: "rgba(255,255,255,.06)", overflow: "hidden" }}>
+                  <div style={{ height: 3, borderRadius: 100, background: "rgb(var(--ink) / .06)", overflow: "hidden" }}>
                     <div style={{ height: "100%", width: `${totalAll > 0 ? (d.value / totalAll) * 100 : 0}%`, background: PIE_COLORS[i % PIE_COLORS.length], borderRadius: 100 }} />
                   </div>
                 </div>
               ))}
             </div>
           ) : (
-            <p style={{ color: "rgba(255,255,255,.3)", fontSize: 13, textAlign: "center", paddingTop: 32 }}>Belum ada data.</p>
+            <p style={{ color: "rgb(var(--ink) / calc(.3 + var(--ink-boost)))", fontSize: 13, textAlign: "center", paddingTop: 32 }}>Belum ada data.</p>
           )}
         </div>
       </div>
 
       <div style={{ display: "flex", gap: 8, marginBottom: 12, flexDirection: isMobile ? "column" : "row", alignItems: isMobile ? "stretch" : "center" }}>
         <div style={{ position: "relative", flex: 1, minWidth: 200 }}>
-          <Search size={14} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "rgba(255,255,255,.35)" }} />
+          <Search size={14} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "rgb(var(--ink) / calc(.35 + var(--ink-boost)))" }} />
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Cari keterangan atau kategori..." style={{ ...ipt, paddingLeft: 36 }} />
         </div>
         <select value={`${sortBy}-${sortDir}`} onChange={e => {
           const [by, dir] = e.target.value.split("-");
           setSortBy(by as any); setSortDir(dir as any);
         }} style={{ ...ipt, width: "auto", cursor: "pointer", paddingRight: 30 }}>
-          <option value="date-desc" style={{ background: "#111318" }}>Terbaru</option>
-          <option value="date-asc" style={{ background: "#111318" }}>Terlama</option>
-          <option value="amount-desc" style={{ background: "#111318" }}>Terbesar</option>
-          <option value="amount-asc" style={{ background: "#111318" }}>Terkecil</option>
+          <option value="date-desc" style={{ background: "hsl(var(--card))" }}>Terbaru</option>
+          <option value="date-asc" style={{ background: "hsl(var(--card))" }}>Terlama</option>
+          <option value="amount-desc" style={{ background: "hsl(var(--card))" }}>Terbesar</option>
+          <option value="amount-asc" style={{ background: "hsl(var(--card))" }}>Terkecil</option>
         </select>
       </div>
 
@@ -911,9 +902,9 @@ export default function ExpensesPage() {
             style={{
               padding: "5px 13px", borderRadius: 8, fontSize: 11, fontWeight: 700,
               cursor: "pointer", border: "1px solid",
-              borderColor: catFilter === cat ? OR : "rgba(255,255,255,.1)",
-              background: catFilter === cat ? `${OR}20` : "rgba(255,255,255,.04)",
-              color: catFilter === cat ? OR : "rgba(255,255,255,.45)",
+              borderColor: catFilter === cat ? OR : "rgb(var(--ink) / .1)",
+              background: catFilter === cat ? `color-mix(in srgb, ${OR} 13%, transparent)` : "rgb(var(--ink) / .04)",
+              color: catFilter === cat ? OR : "rgb(var(--ink) / calc(.45 + var(--ink-boost)))",
               transition: "all .15s", fontFamily: FONT,
             }}>
             {cat === "ALL" ? `Semua (${expenses.length})` : cat}
@@ -922,17 +913,17 @@ export default function ExpensesPage() {
       </div>
 
       {(search || catFilter !== "ALL") && (
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, padding: "8px 14px", borderRadius: 10, background: "rgba(255,255,255,.03)", border: "1px solid rgba(255,255,255,.06)" }}>
-          <span style={{ fontSize: 12, color: "rgba(255,255,255,.5)" }}>{filtered.length} hasil ditemukan</span>
-          <span style={{ fontSize: 13, fontWeight: 700, color: "#f87171" }}>{formatCurrency(totalFiltered)}</span>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, padding: "8px 14px", borderRadius: 10, background: "rgb(var(--ink) / .03)", border: "1px solid rgb(var(--ink) / .06)" }}>
+          <span style={{ fontSize: 12, color: "rgb(var(--ink) / calc(.5 + var(--ink-boost)))" }}>{filtered.length} hasil ditemukan</span>
+          <span style={{ fontSize: 13, fontWeight: 700, color: "var(--c-red)" }}>{formatCurrency(totalFiltered)}</span>
         </div>
       )}
 
-      <div style={{ background: "rgba(255,255,255,.025)", borderRadius: 18, border: "1px solid rgba(255,255,255,.07)", overflow: "hidden" }}>
+      <div style={{ background: "rgb(var(--ink) / .025)", borderRadius: 18, border: "1px solid rgb(var(--ink) / .07)", overflow: "hidden" }}>
         {filtered.length === 0 ? (
           <div style={{ padding: "56px 24px", textAlign: "center" }}>
-            <TrendingDown size={40} color="rgba(255,255,255,.08)" style={{ margin: "0 auto 14px" }} />
-            <p style={{ color: "rgba(255,255,255,.3)", fontSize: 14, marginBottom: 16 }}>
+            <TrendingDown size={40} color="rgb(var(--ink) / .08)" style={{ margin: "0 auto 14px" }} />
+            <p style={{ color: "rgb(var(--ink) / calc(.3 + var(--ink-boost)))", fontSize: 14, marginBottom: 16 }}>
               {search || catFilter !== "ALL" ? "Tidak ada hasil yang cocok." : "Belum ada pengeluaran tercatat."}
             </p>
             {!search && catFilter === "ALL" && (
@@ -945,21 +936,21 @@ export default function ExpensesPage() {
             {filtered.map((e, idx) => (
               <div key={e.id} style={{
                 padding: "13px 16px",
-                borderBottom: idx < filtered.length - 1 ? "1px solid rgba(255,255,255,.05)" : "none",
+                borderBottom: idx < filtered.length - 1 ? "1px solid rgb(var(--ink) / .05)" : "none",
                 display: "flex", alignItems: "center", gap: 12,
               }}>
                 {/* Left: date badge */}
                 <div style={{ width: 40, flexShrink: 0, textAlign: "center" }}>
-                  <p style={{ fontSize: 16, fontWeight: 800, color: "#fff", margin: 0, lineHeight: 1 }}>
+                  <p style={{ fontSize: 16, fontWeight: 800, color: "hsl(var(--foreground))", margin: 0, lineHeight: 1 }}>
                     {e.date ? new Date(e.date).getDate() : "—"}
                   </p>
-                  <p style={{ fontSize: 9, color: "rgba(255,255,255,.35)", fontWeight: 600, textTransform: "uppercase", margin: "2px 0 0" }}>
+                  <p style={{ fontSize: 9, color: "rgb(var(--ink) / calc(.35 + var(--ink-boost)))", fontWeight: 600, textTransform: "uppercase", margin: "2px 0 0" }}>
                     {e.date ? new Date(e.date).toLocaleDateString("id-ID", { month: "short" }) : ""}
                   </p>
                 </div>
                 {/* Center: description + category */}
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ fontSize: 13, fontWeight: 600, color: "#fff", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{e.description}</p>
+                  <p style={{ fontSize: 13, fontWeight: 600, color: "hsl(var(--foreground))", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{e.description}</p>
                   <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 3 }}>
                     <span style={{ fontSize: 10, fontWeight: 700, padding: "1px 6px", borderRadius: 5, background: "rgba(255,106,32,.12)", color: OR }}>{e.category}</span>
                     {e.receiptUrl && (
@@ -972,26 +963,26 @@ export default function ExpensesPage() {
                 </div>
                 {/* Right: amount + actions */}
                 <div style={{ flexShrink: 0, textAlign: "right", display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
-                  <span style={{ fontSize: 14, fontWeight: 700, color: "#f87171" }}>{formatCurrency(Number(e.amount))}</span>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: "var(--c-red)" }}>{formatCurrency(Number(e.amount))}</span>
                   <div style={{ display: "flex", gap: 3 }}>
-                    <button onClick={() => setEditModal(e)} style={{ width: 26, height: 26, borderRadius: 7, background: "rgba(255,255,255,.06)", border: "none", cursor: "pointer", color: "rgba(255,255,255,.5)", display: "flex", alignItems: "center", justifyContent: "center" }}><Edit2 size={11} /></button>
-                    <button onClick={() => deleteExpense(e.id)} style={{ width: 26, height: 26, borderRadius: 7, background: "rgba(248,113,113,.1)", border: "none", cursor: "pointer", color: "#f87171", display: "flex", alignItems: "center", justifyContent: "center" }}><Trash2 size={11} /></button>
+                    <button onClick={() => setEditModal(e)} style={{ width: 26, height: 26, borderRadius: 7, background: "rgb(var(--ink) / .06)", border: "none", cursor: "pointer", color: "rgb(var(--ink) / calc(.5 + var(--ink-boost)))", display: "flex", alignItems: "center", justifyContent: "center" }}><Edit2 size={11} /></button>
+                    <button onClick={() => deleteExpense(e.id)} style={{ width: 26, height: 26, borderRadius: 7, background: "rgba(248,113,113,.1)", border: "none", cursor: "pointer", color: "var(--c-red)", display: "flex", alignItems: "center", justifyContent: "center" }}><Trash2 size={11} /></button>
                   </div>
                 </div>
               </div>
             ))}
             {/* Total row */}
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 16px", borderTop: `2px solid ${OR}`, background: `${OR}08` }}>
-              <span style={{ fontSize: 12, fontWeight: 800, color: "#fff" }}>TOTAL ({filtered.length})</span>
-              <span style={{ fontSize: 15, fontWeight: 900, color: "#f87171" }}>{formatCurrency(totalFiltered)}</span>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 16px", borderTop: `2px solid ${OR}`, background: `color-mix(in srgb, ${OR} 3%, transparent)` }}>
+              <span style={{ fontSize: 12, fontWeight: 800, color: "hsl(var(--foreground))" }}>TOTAL ({filtered.length})</span>
+              <span style={{ fontSize: 15, fontWeight: 900, color: "var(--c-red)" }}>{formatCurrency(totalFiltered)}</span>
             </div>
           </>
         ) : (
           /* ── Desktop: full grid table ── */
           <>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr 120px 120px 80px 70px", gap: 0, padding: "9px 18px", borderBottom: "1px solid rgba(255,255,255,.07)" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr 120px 120px 80px 70px", gap: 0, padding: "9px 18px", borderBottom: "1px solid rgb(var(--ink) / .07)" }}>
               {["Tanggal", "Keterangan", "Kategori", "Jumlah", "Proyek", ""].map(h => (
-                <span key={h} style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".12em", color: "rgba(255,255,255,.3)" }}>{h}</span>
+                <span key={h} style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".12em", color: "rgb(var(--ink) / calc(.3 + var(--ink-boost)))" }}>{h}</span>
               ))}
             </div>
 
@@ -1000,15 +991,15 @@ export default function ExpensesPage() {
                 style={{
                   display: "grid", gridTemplateColumns: "1fr 2fr 120px 120px 80px 70px",
                   gap: 0, padding: "13px 18px",
-                  borderBottom: idx < filtered.length - 1 ? "1px solid rgba(255,255,255,.04)" : "none",
+                  borderBottom: idx < filtered.length - 1 ? "1px solid rgb(var(--ink) / .04)" : "none",
                   alignItems: "center",
                 }}
               >
-                <span style={{ fontSize: 12, color: "rgba(255,255,255,.45)" }}>
+                <span style={{ fontSize: 12, color: "rgb(var(--ink) / calc(.45 + var(--ink-boost)))" }}>
                   {e.date ? new Date(e.date).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" }) : "—"}
                 </span>
                 <div>
-                  <p style={{ fontSize: 13, fontWeight: 600, color: "#fff", margin: 0 }}>{e.description}</p>
+                  <p style={{ fontSize: 13, fontWeight: 600, color: "hsl(var(--foreground))", margin: 0 }}>{e.description}</p>
                   {e.receiptUrl && (
                     <a href={e.receiptUrl} target="_blank" rel="noopener noreferrer"
                       style={{ fontSize: 10, color: OR, fontWeight: 600, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 3, marginTop: 2 }}>
@@ -1019,23 +1010,23 @@ export default function ExpensesPage() {
                 <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 8px", borderRadius: 6, background: "rgba(255,106,32,.12)", color: OR, display: "inline-block" }}>
                   {e.category}
                 </span>
-                <span style={{ fontSize: 14, fontWeight: 700, color: "#f87171" }}>{formatCurrency(Number(e.amount))}</span>
-                <span style={{ fontSize: 11, color: "rgba(255,255,255,.35)" }}>
+                <span style={{ fontSize: 14, fontWeight: 700, color: "var(--c-red)" }}>{formatCurrency(Number(e.amount))}</span>
+                <span style={{ fontSize: 11, color: "rgb(var(--ink) / calc(.35 + var(--ink-boost)))" }}>
                   {e.projectId ? (projects.find(p => p.id === e.projectId)?.title || "—").slice(0, 12) : "—"}
                 </span>
                 <div style={{ display: "flex", gap: 4, justifyContent: "flex-end" }}>
-                  <button onClick={() => setEditModal(e)} style={{ width: 28, height: 28, borderRadius: 8, background: "rgba(255,255,255,.06)", border: "none", cursor: "pointer", color: "rgba(255,255,255,.5)", display: "flex", alignItems: "center", justifyContent: "center" }}><Edit2 size={12} /></button>
-                  <button onClick={() => deleteExpense(e.id)} style={{ width: 28, height: 28, borderRadius: 8, background: "rgba(248,113,113,.1)", border: "none", cursor: "pointer", color: "#f87171", display: "flex", alignItems: "center", justifyContent: "center" }}><Trash2 size={12} /></button>
+                  <button onClick={() => setEditModal(e)} style={{ width: 28, height: 28, borderRadius: 8, background: "rgb(var(--ink) / .06)", border: "none", cursor: "pointer", color: "rgb(var(--ink) / calc(.5 + var(--ink-boost)))", display: "flex", alignItems: "center", justifyContent: "center" }}><Edit2 size={12} /></button>
+                  <button onClick={() => deleteExpense(e.id)} style={{ width: 28, height: 28, borderRadius: 8, background: "rgba(248,113,113,.1)", border: "none", cursor: "pointer", color: "var(--c-red)", display: "flex", alignItems: "center", justifyContent: "center" }}><Trash2 size={12} /></button>
                 </div>
               </div>
             ))}
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr 120px 120px 80px 70px", gap: 0, padding: "12px 18px", borderTop: `2px solid ${OR}`, background: `${OR}08` }}>
-              <span style={{ fontSize: 12, fontWeight: 800, color: "#fff", gridColumn: "1 / 3" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr 120px 120px 80px 70px", gap: 0, padding: "12px 18px", borderTop: `2px solid ${OR}`, background: `color-mix(in srgb, ${OR} 3%, transparent)` }}>
+              <span style={{ fontSize: 12, fontWeight: 800, color: "hsl(var(--foreground))", gridColumn: "1 / 3" }}>
                 TOTAL {catFilter !== "ALL" ? catFilter : ""} ({filtered.length} transaksi)
               </span>
               <span />
-              <span style={{ fontSize: 15, fontWeight: 900, color: "#f87171" }}>{formatCurrency(totalFiltered)}</span>
+              <span style={{ fontSize: 15, fontWeight: 900, color: "var(--c-red)" }}>{formatCurrency(totalFiltered)}</span>
               <span />
               <span />
             </div>
