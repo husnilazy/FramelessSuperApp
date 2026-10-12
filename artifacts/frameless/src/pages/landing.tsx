@@ -1,6 +1,6 @@
 // artifacts/frameless/src/pages/landing.tsx
 import { useState, useRef, useEffect, useMemo } from "react";
-import { MOTION_CSS, ScrollProgress, HeroLayers, CountUp, useLandingMotion } from "@/lib/landing-motion";
+import { MOTION_CSS, ScrollProgress, CountUp, useLandingMotion } from "@/lib/landing-motion";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import {
@@ -662,8 +662,6 @@ export default function LandingPage() {
         <div ref={bgRef} style={{ position: "absolute", inset: 0, zIndex: 0, opacity: vReady ? .22 : 1, transition: "opacity 2s ease", willChange: "transform" }}>
           <Mesh c1={c1} c2={c2} c3={c3} />
         </div>
-
-        <HeroLayers c1={c1} c2={c2} />
 
         {/* Content */}
         <div data-hero-content style={{ position: "relative", zIndex: 2, maxWidth: 1280, margin: "0 auto", padding: "80px 28px", width: "100%", willChange: "transform, opacity" }}>
