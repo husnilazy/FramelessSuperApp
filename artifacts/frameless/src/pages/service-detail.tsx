@@ -11,6 +11,7 @@ import {
   ExternalLink, ImageIcon, Film,
 } from "lucide-react";
 
+import { MotionLayer } from "@/lib/landing-motion";
 interface CmsData { [s:string]:{[k:string]:string} }
 interface SiteVideo { id:string;title:string;description:string;embedUrl:string;thumbnailUrl:string;category:string;tags:string;isActive:boolean;orderIndex:number; }
 interface ServiceItem { icon:string;title:string;description:string;tags:string[];slug:string;price?:string;features?:string[];duration?:string;longDescription?:string;portfolioCategory?:string;highlightVideoUrl?:string; }
@@ -182,6 +183,7 @@ export default function ServiceDetailPage() {
   return (
     <div style={{background:"#0a0a0c",color:"#f0f0f0",fontFamily:FONT,minHeight:"100vh",overflowX:"hidden"}}>
       <style>{CSS}</style>
+      <MotionLayer />
 
       {/* Ambient BG */}
       <div style={{position:"fixed",inset:0,overflow:"hidden",pointerEvents:"none",zIndex:0}}>

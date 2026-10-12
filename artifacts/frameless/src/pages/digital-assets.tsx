@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { formatCurrency } from "@/lib/formatters";
 
+import { MotionLayer } from "@/lib/landing-motion";
 interface DigitalAsset {
   id: string; title: string; description: string; category: string;
   price: number; fileUrl: string; thumbnailUrl: string;
@@ -417,7 +418,8 @@ export default function DigitalAssetsPage() {
   const featured = assets.filter(a => a.isFeatured);
 
   return (
-    <div style={{ background:"#0a0a0c", color:"#f0f0f0", fontFamily:FONT, minHeight:"100vh", overflowX:"hidden", position:"relative" }}>
+    <div data-rv-each style={{ background:"#0a0a0c", color:"#f0f0f0", fontFamily:FONT, minHeight:"100vh", overflowX:"hidden", position:"relative" }}>
+      <MotionLayer />
 
       {/* Global ambient mesh — sama persis dengan landing page supaya konsisten */}
       <div style={{ position:"fixed", inset:0, zIndex:0, pointerEvents:"none", overflow:"hidden" }}>
@@ -492,7 +494,7 @@ export default function DigitalAssetsPage() {
             </div>
             <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(300px,1fr))", gap:18 }}>
               {featured.slice(0,2).map(a => (
-                <div key={a.id} onClick={() => setSelectedAsset(a)} style={{
+                <div key={a.id} data-rv-item onClick={() => setSelectedAsset(a)} style={{
                   cursor:"pointer", borderRadius:20, overflow:"hidden",
                   border:"1px solid rgba(255,255,255,.08)",
                   background:"rgba(255,255,255,.03)",
@@ -563,7 +565,7 @@ export default function DigitalAssetsPage() {
         ) : (
           <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))", gap:14 }}>
             {filtered.map(a => (
-              <div key={a.id} onClick={() => setSelectedAsset(a)} style={{
+              <div key={a.id} data-rv-item onClick={() => setSelectedAsset(a)} style={{
                 cursor:"pointer", borderRadius:18, overflow:"hidden",
                 border:"1px solid rgba(255,255,255,.07)",
                 background:"rgba(255,255,255,.03)",

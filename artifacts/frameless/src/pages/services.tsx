@@ -5,6 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import { CheckCircle2, MessageCircle, Mail, X, Play, ArrowRight, ChevronRight, Sparkles, Loader2 } from "lucide-react";
 import { AiEstimationForm } from "@/components/AiEstimationForm";
 
+import { MotionLayer } from "@/lib/landing-motion";
 const OR = "#FF6A20";
 const FONT = "'Plus Jakarta Sans',sans-serif";
 const CSS = `
@@ -163,6 +164,7 @@ export default function ServicesPage() {
     return (
         <div style={{ background: "#0a0a0c", color: "#f0f0f0", fontFamily: FONT, minHeight: "100vh", overflowX: "hidden" }}>
             <style>{CSS}</style>
+            <MotionLayer />
 
             {/* BG */}
             <div style={{ position: "fixed", inset: 0, overflow: "hidden", pointerEvents: "none", zIndex: 0 }}>

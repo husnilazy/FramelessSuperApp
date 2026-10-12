@@ -11,16 +11,16 @@ import { useEffect, useRef, useState } from "react";
 const ORANGE = "#F03820";
 
 /** Elemen kepala section & kartu yang di-reveal bertahap. */
-const HEAD_SEL = ".section-eyebrow, section h2, section h2 + p";
-const ITEM_SEL = ".stat-card, .course-card, .asset-card, .reel-card, .contact-info-card, .crew-card, .footer-grid > div, [data-rv-item]";
+const HEAD_SEL = ".section-eyebrow, section h2, section h2 + p, h1:not([data-hero] h1)";
+const ITEM_SEL = ".stat-card, .course-card, .asset-card, .reel-card, .contact-info-card, .crew-card, .footer-grid > div, .svc-item, .cc, .stat-tile, [data-rv-item]";
 /** Kartu dengan cincin tepi halus + sorotan mengikuti kursor. */
-const GLOW_SEL = ".stat-card, .course-card, .asset-card, .reel-card, .contact-info-card, .svc-card, .crew-card";
+const GLOW_SEL = ".stat-card, .course-card, .asset-card, .reel-card, .contact-info-card, .svc-card, .crew-card, .svc-item, .cc, .stat-tile, [data-rv-item]";
 /** Hanya kartu ber-latar polos yang boleh diganti permukaannya (kartu bergambar jangan disentuh). */
-const SURFACE_SEL = ".stat-card, .course-card, .asset-card, .contact-info-card";
+const SURFACE_SEL = ".stat-card, .course-card, .asset-card, .contact-info-card, .svc-item, .cc, .stat-tile";
 
 export const MOTION_CSS = `
 /* ── Reveal bertahap (hanya aktif setelah JS menandai elemen) ── */
-[data-rv]{will-change:opacity,translate;}
+[data-rv]{will-change:opacity,translate;animation:none!important;}
 [data-rv="pre"]{opacity:0;translate:0 36px;scale:.985;}
 [data-rv="pre"].rv-head,[data-rv="pre"]:is(h2,p,.section-eyebrow){filter:blur(10px);translate:0 24px;}
 [data-rv="in"]{opacity:1;translate:0 0;scale:1;filter:none;
@@ -182,6 +182,15 @@ export function useLandingMotion() {
       });
     }, { threshold: 0.1, rootMargin: "0px 0px -6% 0px" });
 
+    // Halaman tanpa <section>: setiap elemen diamati sendiri-sendiri, dibatch per frame untuk stagger.
+    const ioEach = reduce ? null : new IntersectionObserver((entries) => {
+      const hits = entries.filter((e) => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top || a.boundingClientRect.left - b.boundingClientRect.left);
+      hits.forEach((e, i) => {
+        ioEach!.unobserve(e.target);
+        setIn(e.target as HTMLElement, Math.min(i, 8) * 70);
+      });
+    }, { threshold: 0.12, rootMargin: "0px 0px -6% 0px" });
+
     const setIn = (el: HTMLElement, delay: number) => {
       el.style.setProperty("--rv-d", `${delay}ms`);
       el.setAttribute("data-rv", "in");
@@ -198,12 +207,14 @@ export function useLandingMotion() {
     }
 
     const prep = (container: Element) => {
+      const each = container.hasAttribute("data-rv-each");
       const isRevealed = revealed.has(container);
       const apply = (el: HTMLElement, head: boolean) => {
         if (prepared.has(el)) return;
         prepared.add(el);
         if (head) el.classList.add("rv-head");
         el.setAttribute("data-rv", "pre");
+        if (each) { ioEach?.observe(el); return; }
         // Konten yang datang belakangan di section yang sudah terbuka: animasikan langsung.
         if (isRevealed) requestAnimationFrame(() => requestAnimationFrame(() => setIn(el, 60)));
       };
@@ -213,10 +224,10 @@ export function useLandingMotion() {
 
     const scan = () => {
       markGlow(document);
-      document.querySelectorAll("section:not([data-hero]), footer").forEach((c) => {
+      document.querySelectorAll("section:not([data-hero]), footer, [data-rv-each]").forEach((c) => {
         if (!containers.has(c)) {
           containers.add(c);
-          io?.observe(c);
+          if (!c.hasAttribute("data-rv-each")) io?.observe(c);
         }
         if (!reduce) prep(c);
       });
@@ -303,10 +314,23 @@ export function useLandingMotion() {
     return () => {
       mo.disconnect();
       io?.disconnect();
+      ioEach?.disconnect();
       cancelAnimationFrame(moRaf);
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onScroll);
       if (onMove) window.removeEventListener("pointermove", onMove);
     };
   }, []);
+}
+
+
+/** Pasang seluruh lapisan gerak di halaman publik mana pun: <MotionLayer /> di dalam root halaman. */
+export function MotionLayer() {
+  useLandingMotion();
+  return (
+    <>
+      <style>{MOTION_CSS}</style>
+      <ScrollProgress />
+    </>
+  );
 }

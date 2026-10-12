@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, Check, ChevronRight, Film, Play, Search } from "lucide-react";
 import { formatCurrency } from "@/lib/formatters";
 
+import { MotionLayer } from "@/lib/landing-motion";
 const ORANGE       = "hsl(20,100%,58%)";
 const ORANGE_DIM   = "rgba(240,56,32,0.12)";
 const ORANGE_BORD  = "rgba(240,56,32,0.25)";
@@ -108,7 +109,8 @@ export default function CoursesPage() {
   );
 
   return (
-    <div style={{ minHeight: "100vh", background: BG, color: "#fff", fontFamily: font, paddingBottom: 80 }}>
+    <div data-rv-each style={{ minHeight: "100vh", background: BG, color: "#fff", fontFamily: font, paddingBottom: 80 }}>
+      <MotionLayer />
       <style>{`
         body { background: ${BG}; }
         @keyframes fadeUp    { from { opacity:0; transform:translateY(18px); } to { opacity:1; transform:translateY(0); } }
