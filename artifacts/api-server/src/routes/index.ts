@@ -40,9 +40,70 @@ import accountMappingRouter from "./account-mapping.js";
 import autoPosterRouter from "./auto-poster.js";
 import quotationsRouter from "./quotations.js";
 import companyProfileRouter from "./company-profile.js";
+import { requireAdmin } from "../middlewares/auth.js";
+import { requireUniversalAuth } from "./middleware.js";
+import { ensureInvoiceColumns } from "../lib/invoice-schema.js";
+import { rateLimit } from "../middlewares/rate-limit.js";
 
 
 const router: IRouter = Router();
+
+// Skema invoice (kolom tambahan) disiapkan sekali per instance sebelum route apa pun
+// yang menyentuh tabel invoices. Non-fatal: bila gagal, query terkait yang akan error jelas.
+router.use((_req, _res, next) => {
+  ensureInvoiceColumns().then(() => next(), () => next());
+});
+
+// ── Admin guard ──────────────────────────────────────────────────────────────
+// Semua endpoint back-office WAJIB admin. Dipasang di sini (sebelum router) supaya
+// route baru di file-file ini otomatis terlindungi. Endpoint publik (landing, kursus,
+// webhook Midtrans, link-in-bio, endpoint crew) sengaja TIDAK ada di daftar ini.
+router.use(
+  [
+    "/invoices",
+    "/expenses",
+    "/income",
+    "/journal",
+    "/ledger",
+    "/trial-balance",
+    "/financial-statements",
+    "/accounts",
+    "/account-mappings",
+    "/auto-post",
+    "/clients",
+    "/projects",
+    "/tasks",
+    "/quotations",
+    "/equipment",
+    "/dashboard",
+    "/finance",
+    "/activity",
+    "/team-safe",
+    "/team-columns",
+    "/payments/activate",
+    "/company-profile",
+    "/admin",
+  ],
+  requireAdmin,
+);
+// Method-aware: GET /team boleh publik (landing page; isinya disaring di team.ts), tulis = admin.
+router.use("/team", (req, res, next) => {
+  if (req.method === "GET" || req.method === "OPTIONS") return next();
+  return requireAdmin(req, res, next);
+});
+
+// Endpoint dengan data peserta/pembayaran yang tidak dipakai halaman publik → admin saja.
+router.get("/payments/enrollment/:id", requireAdmin);
+router.get("/enrollments/:id", requireAdmin);
+router.patch("/course-workshops/:id/increment", requireAdmin);
+
+// Chat internal tim: admin ATAU crew yang login.
+router.use("/chat/messages", requireUniversalAuth);
+
+// Anti brute-force untuk endpoint yang menerima kredensial / kode member.
+router.post(["/auth/login", "/crew/login", "/academy/login", "/course-members/login"], rateLimit({ windowMs: 15 * 60_000, max: 20, key: "login" }));
+router.post("/auth/register", rateLimit({ windowMs: 60 * 60_000, max: 5, key: "register" }));
+router.post("/course-members/resend-access", rateLimit({ windowMs: 60 * 60_000, max: 5, key: "resend" }));
 
 // Auth routes (PENTING - ini yang kamu butuh!)
 router.use(authRouter);

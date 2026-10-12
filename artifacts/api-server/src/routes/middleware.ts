@@ -1,11 +1,25 @@
 import { type Request, type Response, type NextFunction } from "express";
 import { createClient } from "@supabase/supabase-js";
+import jwt from "jsonwebtoken";
 import { getCrewMemberIdFromToken } from "./crew.js";
 
 const supabaseUrl = process.env.SUPABASE_URL || "";
 const supabaseKey = process.env.SUPABASE_ANON_KEY || "";
 
 const supabase = createClient(supabaseUrl, supabaseKey);
+
+/** Token darurat (aktif hanya bila EMERGENCY_JWT_SECRET di-set) — sama dengan penjaga di middlewares/auth.ts */
+function emergencyUser(token: string): { id: string; email: string; role: string } | null {
+  const secret = process.env.EMERGENCY_JWT_SECRET || "";
+  if (!secret) return null;
+  try {
+    const p = jwt.verify(token, secret) as Record<string, unknown>;
+    if (p._emergency && typeof p.email === "string") return { id: "emergency", email: p.email, role: "ADMIN" };
+  } catch {
+    /* bukan token darurat */
+  }
+  return null;
+}
 
 type TokenPayload = {
   sub: string; // Supabase user ID
@@ -28,6 +42,14 @@ export async function requireAuth(
     }
 
     const token = authHeader.slice(7).trim();
+
+    const emergency = emergencyUser(token);
+    if (emergency) {
+      (req as any).userId = emergency.id;
+      (req as any).user = emergency;
+      next();
+      return;
+    }
 
     // Verify token dengan Supabase
     const { data, error } = await supabase.auth.getUser(token);
@@ -69,6 +91,15 @@ export async function requireAdmin(
     }
 
     const token = authHeader.slice(7).trim();
+
+    const emergency = emergencyUser(token);
+    if (emergency) {
+      (req as any).userId = emergency.id;
+      (req as any).user = emergency;
+      (req as any).userProfile = { id: emergency.id, role: "ADMIN", email: emergency.email };
+      next();
+      return;
+    }
 
     // Verify token
     const { data, error } = await supabase.auth.getUser(token);
@@ -193,7 +224,15 @@ export async function requireUniversalAuth(
       return next();
     }
 
-    // 2. Fallback to Supabase token
+    // 2. Token darurat
+    const emergency = emergencyUser(token);
+    if (emergency) {
+      (req as any).userId = emergency.id;
+      (req as any).user = { id: emergency.id, email: emergency.email, role: "admin", isActive: true };
+      return next();
+    }
+
+    // 3. Fallback to Supabase token
     const { data, error } = await supabase.auth.getUser(token);
 
     if (error || !data.user) {

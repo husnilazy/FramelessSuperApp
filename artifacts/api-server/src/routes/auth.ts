@@ -1,5 +1,6 @@
 import { Router, type IRouter } from "express";
 import { createClient } from "@supabase/supabase-js";
+import jwt from "jsonwebtoken";
 
 const router: IRouter = Router();
 
@@ -27,6 +28,49 @@ const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
   },
 });
 
+// ============================================================
+// ⚠️  EMERGENCY BYPASS — Aktif saat Supabase kena egress quota
+//     Set env vars berikut untuk mengaktifkan:
+//       EMERGENCY_BYPASS_EMAIL=<email admin>
+//       EMERGENCY_BYPASS_PASSWORD=<password sementara>
+//       EMERGENCY_JWT_SECRET=<random string panjang>
+//     HAPUS ke-3 env vars ini setelah Supabase reset (6 Ags 2026)
+// ============================================================
+const BYPASS_EMAIL    = process.env.EMERGENCY_BYPASS_EMAIL    || "";
+const BYPASS_PASSWORD = process.env.EMERGENCY_BYPASS_PASSWORD || "";
+const BYPASS_SECRET   = process.env.EMERGENCY_JWT_SECRET      || "";
+
+const BYPASS_ACTIVE = !!(BYPASS_EMAIL && BYPASS_PASSWORD && BYPASS_SECRET);
+
+if (BYPASS_ACTIVE) {
+  console.warn("[auth] ⚠️  EMERGENCY BYPASS AKTIF — nonaktifkan setelah Supabase normal");
+}
+
+/** Buat emergency JWT sementara (7 hari) */
+function makeEmergencyToken(email: string): string {
+  return jwt.sign(
+    { sub: "emergency", email, role: "ADMIN", _emergency: true },
+    BYPASS_SECRET,
+    { expiresIn: "7d" }
+  );
+}
+
+/** Cek apakah token adalah emergency JWT yang valid */
+function verifyEmergencyToken(token: string): { email: string; role: string } | null {
+  if (!BYPASS_SECRET) return null;
+  try {
+    const payload = jwt.verify(token, BYPASS_SECRET) as Record<string, unknown>;
+    if (payload._emergency && typeof payload.email === "string") {
+      return { email: payload.email, role: String(payload.role ?? "ADMIN") };
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+// ============================================================
+
 router.post("/auth/login", async (req, res): Promise<void> => {
   try {
     const { email, password } = req.body ?? {};
@@ -37,6 +81,24 @@ router.post("/auth/login", async (req, res): Promise<void> => {
     }
 
     const normalizedEmail = String(email).trim().toLowerCase();
+
+    // --- EMERGENCY BYPASS ---
+    if (BYPASS_ACTIVE && normalizedEmail === BYPASS_EMAIL && password === BYPASS_PASSWORD) {
+      console.warn("[auth/login] Emergency bypass digunakan oleh:", normalizedEmail);
+      const token = makeEmergencyToken(normalizedEmail);
+      res.json({
+        token,
+        user: {
+          id: "emergency-admin",
+          name: "Admin (Emergency)",
+          email: normalizedEmail,
+          role: "ADMIN",
+          isActive: true,
+        },
+      });
+      return;
+    }
+    // --- END EMERGENCY BYPASS ---
 
     const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
       email: normalizedEmail,
@@ -65,16 +127,12 @@ router.post("/auth/login", async (req, res): Promise<void> => {
     }
 
     if (!userProfile) {
-      res.status(404).json({
-        error: "Profile user belum dibuat",
-      });
+      res.status(404).json({ error: "Profile user belum dibuat" });
       return;
     }
 
     if (!userProfile.is_active) {
-      res.status(403).json({
-        error: "Akun tidak aktif. Hubungi administrator.",
-      });
+      res.status(403).json({ error: "Akun tidak aktif. Hubungi administrator." });
       return;
     }
 
@@ -122,6 +180,23 @@ router.get("/auth/me", async (req, res): Promise<void> => {
     }
 
     const token = authHeader.slice(7).trim();
+
+    // --- EMERGENCY BYPASS ---
+    if (BYPASS_ACTIVE) {
+      const emergencyPayload = verifyEmergencyToken(token);
+      if (emergencyPayload) {
+        res.json({
+          id: "emergency-admin",
+          name: "Admin (Emergency)",
+          email: emergencyPayload.email,
+          role: emergencyPayload.role,
+          isActive: true,
+        });
+        return;
+      }
+    }
+    // --- END EMERGENCY BYPASS ---
+
     const { data, error } = await supabase.auth.getUser(token);
 
     if (error || !data.user) {
@@ -166,9 +241,7 @@ router.post("/auth/register", async (req, res): Promise<void> => {
     const { email, password, name } = req.body ?? {};
 
     if (!email || !password || !name) {
-      res.status(400).json({
-        error: "Email, password, dan name wajib diisi",
-      });
+      res.status(400).json({ error: "Email, password, dan name wajib diisi" });
       return;
     }
 
@@ -182,9 +255,7 @@ router.post("/auth/register", async (req, res): Promise<void> => {
 
     if (error || !data.user) {
       console.error("[auth/register] Error creating user:", error?.message);
-      res.status(400).json({
-        error: error?.message || "Gagal membuat user",
-      });
+      res.status(400).json({ error: error?.message || "Gagal membuat user" });
       return;
     }
 
@@ -220,9 +291,7 @@ router.post("/auth/register", async (req, res): Promise<void> => {
     });
   } catch (err) {
     console.error("[auth/register] EXCEPTION:", err);
-    res.status(500).json({
-      error: "Server error",
-    });
+    res.status(500).json({ error: "Server error" });
   }
 });
 

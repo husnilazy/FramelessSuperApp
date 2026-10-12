@@ -1,5 +1,6 @@
 import { type Request, type Response, type NextFunction } from "express";
 import { createClient } from "@supabase/supabase-js";
+import jwt from "jsonwebtoken";
 
 const supabaseUrl = process.env.SUPABASE_URL || "";
 const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || "";
@@ -45,6 +46,44 @@ async function loadUserProfile(userId: string) {
   return profile;
 }
 
+const emergencySecret = process.env.EMERGENCY_JWT_SECRET || "";
+
+/** Token darurat (lihat routes/auth.ts) — hanya valid jika EMERGENCY_JWT_SECRET di-set. */
+function verifyEmergency(token: string) {
+  if (!emergencySecret) return null;
+  try {
+    const p = jwt.verify(token, emergencySecret) as Record<string, unknown>;
+    if (p._emergency && typeof p.email === "string") {
+      return {
+        id: "emergency",
+        name: "Emergency Admin",
+        email: p.email,
+        role: "ADMIN",
+        is_active: true,
+      };
+    }
+  } catch {
+    /* bukan token darurat */
+  }
+  return null;
+}
+
+/** Cek admin tanpa menulis response. Dipakai route publik yang isinya bergantung siapa pemanggilnya. */
+export async function isAdminRequest(req: Request): Promise<boolean> {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader?.startsWith("Bearer ")) return false;
+    const token = authHeader.slice(7).trim();
+    if (verifyEmergency(token)) return true;
+    const { data, error } = await supabase.auth.getUser(token);
+    if (error || !data.user) return false;
+    const profile = await loadUserProfile(data.user.id);
+    return !!profile?.is_active && profile.role === "ADMIN";
+  } catch {
+    return false;
+  }
+}
+
 async function authenticate(req: AuthedRequest, res: Response) {
   const authHeader = req.headers.authorization;
 
@@ -54,6 +93,19 @@ async function authenticate(req: AuthedRequest, res: Response) {
   }
 
   const token = authHeader.slice(7).trim();
+
+  const emergency = verifyEmergency(token);
+  if (emergency) {
+    req.user = {
+      id: emergency.id,
+      name: emergency.name,
+      email: emergency.email,
+      role: emergency.role,
+      isActive: true,
+    };
+    return emergency;
+  }
+
   const { data, error } = await supabase.auth.getUser(token);
 
   if (error || !data.user) {

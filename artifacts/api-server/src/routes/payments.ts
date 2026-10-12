@@ -104,7 +104,9 @@ function verifySignature(
     .createHash("sha512")
     .update(`${orderId}${statusCode}${grossAmount}${serverKey}`)
     .digest("hex");
-  return expected === received;
+  const a = Buffer.from(expected);
+  const b = Buffer.from(String(received));
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
 }
 
 function isPaid(ts: string, fs?: string) {
@@ -246,17 +248,18 @@ router.post("/payments/midtrans/notification", async (req, res): Promise<void> =
       return;
     }
 
-    // Verifikasi signature
-    if (signature_key) {
-      const cfg = await getMidtransConfig();
-      if (cfg) {
-        const valid = verifySignature(order_id, status_code, gross_amount, cfg.serverKey, signature_key);
-        if (!valid) {
-          console.error(`${LOG} [WEBHOOK] invalid signature for order: ${order_id}`);
-          res.status(400).json({ error: "Invalid signature" });
-          return;
-        }
-      }
+    // Verifikasi signature — WAJIB. Tanpa ini siapa pun bisa POST "settlement" palsu
+    // dan mengaktifkan kelas tanpa membayar.
+    const cfg = await getMidtransConfig();
+    if (!cfg) {
+      console.error(`${LOG} [WEBHOOK] midtrans config missing — rejecting notification`);
+      res.status(503).json({ error: "Payment gateway not configured" });
+      return;
+    }
+    if (!signature_key || !verifySignature(order_id, status_code, gross_amount, cfg.serverKey, signature_key)) {
+      console.error(`${LOG} [WEBHOOK] missing/invalid signature for order: ${order_id}`);
+      res.status(403).json({ error: "Invalid signature" });
+      return;
     }
 
     const [enrollment] = await db
