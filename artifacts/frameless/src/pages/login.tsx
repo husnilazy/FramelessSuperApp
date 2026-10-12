@@ -83,8 +83,6 @@ export default function LoginPage() {
       <aside className="relative hidden lg:flex flex-col justify-between overflow-hidden p-12 border-r border-border bg-sidebar">
         <div aria-hidden className="absolute inset-0 pointer-events-none"
           style={{ background: "radial-gradient(70% 60% at 20% 10%, hsl(var(--primary) / .22), transparent 65%), radial-gradient(60% 50% at 90% 90%, hsl(var(--primary) / .10), transparent 70%)" }} />
-        <div aria-hidden className="absolute inset-0 pointer-events-none opacity-[0.35]"
-          style={{ backgroundImage: "linear-gradient(hsl(var(--foreground) / .05) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--foreground) / .05) 1px, transparent 1px)", backgroundSize: "56px 56px", maskImage: "radial-gradient(ellipse at 30% 20%, black 20%, transparent 70%)" }} />
 
         <div className="relative"><Logo /></div>
 

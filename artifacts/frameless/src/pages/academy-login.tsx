@@ -43,12 +43,6 @@ function AcademyMesh() {
         filter: "blur(100px)",
         animation: "acMesh3 30s ease-in-out infinite",
       }} />
-      {/* Subtle grid */}
-      <div style={{
-        position: "absolute", inset: 0,
-        backgroundImage: "linear-gradient(rgba(255,255,255,.018) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.018) 1px, transparent 1px)",
-        backgroundSize: "56px 56px",
-      }} />
       {/* Scanline sweep */}
       <div style={{
         position: "absolute", left: 0, right: 0,

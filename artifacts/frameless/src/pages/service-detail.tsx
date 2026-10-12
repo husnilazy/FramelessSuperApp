@@ -189,7 +189,6 @@ export default function ServiceDetailPage() {
       <div style={{position:"fixed",inset:0,overflow:"hidden",pointerEvents:"none",zIndex:0}}>
         <div style={{position:"absolute",width:"70%",height:"70%",top:"-20%",left:"-15%",background:`radial-gradient(ellipse at center,${OR}40 0%,transparent 65%)`,filter:"blur(80px)",animation:"b1 22s ease-in-out infinite"}}/>
         <div style={{position:"absolute",width:"55%",height:"55%",bottom:"-20%",right:"-10%",background:"radial-gradient(ellipse at center,#7c3aed30 0%,transparent 70%)",filter:"blur(90px)",animation:"b2 28s ease-in-out infinite"}}/>
-        <div style={{position:"absolute",inset:0,backgroundImage:"linear-gradient(rgba(255,255,255,.016) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.016) 1px,transparent 1px)",backgroundSize:"60px 60px"}}/>
       </div>
 
       {/* NAV */}

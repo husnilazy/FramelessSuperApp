@@ -42,15 +42,13 @@ nav[data-scrolled="1"]{height:56px!important;background:rgba(10,10,12,.84)!impor
 section[id]{scroll-margin-top:72px;}
 
 /* ── Hero: lapisan melayang ber-parallax ── */
-.hero-layer{position:absolute;pointer-events:none;will-change:transform;}
-.hero-orb{border-radius:50%;filter:blur(2px);
+.lm-layer{position:absolute;pointer-events:none;will-change:transform;}
+.lm-orb{border-radius:50%;filter:blur(2px);
   translate:calc(var(--hx,0)*var(--k,18)*1px) calc(var(--hy,0)*var(--k,18)*1px);transition:translate .6s cubic-bezier(.16,1,.3,1);}
-.hero-ring{border-radius:50%;border:1px solid rgba(255,255,255,.07);
+.lm-ring{border-radius:50%;border:1px solid rgba(255,255,255,.07);
   translate:calc(var(--hx,0)*var(--k,10)*1px) calc(var(--hy,0)*var(--k,10)*1px);transition:translate .8s cubic-bezier(.16,1,.3,1);}
-.hero-grid{inset:0;opacity:.5;background-image:radial-gradient(rgba(255,255,255,.14) 1px,transparent 1px);background-size:34px 34px;
-  -webkit-mask-image:radial-gradient(ellipse 70% 60% at 70% 40%,#000 0%,transparent 72%);mask-image:radial-gradient(ellipse 70% 60% at 70% 40%,#000 0%,transparent 72%);}
 @keyframes floaty{0%,100%{transform:translateY(0)}50%{transform:translateY(-16px)}}
-.hero-float{animation:floaty 9s ease-in-out infinite;}
+.lm-float{animation:floaty 9s ease-in-out infinite;}
 
 /* ── Kartu mulus: tanpa garis tegas, cincin gradien tipis + sorotan kursor ── */
 [data-glow="surface"]{border-color:transparent!important;
@@ -78,10 +76,10 @@ section{border-top-color:transparent!important;border-bottom-color:transparent!i
 
 @media (prefers-reduced-motion:reduce){
   [data-rv]{transition:none!important;opacity:1!important;translate:none!important;scale:1!important;filter:none!important;}
-  .hero-float{animation:none;}
+  .lm-float{animation:none;}
 }
 @media (max-width:900px){
-  .hero-orb,.hero-ring{--k:0!important;}
+  .lm-orb,.lm-ring{--k:0!important;}
   [data-rv="pre"]{translate:0 22px;}
 }
 `;
@@ -98,18 +96,17 @@ export function ScrollProgress() {
 export function HeroLayers({ c1, c2 }: { c1: string; c2: string }) {
   return (
     <div aria-hidden style={{ position: "absolute", inset: 0, zIndex: 1, pointerEvents: "none", overflow: "hidden" }}>
-      <div className="hero-layer hero-grid" data-speed="0.04" />
-      <div className="hero-layer" data-speed="0.16" style={{ top: "12%", right: "8%" }}>
-        <div className="hero-orb hero-float" style={{ ["--k" as string]: 26, width: 220, height: 220, background: `radial-gradient(circle at 30% 30%,${c1}55,${c1}10 60%,transparent 72%)` }} />
+      <div className="lm-layer" data-speed="0.16" style={{ top: "12%", right: "8%" }}>
+        <div className="lm-orb lm-float" style={{ ["--k" as string]: 26, width: 220, height: 220, background: `radial-gradient(circle at 30% 30%,${c1}55,${c1}10 60%,transparent 72%)` }} />
       </div>
-      <div className="hero-layer" data-speed="0.08" style={{ bottom: "6%", right: "26%" }}>
-        <div className="hero-orb hero-float" style={{ ["--k" as string]: -18, width: 150, height: 150, animationDelay: "-3s", background: `radial-gradient(circle at 30% 30%,${c2}50,${c2}10 62%,transparent 74%)` }} />
+      <div className="lm-layer" data-speed="0.08" style={{ bottom: "6%", right: "26%" }}>
+        <div className="lm-orb lm-float" style={{ ["--k" as string]: -18, width: 150, height: 150, animationDelay: "-3s", background: `radial-gradient(circle at 30% 30%,${c2}50,${c2}10 62%,transparent 74%)` }} />
       </div>
-      <div className="hero-layer" data-speed="-0.06" style={{ top: "18%", right: "-6%" }}>
-        <div className="hero-ring" style={{ ["--k" as string]: 12, width: 520, height: 520 }} />
+      <div className="lm-layer" data-speed="-0.06" style={{ top: "18%", right: "-6%" }}>
+        <div className="lm-ring" style={{ ["--k" as string]: 12, width: 520, height: 520 }} />
       </div>
-      <div className="hero-layer" data-speed="0.1" style={{ top: "34%", right: "16%" }}>
-        <div className="hero-ring" style={{ ["--k" as string]: -8, width: 300, height: 300, borderColor: "rgba(255,255,255,.1)" }} />
+      <div className="lm-layer" data-speed="0.1" style={{ top: "34%", right: "16%" }}>
+        <div className="lm-ring" style={{ ["--k" as string]: -8, width: 300, height: 300, borderColor: "rgba(255,255,255,.1)" }} />
       </div>
     </div>
   );
