@@ -691,10 +691,10 @@ export default function LandingPage() {
         <div style={{ position: "absolute", inset: 0, background: `radial-gradient(ellipse 60% 90% at 15% 50%,${OR}09,transparent 70%)`, pointerEvents: "none" }} />
         <div className="sg" style={{ maxWidth: 1100, margin: "0 auto", display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap", position: "relative" }}>
           {[
-            { v: stat.projects || "200+", l: "Proyek Selesai", i: "🎬" },
-            { v: stat.clients  || "80+",  l: "Klien Puas",     i: "🤝" },
-            { v: stat.years    || "8+",   l: "Tahun Pengalaman", i: "⭐" },
-            { v: stat.alumni   || "500+", l: "Alumni Academy",  i: "🎓" },
+            { v: stat.projects || "200+", l: "Proyek Selesai", i: <Film size={22} strokeWidth={1.8} /> },
+            { v: stat.clients  || "80+",  l: "Klien Puas",     i: <Heart size={22} strokeWidth={1.8} /> },
+            { v: stat.years    || "8+",   l: "Tahun Pengalaman", i: <Award size={22} strokeWidth={1.8} /> },
+            { v: stat.alumni   || "500+", l: "Alumni Academy",  i: <Users size={22} strokeWidth={1.8} /> },
           ].map((s, idx) => (
             <div key={s.l} className="stat-card" style={{
               textAlign: "center", padding: "clamp(18px,3vw,28px) clamp(20px,4vw,40px)",
@@ -704,7 +704,7 @@ export default function LandingPage() {
               animation: `statPop .45s cubic-bezier(.16,1,.3,1) ${idx * 0.07}s both`,
               flex: "1 1 clamp(130px,28vw,160px)",
             }}>
-              <div style={{ fontSize: "clamp(18px,4vw,22px)", marginBottom: 6 }}>{s.i}</div>
+              <div style={{ color: OR, display: "flex", justifyContent: "center", marginBottom: 10 }}>{s.i}</div>
               <div style={{ fontSize: "clamp(28px,5vw,46px)", fontWeight: 900, color: "#fff", letterSpacing: "-.04em", lineHeight: 1 }}>{s.v}</div>
               <div style={{ fontSize: "clamp(9px,2vw,11px)", color: "rgba(255,255,255,.32)", marginTop: 8, letterSpacing: ".14em", textTransform: "uppercase", fontWeight: 700 }}>{s.l}</div>
             </div>
@@ -1830,21 +1830,6 @@ export default function LandingPage() {
         </section>
       )}
 
-      {/* ══════ CONTACT ══════ */}
-      <section id="contact" className="pxs" style={{ padding: "110px 28px", position: "relative", overflow: "hidden" }}>
-        <div data-px="0.1" style={{ position: "absolute", inset: 0, background: `radial-gradient(ellipse 70% 60% at 50% 100%,${OR}0e,transparent 70%)`, willChange: "transform" }} />
-        <div style={{ maxWidth: 660, margin: "0 auto", textAlign: "center", position: "relative" }}>
-          <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: ".24em", color: OR, textTransform: "uppercase", marginBottom: 16 }}>HUBUNGI KAMI</p>
-          <h2 style={{ fontSize: "clamp(34px,5vw,60px)", fontWeight: 900, letterSpacing: "-.04em", color: "#fff", margin: "0 0 20px", lineHeight: 1.0 }}>Siap Mulai<br /><span style={{ color: OR }}>Proyek Kamu?</span></h2>
-          <p style={{ color: "rgba(255,255,255,.4)", fontSize: 16, lineHeight: 1.72, margin: "0 0 44px" }}>{cont.desc || "Tim Frameless Creative siap mewujudkan visi kamu menjadi visual sinematik yang tak terlupakan."}</p>
-          <div className="col" style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
-            {cont.whatsapp && <a href={wa} target="_blank" rel="noopener noreferrer" className="wa-btn" style={{ display: "flex", alignItems: "center", gap: 9, padding: "14px 26px", borderRadius: 100, background: "#25D366", color: "#fff", textDecoration: "none", fontSize: 15, fontWeight: 700 }}><MessageCircle size={16} /> WhatsApp</a>}
-            {cont.email && <a href={`mailto:${cont.email}`} className="outline-btn" style={{ display: "flex", alignItems: "center", gap: 8, padding: "14px 26px", borderRadius: 100, border: "1px solid rgba(255,255,255,.15)", color: "rgba(255,255,255,.78)", textDecoration: "none", fontSize: 15, fontWeight: 600 }}><Mail size={15} />{cont.email}</a>}
-            {!cont.whatsapp && !cont.email && <a href="https://wa.me/0859106723181?text=Halo%20Admin%20Frameless%20Creative!%20%F0%9F%91%8B%20Saya%20ingin%20menanyakan%20mengenai%20project%20video.%20Bisa%20dibantu%3F" target="_blank" rel="noopener noreferrer" className="og-btn" style={{ display: "flex", alignItems: "center", gap: 8, padding: "14px 28px", borderRadius: 100, background: OR, color: "#fff", textDecoration: "none", fontSize: 15, fontWeight: 700 }}>Hubungi Kami <ArrowRight size={15} /></a>}
-          </div>
-        </div>
-      </section>
-
       {/* ══════ CREW PROFILES (modern glow animated cards) ══════ */}
       {activeTeam.length > 0 && (
         <section id="crew" className="pxs" style={{ padding: "80px 28px 100px", position: "relative", overflow: "hidden" }}>
@@ -2014,6 +1999,21 @@ export default function LandingPage() {
           </section>
         );
       })()}
+
+      {/* ══════ CONTACT ══════ */}
+      <section id="contact" className="pxs" style={{ padding: "110px 28px", position: "relative", overflow: "hidden" }}>
+        <div data-px="0.1" style={{ position: "absolute", inset: 0, background: `radial-gradient(ellipse 70% 60% at 50% 100%,${OR}0e,transparent 70%)`, willChange: "transform" }} />
+        <div style={{ maxWidth: 660, margin: "0 auto", textAlign: "center", position: "relative" }}>
+          <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: ".24em", color: OR, textTransform: "uppercase", marginBottom: 16 }}>HUBUNGI KAMI</p>
+          <h2 style={{ fontSize: "clamp(34px,5vw,60px)", fontWeight: 900, letterSpacing: "-.04em", color: "#fff", margin: "0 0 20px", lineHeight: 1.0 }}>Siap Mulai<br /><span style={{ color: OR }}>Proyek Kamu?</span></h2>
+          <p style={{ color: "rgba(255,255,255,.4)", fontSize: 16, lineHeight: 1.72, margin: "0 0 44px" }}>{cont.desc || "Tim Frameless Creative siap mewujudkan visi kamu menjadi visual sinematik yang tak terlupakan."}</p>
+          <div className="col" style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
+            {cont.whatsapp && <a href={wa} target="_blank" rel="noopener noreferrer" className="wa-btn" style={{ display: "flex", alignItems: "center", gap: 9, padding: "14px 26px", borderRadius: 100, background: "#25D366", color: "#fff", textDecoration: "none", fontSize: 15, fontWeight: 700 }}><MessageCircle size={16} /> WhatsApp</a>}
+            {cont.email && <a href={`mailto:${cont.email}`} className="outline-btn" style={{ display: "flex", alignItems: "center", gap: 8, padding: "14px 26px", borderRadius: 100, border: "1px solid rgba(255,255,255,.15)", color: "rgba(255,255,255,.78)", textDecoration: "none", fontSize: 15, fontWeight: 600 }}><Mail size={15} />{cont.email}</a>}
+            {!cont.whatsapp && !cont.email && <a href="https://wa.me/0859106723181?text=Halo%20Admin%20Frameless%20Creative!%20%F0%9F%91%8B%20Saya%20ingin%20menanyakan%20mengenai%20project%20video.%20Bisa%20dibantu%3F" target="_blank" rel="noopener noreferrer" className="og-btn" style={{ display: "flex", alignItems: "center", gap: 8, padding: "14px 28px", borderRadius: 100, background: OR, color: "#fff", textDecoration: "none", fontSize: 15, fontWeight: 700 }}>Hubungi Kami <ArrowRight size={15} /></a>}
+          </div>
+        </div>
+      </section>
 
       {/* ══════ FOOTER ══════ */}
       <footer style={{ borderTop: "1px solid rgba(255,255,255,.07)", background: "rgba(10,10,12,.15)", backdropFilter: "blur(28px)" }}>
