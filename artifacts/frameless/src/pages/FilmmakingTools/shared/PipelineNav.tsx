@@ -33,21 +33,21 @@ export function PipelineNav({ links, currentId, onNavigate }: PipelineNavProps) 
   if (availableSteps.length < 2) return null;
 
   return (
-    <div className="flex items-center gap-1.5 px-4 py-2 border-b border-zinc-800/60 bg-zinc-900/30 overflow-x-auto">
-      <span className="text-[10px] text-zinc-600 uppercase tracking-wider mr-1 flex-shrink-0 font-semibold">Pipeline</span>
+    <div className="flex items-center gap-1.5 px-4 py-2 border-b border-border/60 bg-card/30 overflow-x-auto">
+      <span className="text-[10px] text-muted-foreground/70 uppercase tracking-wider mr-1 flex-shrink-0 font-semibold">Pipeline</span>
       {availableSteps.map((step, i) => {
         const id = links[step.key] as string;
         const isActive = id === currentId;
         return (
           <React.Fragment key={step.key}>
-            {i > 0 && <ChevronRight className="w-3.5 h-3.5 text-zinc-700 flex-shrink-0" />}
+            {i > 0 && <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/60 flex-shrink-0" />}
             <button
               onClick={() => !isActive && onNavigate(id)}
               disabled={isActive}
               className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors flex-shrink-0 ${
                 isActive
                   ? step.activeClass
-                  : "border-transparent text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/50 cursor-pointer"
+                  : "border-transparent text-muted-foreground hover:text-foreground/80 hover:bg-muted/50 cursor-pointer"
               }`}
             >
               <step.Icon className="w-3.5 h-3.5" />

@@ -33,6 +33,10 @@
   --color-destructive: hsl(var(--destructive));
   --color-destructive-foreground: hsl(var(--destructive-foreground));
   --color-destructive-border: var(--destructive-border);
+  --color-success: hsl(var(--success));
+  --color-warning: hsl(var(--warning));
+  --color-info: hsl(var(--info));
+  --color-violet: hsl(var(--violet));
   --color-chart-1: hsl(var(--chart-1));
   --color-chart-2: hsl(var(--chart-2));
   --color-chart-3: hsl(var(--chart-3));
@@ -58,67 +62,94 @@
   --radius-xl: calc(var(--radius) + 4px);
 }
 
-/* ── Dark Theme (default) ── */
+/* ══════════════════════════════════════════════════════════════════
+   DESIGN TOKENS — Frameless Admin
+   Dark = default. Light = :root.light. Warna primer diatur dari
+   Appearance (lib/theme.tsx menimpa --primary & turunannya).
+   ══════════════════════════════════════════════════════════════════ */
 :root {
+  color-scheme: dark;
+
+  /* permukaan */
+  --background: 228 24% 6%;
+  --foreground: 210 20% 96%;
+  --card: 228 22% 9%;
+  --card-foreground: 210 20% 96%;
+  --card-border: 228 16% 16%;
+  --border: 228 16% 16%;
+  --popover: 228 22% 10%;
+  --popover-foreground: 210 20% 96%;
+  --popover-border: 228 16% 18%;
+  --secondary: 228 18% 14%;
+  --secondary-foreground: 210 20% 96%;
+  --muted: 228 18% 13%;
+  --muted-foreground: 225 12% 63%;
+  --input: 228 16% 19%;
+
+  /* sidebar */
+  --sidebar: 228 24% 7%;
+  --sidebar-foreground: 210 20% 94%;
+  --sidebar-border: 228 16% 13%;
+  --sidebar-primary: 20 100% 58%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 228 18% 12%;
+  --sidebar-accent-foreground: 210 20% 97%;
+  --sidebar-ring: 20 100% 58%;
+
+  /* primer (ditimpa oleh Appearance) */
+  --primary: 20 100% 58%;
+  --primary-strong: 20 100% 58%;
+  --primary-foreground: 0 0% 100%;
+  --ring: 20 100% 58%;
+  /* accent = sorotan netral untuk hover/terpilih di dropdown, select, command; BUKAN warna merek */
+  --accent: 228 18% 16%;
+  --accent-foreground: 210 20% 96%;
+
+  /* status */
+  --destructive: 0 84% 62%;
+  --destructive-foreground: 0 0% 100%;
+  --success: 142 70% 52%;
+  --warning: 38 95% 58%;
+  --info: 213 94% 66%;
+  --violet: 262 85% 74%;
+  /* warna penuh untuk inline style: color: var(--c-green) */
+  --c-green: hsl(142 70% 52%);
+  --c-red: hsl(0 88% 68%);
+  --c-amber: hsl(38 95% 58%);
+  --c-blue: hsl(213 94% 66%);
+  --c-violet: hsl(262 85% 74%);
+
+  /* "tinta": teks & garis transparan. putih di dark, biru-tua di light. Pakai: rgb(var(--ink) / .1) */
+  --ink: 255 255 255;
+  --ink-boost: 0; /* tambahan opasitas teks agar tetap terbaca di tema terang */
+  --ink-strong: #ffffff;
+
+  --chart-1: 20 100% 58%;
+  --chart-2: 38 95% 58%;
+  --chart-3: 213 94% 66%;
+  --chart-4: 262 85% 74%;
+  --chart-5: 330 80% 66%;
+
   --button-outline: rgba(255,255,255,.10);
   --badge-outline: rgba(255,255,255,.05);
   --opaque-button-border-intensity: 9;
   --elevate-1: rgba(255,255,255,.04);
   --elevate-2: rgba(255,255,255,.09);
 
-  --background: 222 18% 7%;
-  --foreground: 0 0% 97%;
-  --border: 222 18% 15%;
-  --card: 222 18% 10%;
-  --card-foreground: 0 0% 97%;
-  --card-border: 222 18% 16%;
-
-  --sidebar: 222 18% 8%;
-  --sidebar-foreground: 0 0% 94%;
-  --sidebar-border: 222 18% 13%;
-  --sidebar-primary: 20 100% 58%;
-  --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 222 18% 12%;
-  --sidebar-accent-foreground: 0 0% 97%;
-  --sidebar-ring: 20 100% 58%;
-
-  --popover: 222 18% 10%;
-  --popover-foreground: 0 0% 97%;
-  --popover-border: 222 18% 16%;
-
-  --primary: 20 100% 58%;
-  --primary-foreground: 0 0% 100%;
-  --secondary: 222 18% 16%;
-  --secondary-foreground: 0 0% 97%;
-  --muted: 222 18% 15%;
-  --muted-foreground: 222 10% 58%;
-  --accent: 20 100% 58%;
-  --accent-foreground: 0 0% 100%;
-  --destructive: 0 84% 60%;
-  --destructive-foreground: 0 0% 97%;
-  --input: 222 18% 16%;
-  --ring: 20 100% 58%;
-
-  --chart-1: 20 100% 58%;
-  --chart-2: 35 100% 55%;
-  --chart-3: 200 90% 60%;
-  --chart-4: 280 80% 60%;
-  --chart-5: 320 80% 60%;
-
-  --app-font-sans: 'Plus Jakarta Sans', sans-serif;
+  --app-font-sans: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
   --app-font-serif: Georgia, serif;
-  --app-font-mono: Menlo, monospace;
-  --app-font-heading: 'Plus Jakarta Sans', sans-serif;
+  --app-font-mono: ui-monospace, Menlo, monospace;
+  --app-font-heading: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
 
-  --radius: 0.625rem;
-  --shadow-2xs: 0px 1px 3px rgba(0,0,0,.4);
-  --shadow-xs: 0px 2px 4px rgba(0,0,0,.4);
-  --shadow-sm: 0px 2px 8px rgba(0,0,0,.4);
-  --shadow: 0px 4px 12px rgba(0,0,0,.4);
-  --shadow-md: 0px 6px 16px rgba(0,0,0,.4);
-  --shadow-lg: 0px 10px 24px rgba(0,0,0,.45);
-  --shadow-xl: 0px 16px 40px rgba(0,0,0,.5);
-  --shadow-2xl: 0px 24px 60px rgba(0,0,0,.5);
+  --radius: 0.75rem;
+  --shadow-2xs: 0 1px 2px rgba(0,0,0,.35);
+  --shadow-xs: 0 1px 3px rgba(0,0,0,.4);
+  --shadow-sm: 0 2px 8px rgba(0,0,0,.35);
+  --shadow: 0 4px 14px rgba(0,0,0,.38);
+  --shadow-md: 0 8px 22px rgba(0,0,0,.4);
+  --shadow-lg: 0 12px 30px rgba(0,0,0,.45);
+  --shadow-xl: 0 18px 44px rgba(0,0,0,.5);
+  --shadow-2xl: 0 26px 64px rgba(0,0,0,.55);
   --tracking-normal: -0.01em;
   --spacing: 0.25rem;
 
@@ -131,46 +162,64 @@
   --destructive-border: hsl(from hsl(var(--destructive)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
 }
 
-/* ── Light Theme ── */
 :root.light {
+  color-scheme: light;
+
+  --background: 220 27% 96.5%;
+  --foreground: 226 32% 11%;
+  --card: 0 0% 100%;
+  --card-foreground: 226 32% 11%;
+  --card-border: 220 18% 89%;
+  --border: 220 18% 89%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 226 32% 11%;
+  --popover-border: 220 18% 88%;
+  --secondary: 220 22% 93%;
+  --secondary-foreground: 226 32% 11%;
+  --accent: 220 24% 94%;
+  --accent-foreground: 226 32% 11%;
+  --muted: 220 22% 94%;
+  --muted-foreground: 224 12% 40%;
+  --input: 220 18% 86%;
+
+  --sidebar: 0 0% 100%;
+  --sidebar-foreground: 226 32% 12%;
+  --sidebar-border: 220 18% 90%;
+  --sidebar-accent: 220 25% 95%;
+  --sidebar-accent-foreground: 226 32% 11%;
+
+  --destructive: 0 72% 50%;
+  --success: 142 71% 32%;
+  --warning: 32 95% 40%;
+  --info: 217 85% 48%;
+  --violet: 262 70% 52%;
+  --c-green: hsl(142 71% 32%);
+  --c-red: hsl(0 72% 48%);
+  --c-amber: hsl(32 95% 38%);
+  --c-blue: hsl(217 85% 48%);
+  --c-violet: hsl(262 70% 52%);
+
+  --ink: 15 23 42;
+  --ink-boost: 0.24;
+  --ink-strong: #0f172a;
+
   --button-outline: rgba(0,0,0,.08);
   --badge-outline: rgba(0,0,0,.04);
-  --elevate-1: rgba(0,0,0,.025);
-  --elevate-2: rgba(0,0,0,.055);
+  --elevate-1: rgba(0,0,0,.03);
+  --elevate-2: rgba(0,0,0,.06);
 
-  --background: 220 20% 97%;
-  --foreground: 222 25% 10%;
-  --border: 220 20% 88%;
-  --card: 0 0% 100%;
-  --card-foreground: 222 25% 10%;
-  --card-border: 220 20% 88%;
-
-  --sidebar: 220 20% 96%;
-  --sidebar-foreground: 222 25% 12%;
-  --sidebar-border: 220 20% 88%;
-  --sidebar-accent: 220 20% 92%;
-  --sidebar-accent-foreground: 222 25% 10%;
-
-  --popover: 0 0% 100%;
-  --popover-foreground: 222 25% 10%;
-  --popover-border: 220 20% 88%;
-
-  --secondary: 220 20% 92%;
-  --secondary-foreground: 222 25% 10%;
-  --muted: 220 20% 93%;
-  --muted-foreground: 222 15% 46%;
-  --input: 220 20% 90%;
-  --ring: 20 100% 55%;
-
-  --shadow-2xs: 0px 1px 3px rgba(0,0,0,.06);
-  --shadow-xs: 0px 2px 4px rgba(0,0,0,.08);
-  --shadow-sm: 0px 2px 8px rgba(0,0,0,.08);
-  --shadow: 0px 4px 12px rgba(0,0,0,.08);
-  --shadow-md: 0px 6px 16px rgba(0,0,0,.1);
-  --shadow-lg: 0px 10px 24px rgba(0,0,0,.1);
-  --shadow-xl: 0px 16px 40px rgba(0,0,0,.12);
-  --shadow-2xl: 0px 24px 60px rgba(0,0,0,.14);
+  --shadow-2xs: 0 1px 2px rgba(15,23,42,.05);
+  --shadow-xs: 0 1px 3px rgba(15,23,42,.07);
+  --shadow-sm: 0 2px 8px rgba(15,23,42,.07);
+  --shadow: 0 4px 14px rgba(15,23,42,.08);
+  --shadow-md: 0 8px 22px rgba(15,23,42,.09);
+  --shadow-lg: 0 12px 30px rgba(15,23,42,.1);
+  --shadow-xl: 0 18px 44px rgba(15,23,42,.12);
+  --shadow-2xl: 0 26px 64px rgba(15,23,42,.14);
 }
+
+/* teks primer di atas latar terang butuh kontras lebih tinggi */
+:root.light .text-primary { color: hsl(var(--primary-strong)); }
 
 .dark { }
 
@@ -188,12 +237,11 @@
 }
 
 .glass-panel {
-  @apply bg-card/70 backdrop-blur-2xl border border-card-border shadow-lg;
+  background-color: hsl(var(--card));
+  border: 1px solid hsl(var(--card-border));
+  box-shadow: var(--shadow-sm);
 }
-
-.light .glass-panel {
-  @apply bg-white/80 backdrop-blur-2xl border border-border shadow-lg;
-}
+.light .glass-panel { background-color: hsl(var(--card)); }
 
 /* Scrolling marquee */
 @keyframes marquee {
@@ -386,4 +434,52 @@
 @keyframes slideOutRight {
   from { opacity: 1; transform: translateX(0); }
   to   { opacity: 0; transform: translateX(100%); }
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   ADMIN — konsistensi lintas halaman
+   ══════════════════════════════════════════════════════════════════ */
+
+/* Judul halaman seragam (halaman lama memakai ukuran/gaya berbeda-beda) */
+main h1 {
+  font-size: clamp(1.5rem, 1.15rem + 1.1vw, 2rem) !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.025em !important;
+  line-height: 1.15 !important;
+}
+main h1 + p {
+  text-transform: none !important;
+  letter-spacing: normal !important;
+  font-size: 0.875rem !important;
+  font-weight: 500 !important;
+  color: hsl(var(--muted-foreground)) !important;
+}
+
+/* Warna aksen pastel (400) terlalu pucat di latar terang → ganti ke versi pekat */
+:root.light .text-green-300, :root.light .text-green-400, :root.light .text-emerald-400 { color: hsl(142 71% 30%); }
+:root.light .text-red-300, :root.light .text-red-400 { color: hsl(0 72% 46%); }
+:root.light .text-yellow-300, :root.light .text-yellow-400, :root.light .text-amber-300, :root.light .text-amber-400 { color: hsl(32 95% 36%); }
+:root.light .text-orange-300, :root.light .text-orange-400 { color: hsl(24 90% 42%); }
+:root.light .text-blue-300, :root.light .text-blue-400, :root.light .text-sky-400, :root.light .text-cyan-400 { color: hsl(217 85% 45%); }
+:root.light .text-purple-300, :root.light .text-purple-400, :root.light .text-violet-400, :root.light .text-indigo-400 { color: hsl(262 65% 48%); }
+:root.light .text-pink-400, :root.light .text-rose-400 { color: hsl(340 75% 46%); }
+
+/* Scrollbar tipis & seragam */
+* { scrollbar-width: thin; scrollbar-color: hsl(var(--foreground) / .18) transparent; }
+::selection { background: hsl(var(--primary) / .28); }
+
+/* Fokus keyboard yang jelas */
+:focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 2px; }
+input:focus-visible, textarea:focus-visible, select:focus-visible { outline: none; }
+
+/* Tabel lebar boleh digeser di layar kecil */
+@media (max-width: 767px) {
+  main table { display: block; overflow-x: auto; white-space: nowrap; max-width: 100%; }
+  /* grid inline berkolom banyak → 2 kolom (halaman lama memakai repeat(N,1fr) bergaya inline) */
+  main [style*="repeat(4"], main [style*="repeat(5"], main [style*="repeat(6"] { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+  main [style*="repeat(3"] { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+  main [style*="1fr 1fr 1fr"] { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+}
+@media (max-width: 479px) {
+  main [style*="repeat(4"], main [style*="repeat(5"], main [style*="repeat(6"], main [style*="repeat(3"], main [style*="repeat(2"] { grid-template-columns: minmax(0, 1fr) !important; }
 }

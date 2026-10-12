@@ -8,7 +8,6 @@ A powerful admin dashboard for **Frameless Creative** — a video production com
 artifacts/
   frameless/       — React + Vite frontend (port 22245, path /)
   api-server/      — Express API server (port 8080, path /api)
-  mockup-sandbox/  — Component preview server (port 8081)
 lib/
   db/              — Drizzle ORM + PostgreSQL schema + migrations
   api-spec/        — OpenAPI YAML spec (source of truth)

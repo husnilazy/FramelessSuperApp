@@ -59,7 +59,7 @@ function Toggle({ on, onClick }: { on: boolean; onClick: () => void }) {
 }
 
 export default function AppearanceSettingsPage() {
-  const { theme, toggleTheme, appearance, updateAppearance } = useTheme();
+  const { theme, preference, setPreference, appearance, updateAppearance } = useTheme();
   const { toast } = useToast();
   const [customColor, setCustomColor] = useState(appearance?.primaryColor || "#FF6A20");
 
@@ -97,32 +97,30 @@ export default function AppearanceSettingsPage() {
               <SectionHeader
                 icon={<Layout className="w-4 h-4 text-primary" />}
                 title="Mode Tampilan"
-                subtitle="Pilih antara tema gelap atau terang"
+                subtitle="Terang, gelap, atau ikuti pengaturan perangkat"
               />
-              <div className="flex gap-3">
-                {[
-                  { id: "light", label: "Light Mode", Icon: Sun,  active: !dark },
-                  { id: "dark",  label: "Dark Mode",  Icon: Moon, active: dark  },
-                ].map(({ id, label, Icon, active }) => (
-                  <button
-                    key={id}
-                    onClick={() => theme !== id && toggleTheme()}
-                    className={`flex-1 flex flex-col items-center gap-3 py-5 px-4 rounded-2xl border transition-all duration-200 ${
-                      active
-                        ? "bg-primary/10 border-primary text-primary"
-                        : "bg-card/40 border-border text-muted-foreground hover:bg-card/70 hover:border-border/80"
-                    }`}
-                    style={active ? { boxShadow: "0 0 24px hsl(var(--primary)/.18)" } : {}}
-                  >
-                    <Icon className="w-7 h-7" />
-                    <span className="text-sm font-semibold">{label}</span>
-                    {active && (
-                      <span className="text-xs px-2.5 py-0.5 rounded-full bg-primary/20 border border-primary/30 font-medium">
-                        Aktif
-                      </span>
-                    )}
-                  </button>
-                ))}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {([
+                  { id: "light", label: "Terang", hint: "Latar putih, nyaman siang hari", Icon: Sun },
+                  { id: "dark", label: "Gelap", hint: "Hemat mata di ruang redup", Icon: Moon },
+                  { id: "system", label: "Ikuti sistem", hint: "Otomatis sesuai perangkat", Icon: Layers },
+                ] as const).map(({ id, label, hint, Icon }) => {
+                  const active = preference === id;
+                  return (
+                    <button
+                      key={id}
+                      onClick={() => setPreference(id)}
+                      className={`flex flex-col items-center gap-2 py-5 px-4 rounded-2xl border transition-all duration-200 ${
+                        active ? "bg-primary/10 border-primary text-primary" : "bg-card border-border text-muted-foreground hover:border-foreground/25 hover:text-foreground"
+                      }`}
+                    >
+                      <Icon className="w-6 h-6" />
+                      <span className="text-sm font-semibold">{label}</span>
+                      <span className="text-[11px] text-center opacity-80">{hint}</span>
+                      {active && <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-primary/15 font-semibold">Aktif{id === "system" ? ` · ${theme === "dark" ? "gelap" : "terang"}` : ""}</span>}
+                    </button>
+                  );
+                })}
               </div>
             </CardContent>
           </Card>
@@ -156,7 +154,7 @@ export default function AppearanceSettingsPage() {
                         style={{ backgroundColor: color.value }}
                       >
                         {isActive
-                          ? <Check className="w-3 h-3 text-white" strokeWidth={3} />
+                          ? <Check className="w-3 h-3 text-foreground" strokeWidth={3} />
                           : <span style={{ fontSize: 12 }}>{color.emoji}</span>
                         }
                       </div>
@@ -176,7 +174,7 @@ export default function AppearanceSettingsPage() {
                     className="w-10 h-10 rounded-lg cursor-pointer border-0 p-0 bg-transparent"
                     style={{ padding: 2 }}
                   />
-                  <div className="absolute inset-0 rounded-lg ring-1 ring-white/10 pointer-events-none" />
+                  <div className="absolute inset-0 rounded-lg ring-1 ring-foreground/10 pointer-events-none" />
                 </div>
                 <div>
                   <p className="text-xs font-semibold text-foreground">Warna Kustom</p>
@@ -278,7 +276,7 @@ export default function AppearanceSettingsPage() {
             <div
               className={`rounded-2xl border overflow-hidden shadow-2xl transition-all duration-300 relative ${
                 appearance?.glassmorphism
-                  ? "bg-card/25 backdrop-blur-xl border-white/8"
+                  ? "bg-card/25 backdrop-blur-xl border-foreground/8"
                   : "bg-card border-border"
               }`}
             >
@@ -303,7 +301,7 @@ export default function AppearanceSettingsPage() {
                         className="w-8 h-8 rounded-lg flex items-center justify-center"
                         style={{ background: appearance?.primaryColor || "#FF6A20" }}
                       >
-                        <span className="text-white font-black text-sm">F</span>
+                        <span className="text-foreground font-black text-sm">F</span>
                       </div>
                     )}
                     <span className="font-bold text-sm text-foreground truncate max-w-[110px]">
@@ -343,7 +341,7 @@ export default function AppearanceSettingsPage() {
                   <div
                     key={i}
                     className={`h-14 rounded-xl p-3.5 flex items-center gap-3 mb-2.5 ${
-                      appearance?.glassmorphism ? "bg-white/5 border border-white/8" : "bg-muted/40 border border-border"
+                      appearance?.glassmorphism ? "bg-foreground/5 border border-foreground/8" : "bg-muted/40 border border-border"
                     }`}
                   >
                     <div
@@ -360,7 +358,7 @@ export default function AppearanceSettingsPage() {
                 {/* Fake CTA */}
                 <div className="mt-4 flex justify-end">
                   <button
-                    className="px-4 py-2 rounded-xl text-white text-xs font-bold"
+                    className="px-4 py-2 rounded-xl text-foreground text-xs font-bold"
                     style={{
                       background: appearance?.primaryColor || "#FF6A20",
                       boxShadow: `0 4px 16px ${appearance?.primaryColor || "#FF6A20"}40`,

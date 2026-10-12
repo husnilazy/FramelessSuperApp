@@ -219,10 +219,10 @@ export function ShotlistEditor({ documentId, onSaved, onBack, onNavigateDoc }: S
     }
   };
 
-  if (loading) return <div className="flex items-center justify-center h-full bg-zinc-950"><Loader2 className="w-8 h-8 animate-spin text-emerald-500" /></div>;
+  if (loading) return <div className="flex items-center justify-center h-full bg-background"><Loader2 className="w-8 h-8 animate-spin text-emerald-500" /></div>;
 
   return (
-    <div className="flex flex-col h-full bg-zinc-950 text-zinc-100">
+    <div className="flex flex-col h-full bg-background text-foreground">
       <EditorToolbar
         icon={<Grid3x3 className="w-4 h-4" />}
         accentColorClass="text-emerald-400"
@@ -241,27 +241,27 @@ export function ShotlistEditor({ documentId, onSaved, onBack, onNavigateDoc }: S
                 AI Generate Shots
               </Button>
             </DialogTrigger>
-            <DialogContent className="bg-zinc-900 border-zinc-700 text-zinc-100">
+            <DialogContent className="bg-card border-border text-foreground">
               <DialogHeader>
-                <DialogTitle className="flex items-center gap-2 text-zinc-100">
+                <DialogTitle className="flex items-center gap-2 text-foreground">
                   <Sparkles className="w-4 h-4 text-emerald-400" />
                   AI Generate Shots
                 </DialogTitle>
               </DialogHeader>
               <div className="space-y-3 py-2">
                 <div className="space-y-1.5">
-                  <label className="text-xs text-zinc-400 uppercase tracking-wider">Import dari Script Breakdown / Screenplay (opsional)</label>
+                  <label className="text-xs text-muted-foreground uppercase tracking-wider">Import dari Script Breakdown / Screenplay (opsional)</label>
                   <Select value={selectedSourceId} onValueChange={setSelectedSourceId}>
-                    <SelectTrigger className="bg-zinc-800 border-zinc-700 text-zinc-100">
+                    <SelectTrigger className="bg-muted border-border text-foreground">
                       <SelectValue placeholder={sourceDocsLoading ? "Memuat dokumen..." : "Pilih dokumen (opsional)"} />
                     </SelectTrigger>
-                    <SelectContent className="bg-zinc-800 border-zinc-700 max-h-60">
+                    <SelectContent className="bg-muted border-border max-h-60">
                       {sourceDocs.length === 0 && !sourceDocsLoading && (
-                        <div className="px-3 py-2 text-xs text-zinc-500">Belum ada Script Breakdown/Screenplay lain.</div>
+                        <div className="px-3 py-2 text-xs text-muted-foreground">Belum ada Script Breakdown/Screenplay lain.</div>
                       )}
                       {sourceDocs.map((d) => (
-                        <SelectItem key={d.id} value={d.id} className="text-zinc-100">
-                          <span className="text-xs text-zinc-500 uppercase mr-2">{d.docType}</span>{d.title}
+                        <SelectItem key={d.id} value={d.id} className="text-foreground">
+                          <span className="text-xs text-muted-foreground uppercase mr-2">{d.docType}</span>{d.title}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -272,12 +272,12 @@ export function ShotlistEditor({ documentId, onSaved, onBack, onNavigateDoc }: S
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs text-zinc-400 uppercase tracking-wider">Atau tulis brief manual (opsional, bisa dikombinasi)</label>
+                  <label className="text-xs text-muted-foreground uppercase tracking-wider">Atau tulis brief manual (opsional, bisa dikombinasi)</label>
                   <Textarea
                     value={aiBrief}
                     onChange={(e) => setAiBrief(e.target.value)}
                     placeholder="Contoh: 'Fokus ke produk close-up dan suasana kafe yang hangat, butuh banyak b-roll tangan sedang menyeduh kopi.'"
-                    className="bg-zinc-800 border-zinc-700 text-zinc-100 min-h-[90px]"
+                    className="bg-muted border-border text-foreground min-h-[90px]"
                   />
                 </div>
 
@@ -288,7 +288,7 @@ export function ShotlistEditor({ documentId, onSaved, onBack, onNavigateDoc }: S
                 >
                   {aiGenerating ? <><Loader2 className="w-4 h-4 animate-spin" /> Generating...</> : <><Wand2 className="w-4 h-4" /> Generate</>}
                 </Button>
-                <p className="text-xs text-zinc-500 text-center">Shot baru akan ditambahkan ke daftar, shot yang sudah ada tidak dihapus.</p>
+                <p className="text-xs text-muted-foreground text-center">Shot baru akan ditambahkan ke daftar, shot yang sudah ada tidak dihapus.</p>
               </div>
             </DialogContent>
           </Dialog>
@@ -310,8 +310,8 @@ export function ShotlistEditor({ documentId, onSaved, onBack, onNavigateDoc }: S
       <div className="flex-1 overflow-auto p-6">
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center justify-between mb-4">
-            <p className="text-sm text-zinc-500">{shots.length} shot{shots.length !== 1 ? "s" : ""}</p>
-            <Button onClick={handleAddShot} variant="outline" className="gap-2 border-zinc-700 text-zinc-300 hover:bg-zinc-800 rounded-xl">
+            <p className="text-sm text-muted-foreground">{shots.length} shot{shots.length !== 1 ? "s" : ""}</p>
+            <Button onClick={handleAddShot} variant="outline" className="gap-2 border-border text-foreground/80 hover:bg-muted rounded-xl">
               <Plus className="w-4 h-4" />
               Add Shot Manual
             </Button>
@@ -319,18 +319,18 @@ export function ShotlistEditor({ documentId, onSaved, onBack, onNavigateDoc }: S
 
           {shots.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-24 gap-4">
-              <div className="w-16 h-16 rounded-2xl bg-zinc-800 flex items-center justify-center">
-                <Camera className="w-8 h-8 text-zinc-600" />
+              <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center">
+                <Camera className="w-8 h-8 text-muted-foreground/70" />
               </div>
-              <p className="text-zinc-500">No shots yet. Add manually, or let AI generate shots.</p>
+              <p className="text-muted-foreground">No shots yet. Add manually, or let AI generate shots.</p>
               <Button onClick={() => setAiDialogOpen(true)} className="gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white">
                 <Sparkles className="w-4 h-4" /> AI Generate Shots
               </Button>
             </div>
           ) : (
-            <div className="border border-zinc-800 rounded-2xl overflow-hidden">
+            <div className="border border-border rounded-2xl overflow-hidden">
               {/* Table Header */}
-              <div className="grid bg-zinc-800/60 border-b border-zinc-700 px-4 py-2.5 text-xs font-semibold text-zinc-400 uppercase tracking-wider" style={{ gridTemplateColumns: "60px 60px 1fr 140px 80px 120px 120px 160px 50px" }}>
+              <div className="grid bg-muted/60 border-b border-border px-4 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider" style={{ gridTemplateColumns: "60px 60px 1fr 140px 80px 120px 120px 160px 50px" }}>
                 <span>Scene</span>
                 <span>Shot</span>
                 <span>Description</span>
@@ -343,41 +343,41 @@ export function ShotlistEditor({ documentId, onSaved, onBack, onNavigateDoc }: S
               </div>
 
               {/* Table Rows */}
-              <div className="divide-y divide-zinc-800">
+              <div className="divide-y divide-border">
                 {shots.map((shot, idx) => (
                   <div
                     key={shot.id}
-                    className="grid items-center px-4 py-2 hover:bg-zinc-800/30 transition-colors"
+                    className="grid items-center px-4 py-2 hover:bg-muted/30 transition-colors"
                     style={{ gridTemplateColumns: "60px 60px 1fr 140px 80px 120px 120px 160px 50px" }}
                   >
                     <Input
                       value={shot.sceneNumber}
                       onChange={(e) => updateShot(shot.id, { sceneNumber: e.target.value })}
                       placeholder="S1"
-                      className="bg-transparent border-none text-sm text-zinc-300 h-8 px-1 focus-visible:bg-zinc-800 focus-visible:ring-0 rounded-lg"
+                      className="bg-transparent border-none text-sm text-foreground/80 h-8 px-1 focus-visible:bg-muted focus-visible:ring-0 rounded-lg"
                     />
                     <div className="flex items-center gap-1">
-                      <span className="text-xs text-zinc-600 font-mono">#</span>
+                      <span className="text-xs text-muted-foreground/70 font-mono">#</span>
                       <Input
                         value={shot.shotNumber}
                         onChange={(e) => updateShot(shot.id, { shotNumber: e.target.value })}
                         placeholder={String(idx + 1)}
-                        className="bg-transparent border-none text-sm text-zinc-300 h-8 px-1 focus-visible:bg-zinc-800 focus-visible:ring-0 rounded-lg"
+                        className="bg-transparent border-none text-sm text-foreground/80 h-8 px-1 focus-visible:bg-muted focus-visible:ring-0 rounded-lg"
                       />
                     </div>
                     <Input
                       value={shot.description}
                       onChange={(e) => updateShot(shot.id, { description: e.target.value })}
                       placeholder="Wide establishing shot..."
-                      className="bg-transparent border-none text-sm text-zinc-200 h-8 px-1 focus-visible:bg-zinc-800 focus-visible:ring-0 rounded-lg"
+                      className="bg-transparent border-none text-sm text-foreground h-8 px-1 focus-visible:bg-muted focus-visible:ring-0 rounded-lg"
                     />
                     <Select value={shot.cameraAngle || "Wide"} onValueChange={(v) => updateShot(shot.id, { cameraAngle: v })}>
-                      <SelectTrigger className="h-8 bg-transparent border-zinc-700/50 text-zinc-300 text-xs rounded-lg">
+                      <SelectTrigger className="h-8 bg-transparent border-border/50 text-foreground/80 text-xs rounded-lg">
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent className="bg-zinc-800 border-zinc-700">
+                      <SelectContent className="bg-muted border-border">
                         {CAMERA_ANGLES.map((a) => (
-                          <SelectItem key={a} value={a} className="text-zinc-200 text-xs">{a}</SelectItem>
+                          <SelectItem key={a} value={a} className="text-foreground text-xs">{a}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -385,29 +385,29 @@ export function ShotlistEditor({ documentId, onSaved, onBack, onNavigateDoc }: S
                       value={shot.duration}
                       onChange={(e) => updateShot(shot.id, { duration: e.target.value })}
                       placeholder="10s"
-                      className="bg-transparent border-none text-sm text-zinc-300 h-8 px-1 focus-visible:bg-zinc-800 focus-visible:ring-0 rounded-lg"
+                      className="bg-transparent border-none text-sm text-foreground/80 h-8 px-1 focus-visible:bg-muted focus-visible:ring-0 rounded-lg"
                     />
                     <Input
                       value={shot.props}
                       onChange={(e) => updateShot(shot.id, { props: e.target.value })}
                       placeholder="Chair, lamp..."
-                      className="bg-transparent border-none text-sm text-zinc-300 h-8 px-1 focus-visible:bg-zinc-800 focus-visible:ring-0 rounded-lg"
+                      className="bg-transparent border-none text-sm text-foreground/80 h-8 px-1 focus-visible:bg-muted focus-visible:ring-0 rounded-lg"
                     />
                     <Input
                       value={shot.talents}
                       onChange={(e) => updateShot(shot.id, { talents: e.target.value })}
                       placeholder="John, Sarah..."
-                      className="bg-transparent border-none text-sm text-zinc-300 h-8 px-1 focus-visible:bg-zinc-800 focus-visible:ring-0 rounded-lg"
+                      className="bg-transparent border-none text-sm text-foreground/80 h-8 px-1 focus-visible:bg-muted focus-visible:ring-0 rounded-lg"
                     />
                     <Input
                       value={shot.notes}
                       onChange={(e) => updateShot(shot.id, { notes: e.target.value })}
                       placeholder="Director notes..."
-                      className="bg-transparent border-none text-sm text-zinc-300 h-8 px-1 focus-visible:bg-zinc-800 focus-visible:ring-0 rounded-lg"
+                      className="bg-transparent border-none text-sm text-foreground/80 h-8 px-1 focus-visible:bg-muted focus-visible:ring-0 rounded-lg"
                     />
                     <button
                       onClick={() => setShots(shots.filter((s) => s.id !== shot.id))}
-                      className="flex items-center justify-center w-8 h-8 rounded-lg hover:bg-red-500/10 text-zinc-600 hover:text-red-400 transition-colors mx-auto"
+                      className="flex items-center justify-center w-8 h-8 rounded-lg hover:bg-red-500/10 text-muted-foreground/70 hover:text-red-400 transition-colors mx-auto"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>

@@ -161,14 +161,14 @@ export function ScreenplayEditor({ documentId, onSaved, onBack, onNavigateDoc }:
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-full bg-zinc-950">
+      <div className="flex items-center justify-center h-full bg-background">
         <Loader2 className="w-8 h-8 animate-spin text-purple-500" />
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col h-full bg-zinc-950 text-zinc-100">
+    <div className="flex flex-col h-full bg-background text-foreground">
       <EditorToolbar
         icon={<BookOpen className="w-4 h-4" />}
         accentColorClass="text-purple-400"
@@ -208,14 +208,14 @@ export function ScreenplayEditor({ documentId, onSaved, onBack, onNavigateDoc }:
       <PipelineNav links={pipeline} currentId={documentId} onNavigate={navigateDoc} />
 
       {/* Editor Canvas */}
-      <div className="flex-1 overflow-auto px-4 py-8 bg-zinc-950 flex justify-center">
+      <div className="flex-1 overflow-auto px-4 py-8 bg-background flex justify-center">
         <div className="w-full max-w-4xl">
           {/* Paper */}
-          <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl shadow-2xl min-h-[900px] relative">
+          <div className="bg-card/50 border border-border rounded-2xl shadow-2xl min-h-[900px] relative">
             {/* Paper header decoration */}
-            <div className="flex items-center justify-between px-8 py-4 border-b border-zinc-800/60">
-              <span className="font-mono text-xs uppercase tracking-[0.2em] text-zinc-600">Screenplay Draft</span>
-              <span className="font-mono text-xs text-zinc-700">{new Date().toLocaleDateString("id-ID")}</span>
+            <div className="flex items-center justify-between px-8 py-4 border-b border-border/60">
+              <span className="font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground/70">Screenplay Draft</span>
+              <span className="font-mono text-xs text-muted-foreground/60">{new Date().toLocaleDateString("id-ID")}</span>
             </div>
 
             <div className="p-8">
@@ -223,19 +223,19 @@ export function ScreenplayEditor({ documentId, onSaved, onBack, onNavigateDoc }:
                 value={text}
                 onChange={(e) => setText(e.target.value)}
                 placeholder={"FADE IN:\n\nINT. STUDIO - DAY\n\nStart writing your scene here...\n\nThe camera pans slowly across..."}
-                className="w-full min-h-[800px] resize-none outline-none border-none bg-transparent font-mono text-base leading-8 text-zinc-200 placeholder:text-zinc-700 caret-orange-400"
+                className="w-full min-h-[800px] resize-none outline-none border-none bg-transparent font-mono text-base leading-8 text-foreground placeholder:text-muted-foreground/60 caret-orange-400"
                 spellCheck={false}
               />
             </div>
 
             {/* Word count footer */}
-            <div className="absolute bottom-4 right-6 text-xs text-zinc-700 font-mono">
+            <div className="absolute bottom-4 right-6 text-xs text-muted-foreground/60 font-mono">
               {text.trim().split(/\s+/).filter(Boolean).length} words
             </div>
           </div>
 
           {isResync && (
-            <p className="text-xs text-zinc-600 text-center mt-3">
+            <p className="text-xs text-muted-foreground/70 text-center mt-3">
               Dokumen ini sudah punya Breakdown & Shotlist turunan. Klik <span className="text-purple-400 font-medium">Update Breakdown & Shotlist</span> di atas kalau naskahnya baru saja diubah.
             </p>
           )}

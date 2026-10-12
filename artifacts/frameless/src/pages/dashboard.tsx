@@ -1,506 +1,323 @@
-// artifacts/frameless/src/pages/dashboard.tsx
+// Dashboard admin — ringkasan bisnis: angka utama, arus kas, tindakan yang perlu diambil, project, aktivitas.
+import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useRef, useState, useCallback } from "react";
-import { formatCurrency } from "@/lib/formatters";
-import { getToken } from "@/lib/auth";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  AreaChart, Area, XAxis, YAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer,
-} from "recharts";
-import {
-  Activity, CreditCard, Film, Users, TrendingUp,
-  AlertCircle, FolderOpen, Clock, BarChart2, BookOpen,
-  DollarSign, TrendingDown, ArrowRight, Zap,
-} from "lucide-react";
+import { Link, useLocation } from "wouter";
+import { Area, AreaChart, Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { formatDistanceToNow } from "date-fns";
+import { id as localeId } from "date-fns/locale";
+import {
+  Activity, AlertTriangle, ArrowRight, BarChart3, Clock, CreditCard, FilePlus2, FileText, Film, Inbox,
+  PiggyBank, Receipt, TrendingDown, TrendingUp, Users, UsersRound, Wallet,
+} from "lucide-react";
+import { getToken } from "@/lib/auth";
+import { useAuth } from "@/lib/auth";
+import { formatCurrency } from "@/lib/formatters";
+import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/shell/page-header";
+import { EmptyState, KpiCard, Panel, Pill, Skeleton } from "@/components/shell/ui";
 
-// ── Types ─────────────────────────────────────────────────────────────────────
-interface DashboardStats {
-  netProfit: number;
-  activeProjects: number;
-  pendingInvoiceAmount: number;
-  pendingInvoices: number;
-  overdueInvoices: number;
-  dueSoonInvoices?: number;
-  totalClients?: number;
-  totalTeam?: number;
-  totalRevenue?: number;
-  totalExpenses?: number;
-  invoiceRevenue?: number;
-  manualRevenue?: number;
-  leads?: number;
-}
-interface CashFlowItem { month: string; income: number; expenses: number; }
-interface ActivityItem { id: string; action: string; description: string; createdAt: string; }
-
-// ── Fetchers ──────────────────────────────────────────────────────────────────
-function useStats() {
-  return useQuery<DashboardStats>({
-    queryKey: ["dashboard-stats"],
-    queryFn: async () => {
-      const token = await getToken();
-      const res = await fetch("/api/dashboard/stats", {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
-      if (!res.ok) throw new Error("stats failed");
-      return res.json();
-    },
-    staleTime: 60_000, retry: 2,
-  });
-}
-function useCashFlow() {
-  return useQuery<CashFlowItem[]>({
-    queryKey: ["dashboard-cashflow"],
-    queryFn: () => fetch("/api/dashboard/cash-flow?months=6").then(r => {
-      if (!r.ok) throw new Error("cashflow failed");
-      return r.json();
-    }),
-    staleTime: 60_000, retry: 2,
-  });
-}
-function useActivity() {
-  return useQuery<ActivityItem[]>({
-    queryKey: ["dashboard-activity"],
-    queryFn: () => fetch("/api/dashboard/recent-activity?limit=10").then(r => {
-      if (!r.ok) throw new Error("activity failed");
-      return r.json();
-    }),
-    staleTime: 10_000, refetchInterval: 15000, retry: 2,
-  });
+// ── Data ─────────────────────────────────────────────────────────────────────
+async function authedJson<T>(path: string): Promise<T> {
+  const token = getToken();
+  const res = await fetch(path, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+  if (!res.ok) throw new Error(`${path} → ${res.status}`);
+  return res.json();
 }
 
-// ── Animated Number Counter ────────────────────────────────────────────────────
-function AnimatedNumber({ value, format }: { value: number; format?: "currency" | "number" }) {
-  const [display, setDisplay] = useState(0);
-  const raf = useRef<number>(0);
-  const start = useRef<number>(0);
-  const from = useRef<number>(0);
+interface Stats {
+  netProfit: number; activeProjects: number; pendingInvoiceAmount: number; pendingInvoices: number; overdueInvoices: number;
+  dueSoonInvoices?: number; totalClients?: number; totalTeam?: number; totalRevenue?: number; totalExpenses?: number; leads?: number;
+}
+interface CashFlowItem { month: string; income: number; expenses: number }
+interface ActivityItem { id: string; action: string; description: string; createdAt: string }
+interface InvoiceRow {
+  id: string; number: string; clientName?: string | null; total: number; paidAmount: number; dueDate?: string | null;
+  status: string; displayStatus?: string; paymentStage?: string; createdAt: string;
+}
+interface ProjectRow { id: string; title: string; client?: string | null; status: string; progress?: number | null; deadline?: string | null }
 
-  useEffect(() => {
-    const target = value;
-    from.current = display;
-    start.current = 0;
-    const duration = 900;
+const rp = (n: number) => formatCurrency(Math.round(n));
+const rpShort = (n: number) => {
+  const a = Math.abs(n);
+  if (a >= 1e9) return `${(n / 1e9).toFixed(1)} M`;
+  if (a >= 1e6) return `${(n / 1e6).toFixed(a >= 1e7 ? 0 : 1)} jt`;
+  if (a >= 1e3) return `${(n / 1e3).toFixed(0)} rb`;
+  return String(Math.round(n));
+};
 
-    const step = (timestamp: number) => {
-      if (!start.current) start.current = timestamp;
-      const elapsed = timestamp - start.current;
-      const progress = Math.min(elapsed / duration, 1);
-      // Ease out cubic
-      const eased = 1 - Math.pow(1 - progress, 3);
-      setDisplay(Math.round(from.current + (target - from.current) * eased));
-      if (progress < 1) raf.current = requestAnimationFrame(step);
-    };
-
-    cancelAnimationFrame(raf.current);
-    raf.current = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(raf.current);
-  }, [value]);
-
-  if (format === "currency") return <>{formatCurrency(display)}</>;
-  return <>{display.toLocaleString("id-ID")}</>;
+function greeting() {
+  const h = new Date().getHours();
+  return h < 11 ? "Selamat pagi" : h < 15 ? "Selamat siang" : h < 19 ? "Selamat sore" : "Selamat malam";
 }
 
-// ── Fade-in wrapper using IntersectionObserver ────────────────────────────────
-function FadeIn({ children, delay = 0, className = "" }: { children: React.ReactNode; delay?: number; className?: string }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [visible, setVisible] = useState(false);
+function daysBetween(dateStr?: string | null) {
+  if (!dateStr) return null;
+  return Math.floor((Date.now() - new Date(dateStr).getTime()) / 86_400_000);
+}
 
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const obs = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting) { setVisible(true); obs.disconnect(); }
-    }, { threshold: 0.08 });
-    obs.observe(el);
-    return () => obs.disconnect();
-  }, []);
-
+// ── Tooltip grafik ───────────────────────────────────────────────────────────
+function ChartTip({ active, payload, label }: any) {
+  if (!active || !payload?.length) return null;
   return (
-    <div ref={ref} className={className} style={{
-      opacity: visible ? 1 : 0,
-      transform: visible ? "translateY(0)" : "translateY(20px)",
-      transition: `opacity 0.5s ease ${delay}ms, transform 0.5s ease ${delay}ms`,
-    }}>
-      {children}
-    </div>
-  );
-}
-
-// ── Skeleton loader ───────────────────────────────────────────────────────────
-function Skeleton({ className = "" }: { className?: string }) {
-  return <div className={`rounded-lg bg-white/5 animate-pulse ${className}`} />;
-}
-
-function LoadingPulse() {
-  return (
-    <div className="space-y-6 pb-8">
-      <div>
-        <Skeleton className="h-9 w-48 mb-2" />
-        <Skeleton className="h-4 w-36" />
-      </div>
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-28" />)}
-      </div>
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        <Skeleton className="col-span-2 h-72" />
-        <Skeleton className="h-72" />
-      </div>
-    </div>
-  );
-}
-
-// ── KPI Card ──────────────────────────────────────────────────────────────────
-function KpiCard({
-  title, value, rawValue, icon: Icon, subtitle, alert, accent, href, format,
-}: {
-  title: string; value?: string; rawValue?: number; icon: any;
-  subtitle?: string; alert?: boolean; accent?: boolean; href?: string; format?: "currency" | "number";
-}) {
-  const content = (
-    <div className={`
-      relative overflow-hidden rounded-2xl border p-4 sm:p-5
-      transition-all duration-300 active:scale-[0.97] cursor-default group
-      ${alert ? "bg-destructive/5 border-destructive/25" : accent ? "bg-primary/5 border-primary/25" : "glass-panel border-white/6"}
-    `}>
-      {/* Shimmer on hover */}
-      <div className="absolute inset-0 bg-gradient-to-br from-white/4 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none rounded-2xl" />
-
-      <div className="flex items-start justify-between mb-3">
-        <p className="text-[10px] sm:text-[11px] uppercase tracking-[0.14em] text-muted-foreground font-semibold leading-tight">
-          {title}
-        </p>
-        <div className={`p-2 rounded-xl flex-shrink-0 ${alert ? "bg-destructive/15 text-destructive" : accent ? "bg-primary/15 text-primary" : "bg-white/6 text-primary"}`}>
-          <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+    <div className="rounded-xl border border-border bg-popover px-3 py-2.5 shadow-lg text-xs">
+      <p className="font-bold text-foreground mb-1.5">{label}</p>
+      {payload.map((p: any) => (
+        <div key={p.dataKey} className="flex items-center justify-between gap-6">
+          <span className="flex items-center gap-1.5 text-muted-foreground">
+            <span className="h-2 w-2 rounded-full" style={{ background: p.color }} />
+            {p.dataKey === "income" ? "Pemasukan" : "Pengeluaran"}
+          </span>
+          <span className="font-semibold text-foreground tabular-nums">{rp(p.value)}</span>
         </div>
-      </div>
-
-      <p className={`text-xl sm:text-2xl font-extrabold tracking-tight leading-none ${alert ? "text-destructive" : "text-foreground"}`}>
-        {rawValue !== undefined && format
-          ? <AnimatedNumber value={rawValue} format={format} />
-          : value}
-      </p>
-
-      {subtitle && (
-        <p className="text-[11px] text-muted-foreground mt-1.5 leading-tight">{subtitle}</p>
-      )}
-
-      {href && (
-        <div className="absolute bottom-3.5 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
-          <ArrowRight className="w-3.5 h-3.5 text-primary" />
-        </div>
-      )}
+      ))}
     </div>
   );
-
-  if (href) return <a href={href} className="block no-underline">{content}</a>;
-  return content;
 }
 
-// ── Alert Banner ──────────────────────────────────────────────────────────────
-function AlertBanner({ icon: Icon, message, color = "destructive", href }: {
-  icon: any; message: string; color?: "destructive" | "yellow"; href?: string;
-}) {
-  const cls = color === "yellow"
-    ? "bg-yellow-500/8 border-yellow-500/25 text-yellow-400"
-    : "bg-destructive/8 border-destructive/25 text-destructive";
-
-  const inner = (
-    <div className={`flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl border text-[12px] font-semibold ${cls}`}>
-      <Icon className="w-3.5 h-3.5 flex-shrink-0" />
-      <span>{message}</span>
-      {href && <ArrowRight className="w-3 h-3 ml-auto flex-shrink-0" />}
-    </div>
-  );
-
-  if (href) return <a href={href} className="block no-underline">{inner}</a>;
-  return inner;
-}
-
-// ── Main Dashboard ────────────────────────────────────────────────────────────
+// ── Halaman ──────────────────────────────────────────────────────────────────
 export default function Dashboard() {
-  const { data: stats, isLoading: statsLoading, isError: statsError } = useStats();
-  const { data: cashFlow, isLoading: cashFlowLoading } = useCashFlow();
-  const { data: activity, isLoading: activityLoading } = useActivity();
+  const [, navigate] = useLocation();
+  const { user } = useAuth();
 
-  const isLoading = statsLoading || cashFlowLoading || activityLoading;
-  if (isLoading) return <LoadingPulse />;
+  const stats = useQuery<Stats>({ queryKey: ["dash", "stats"], queryFn: () => authedJson("/api/dashboard/stats"), staleTime: 60_000 });
+  const cash = useQuery<CashFlowItem[]>({ queryKey: ["dash", "cash"], queryFn: () => authedJson("/api/dashboard/cash-flow?months=6"), staleTime: 60_000 });
+  const activity = useQuery<ActivityItem[]>({ queryKey: ["dash", "activity"], queryFn: () => authedJson("/api/dashboard/recent-activity?limit=8"), refetchInterval: 30_000 });
+  const invoices = useQuery<InvoiceRow[]>({ queryKey: ["dash", "invoices"], queryFn: () => authedJson("/api/invoices"), staleTime: 60_000 });
+  const projects = useQuery<ProjectRow[]>({ queryKey: ["dash", "projects"], queryFn: () => authedJson("/api/projects"), staleTime: 60_000 });
 
-  const s = stats || ({} as DashboardStats);
-  const cf = cashFlow || [];
-  const acts = activity || [];
+  const s = stats.data;
+  const cf = cash.data ?? [];
 
-  const now = new Date();
-  const greeting = now.getHours() < 11 ? "Selamat pagi" : now.getHours() < 15 ? "Selamat siang" : now.getHours() < 19 ? "Selamat sore" : "Selamat malam";
+  // tren pemasukan: bulan ini vs bulan lalu
+  const trend = useMemo(() => {
+    if (cf.length < 2) return null;
+    const cur = cf[cf.length - 1].income, prev = cf[cf.length - 2].income;
+    if (!prev) return null; // bulan lalu 0 → persentase tidak bermakna
+    return ((cur - prev) / prev) * 100;
+  }, [cf]);
+
+  // invoice yang perlu tindakan: terlambat dulu, lalu yang jatuh tempo ≤ 7 hari
+  const actions = useMemo(() => {
+    const list = (invoices.data ?? [])
+      .filter((i) => (i.displayStatus ?? i.status) !== "PAID" && i.status !== "DRAFT" && i.status !== "CANCELLED" && i.total - i.paidAmount > 0.5)
+      .map((i) => ({ ...i, late: daysBetween(i.dueDate) }))
+      .filter((i) => i.late !== null && i.late > -8);
+    return list.sort((a, b) => (b.late ?? 0) - (a.late ?? 0)).slice(0, 5);
+  }, [invoices.data]);
+
+  const recentInvoices = useMemo(
+    () => [...(invoices.data ?? [])].sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt)).slice(0, 5),
+    [invoices.data],
+  );
+  const runningProjects = useMemo(
+    () => (projects.data ?? []).filter((p) => !["completed", "done", "delivered", "cancelled"].includes((p.status || "").toLowerCase())).slice(0, 5),
+    [projects.data],
+  );
+
+  const hasCash = cf.some((c) => c.income > 0 || c.expenses > 0);
+  const overdue = s?.overdueInvoices ?? 0;
+  const firstName = (user?.name || "Admin").split(/[\s(]/)[0];
 
   return (
-    <div className="space-y-5 pb-20 sm:pb-10">
+    <div>
+      <PageHeader
+        eyebrow={new Date().toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
+        title={`${greeting()}, ${firstName}`}
+        description="Ringkasan bisnis Frameless Creative hari ini."
+        actions={
+          <>
+            <Button variant="outline" onClick={() => navigate("/quotations/new")}><FileText className="h-4 w-4 mr-2" />Penawaran</Button>
+            <Button onClick={() => navigate("/invoices/new")}><FilePlus2 className="h-4 w-4 mr-2" />Invoice baru</Button>
+          </>
+        }
+      />
 
-      {/* ── Header ── */}
-      <FadeIn delay={0}>
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <p className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground font-semibold mb-0.5">{greeting} 👋</p>
-            <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-foreground">Dashboard</h1>
-            <p className="text-[11px] sm:text-xs uppercase tracking-widest text-muted-foreground font-semibold mt-1">
-              {now.toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
-            </p>
-          </div>
-          <div className="flex-shrink-0 mt-1">
-            <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
-              <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">Live</span>
+      {overdue > 0 && (
+        <Link href="/invoices" className="mb-6 flex items-center gap-3 rounded-2xl border border-destructive/30 bg-destructive/8 px-4 py-3 text-sm hover:bg-destructive/12 transition-colors">
+          <AlertTriangle className="h-5 w-5 text-destructive shrink-0" />
+          <span className="flex-1 text-foreground"><b>{overdue} invoice</b> melewati jatuh tempo — segera tindak lanjuti.</span>
+          <ArrowRight className="h-4 w-4 text-destructive" />
+        </Link>
+      )}
+
+      {/* Angka utama */}
+      <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">
+        {stats.isLoading ? (
+          [0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-[132px] rounded-2xl" />)
+        ) : (
+          <>
+            <KpiCard label="Laba bersih" tone={(s?.netProfit ?? 0) >= 0 ? "success" : "danger"} icon={PiggyBank}
+              value={rp(s?.netProfit ?? 0)} sub="Pemasukan − pengeluaran" />
+            <KpiCard label="Pemasukan" tone="primary" icon={TrendingUp} value={rp(s?.totalRevenue ?? 0)} trend={trend} sub="vs bulan lalu" onClick={() => navigate("/finance")} />
+            <KpiCard label="Pengeluaran" tone="danger" icon={TrendingDown} value={rp(s?.totalExpenses ?? 0)} sub="Total tercatat" onClick={() => navigate("/expenses")} />
+            <KpiCard label="Piutang" tone={overdue > 0 ? "warning" : "info"} icon={Wallet} value={rp(s?.pendingInvoiceAmount ?? 0)}
+              sub={`${s?.pendingInvoices ?? 0} invoice belum lunas${overdue ? ` · ${overdue} terlambat` : ""}`} onClick={() => navigate("/invoices")} />
+          </>
+        )}
+      </div>
+
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mt-4">
+        {[
+          { label: "Project aktif", value: s?.activeProjects ?? 0, icon: Film, href: "/projects" },
+          { label: "Klien", value: s?.totalClients ?? 0, icon: UsersRound, href: "/clients" },
+          { label: "Crew aktif", value: s?.totalTeam ?? 0, icon: Users, href: "/team" },
+          { label: "Prospek baru", value: s?.leads ?? 0, icon: Inbox, href: "/clients" },
+        ].map((m) => (
+          <Link key={m.label} href={m.href} className="flex items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3 hover:border-foreground/20 transition-colors">
+            <span className="h-9 w-9 rounded-xl grid place-items-center bg-muted text-muted-foreground"><m.icon className="h-4 w-4" /></span>
+            <span className="min-w-0">
+              <span className="block text-lg font-extrabold leading-none text-foreground tabular-nums">{m.value}</span>
+              <span className="block text-[11px] text-muted-foreground mt-1 truncate">{m.label}</span>
+            </span>
+          </Link>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mt-6">
+        {/* Arus kas */}
+        <Panel
+          className="xl:col-span-2"
+          title="Arus kas 6 bulan"
+          description="Pemasukan vs pengeluaran per bulan (berdasarkan tanggal uang masuk)"
+          action={
+            <div className="hidden sm:flex items-center gap-4 text-xs text-muted-foreground">
+              <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-primary" />Pemasukan</span>
+              <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full" style={{ background: "var(--c-red)" }} />Pengeluaran</span>
             </div>
-          </div>
-        </div>
-      </FadeIn>
+          }
+        >
+          {cash.isLoading ? (
+            <Skeleton className="h-64" />
+          ) : !hasCash ? (
+            <EmptyState icon={BarChart3} title="Belum ada data arus kas" hint="Catat pembayaran invoice atau pengeluaran, grafik akan muncul di sini." />
+          ) : (
+            <div className="h-64 -ml-2">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={cf} barGap={4} barCategoryGap="28%">
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
+                  <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }} />
+                  <YAxis axisLine={false} tickLine={false} width={52} tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }} tickFormatter={rpShort} />
+                  <Tooltip content={<ChartTip />} cursor={{ fill: "hsl(var(--foreground) / .04)" }} />
+                  <Bar dataKey="income" fill="hsl(var(--primary))" radius={[6, 6, 0, 0]} />
+                  <Bar dataKey="expenses" fill="hsl(var(--destructive) / .75)" radius={[6, 6, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </Panel>
 
-      {/* ── Alert banners ── */}
-      {(s.overdueInvoices > 0 || (s.dueSoonInvoices ?? 0) > 0) && (
-        <FadeIn delay={60}>
-          <div className="flex flex-col gap-2">
-            {s.overdueInvoices > 0 && (
-              <AlertBanner
-                icon={AlertCircle}
-                message={`${s.overdueInvoices} invoice melewati jatuh tempo — segera tindak lanjuti`}
-                color="destructive"
-                href="/invoices"
-              />
-            )}
-            {(s.dueSoonInvoices ?? 0) > 0 && (
-              <AlertBanner
-                icon={Clock}
-                message={`${s.dueSoonInvoices} invoice jatuh tempo dalam 7 hari ke depan`}
-                color="yellow"
-                href="/invoices"
-              />
-            )}
-          </div>
-        </FadeIn>
-      )}
+        {/* Perlu tindakan */}
+        <Panel title="Perlu tindakan" description="Invoice terlambat & segera jatuh tempo" action={<Link href="/invoices" className="text-xs font-semibold text-primary hover:underline">Semua</Link>}>
+          {invoices.isLoading ? (
+            <div className="space-y-3">{[0, 1, 2].map((i) => <Skeleton key={i} className="h-14" />)}</div>
+          ) : actions.length === 0 ? (
+            <EmptyState icon={Receipt} title="Semua beres" hint="Tidak ada invoice terlambat atau jatuh tempo dalam 7 hari." />
+          ) : (
+            <ul className="space-y-2">
+              {actions.map((i) => {
+                const late = (i.late ?? 0) > 0;
+                return (
+                  <li key={i.id}>
+                    <Link href={`/invoices/${i.id}`} className="flex items-center gap-3 rounded-xl border border-border px-3 py-2.5 hover:bg-muted/60 transition-colors">
+                      <span className={`h-9 w-9 rounded-lg grid place-items-center shrink-0 ${late ? "bg-destructive/12 text-destructive" : "bg-warning/14 text-warning"}`}>
+                        {late ? <AlertTriangle className="h-4 w-4" /> : <Clock className="h-4 w-4" />}
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-sm font-semibold text-foreground truncate">{i.number} · {i.clientName || "—"}</span>
+                        <span className={`block text-[11px] ${late ? "text-destructive" : "text-muted-foreground"}`}>
+                          {late ? `Terlambat ${i.late} hari` : i.late === 0 ? "Jatuh tempo hari ini" : `Jatuh tempo ${Math.abs(i.late ?? 0)} hari lagi`}
+                        </span>
+                      </span>
+                      <span className="text-sm font-bold text-foreground tabular-nums">{rpShort(i.total - i.paidAmount)}</span>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </Panel>
+      </div>
 
-      {/* ── KPI Cards — 2×2 on mobile, 4 columns on lg ── */}
-      <FadeIn delay={100}>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <KpiCard
-            title="Laba Bersih"
-            rawValue={s.netProfit ?? 0}
-            format="currency"
-            icon={TrendingUp}
-            subtitle={s.netProfit >= 0 ? "Untung periode ini" : "Perlu perhatian"}
-            accent={!!s.netProfit && s.netProfit > 0}
-            alert={!!s.netProfit && s.netProfit < 0}
-          />
-          <KpiCard
-            title="Proyek Aktif"
-            rawValue={s.activeProjects ?? 0}
-            format="number"
-            icon={Film}
-            subtitle="Sedang berjalan"
-            href="/projects"
-          />
-          <KpiCard
-            title="Invoice Pending"
-            rawValue={s.pendingInvoices ?? 0}
-            format="number"
-            icon={CreditCard}
-            subtitle={s.pendingInvoiceAmount ? formatCurrency(s.pendingInvoiceAmount) : undefined}
-            alert={(s.pendingInvoices ?? 0) > 0}
-            href="/invoices"
-          />
-          <KpiCard
-            title="Total Klien"
-            rawValue={s.totalClients ?? 0}
-            format="number"
-            icon={Users}
-            subtitle={s.leads ? `${s.leads} prospek aktif` : "Semua klien"}
-            href="/clients"
-          />
-        </div>
-      </FadeIn>
-
-      {/* ── Revenue / Expense pills — horizontal scroll on mobile ── */}
-      {(s.totalRevenue !== undefined || s.totalExpenses !== undefined) && (
-        <FadeIn delay={150}>
-          <div className="flex gap-2.5 overflow-x-auto pb-1 -mx-4 px-4 sm:mx-0 sm:px-0 snap-x snap-mandatory">
-            {s.totalRevenue !== undefined && (
-              <a href="/finance" className="flex-shrink-0 snap-start no-underline">
-                <div className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-2xl bg-emerald-500/8 border border-emerald-500/20 min-w-[160px]">
-                  <div className="w-7 h-7 rounded-xl bg-emerald-500/15 flex items-center justify-center flex-shrink-0">
-                    <TrendingUp className="w-3.5 h-3.5 text-emerald-400" />
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-400/80">Total Revenue</p>
-                    <p className="text-sm font-extrabold text-emerald-400 leading-tight">
-                      <AnimatedNumber value={s.totalRevenue} format="currency" />
-                    </p>
-                  </div>
-                </div>
-              </a>
-            )}
-            {s.totalExpenses !== undefined && (
-              <a href="/expenses" className="flex-shrink-0 snap-start no-underline">
-                <div className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-2xl bg-rose-500/8 border border-rose-500/20 min-w-[160px]">
-                  <div className="w-7 h-7 rounded-xl bg-rose-500/15 flex items-center justify-center flex-shrink-0">
-                    <TrendingDown className="w-3.5 h-3.5 text-rose-400" />
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-rose-400/80">Total Expenses</p>
-                    <p className="text-sm font-extrabold text-rose-400 leading-tight">
-                      <AnimatedNumber value={s.totalExpenses} format="currency" />
-                    </p>
-                  </div>
-                </div>
-              </a>
-            )}
-            {s.totalTeam !== undefined && (
-              <div className="flex-shrink-0 snap-start">
-                <div className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-2xl bg-violet-500/8 border border-violet-500/20 min-w-[140px]">
-                  <div className="w-7 h-7 rounded-xl bg-violet-500/15 flex items-center justify-center flex-shrink-0">
-                    <Users className="w-3.5 h-3.5 text-violet-400" />
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-violet-400/80">Tim Aktif</p>
-                    <p className="text-sm font-extrabold text-violet-400 leading-tight">{s.totalTeam} orang</p>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </FadeIn>
-      )}
-
-      {/* ── Chart + Activity: stacked on mobile, side-by-side on lg ── */}
-      <FadeIn delay={200}>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-
-          {/* Cash Flow Chart */}
-          <Card className="col-span-1 lg:col-span-2 glass-panel border-white/6 overflow-hidden">
-            <CardHeader className="pb-1 pt-4 px-4 sm:px-6">
-              <CardTitle className="uppercase tracking-[0.14em] text-[10px] sm:text-[11px] text-muted-foreground font-semibold flex items-center gap-2">
-                <BarChart2 className="w-3.5 h-3.5 text-primary" />
-                6-Month Cash Flow
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="px-2 sm:px-4 pb-4">
-              {cf.length === 0 ? (
-                <div className="h-[220px] sm:h-[280px] flex flex-col items-center justify-center gap-3">
-                  <BarChart2 className="w-10 h-10 text-white/10" />
-                  <p className="text-sm text-muted-foreground">Belum ada data cash flow</p>
-                </div>
-              ) : (
-                <div className="h-[220px] sm:h-[280px] w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={cf} margin={{ top: 10, right: 4, left: 0, bottom: 0 }}>
-                      <defs>
-                        <linearGradient id="colorIncome" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.35} />
-                          <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
-                        </linearGradient>
-                        <linearGradient id="colorExpenses" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="hsl(var(--destructive))" stopOpacity={0.3} />
-                          <stop offset="95%" stopColor="hsl(var(--destructive))" stopOpacity={0} />
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
-                      <XAxis dataKey="month" stroke="rgba(255,255,255,0.25)" fontSize={10} tickLine={false} axisLine={false} />
-                      <YAxis stroke="rgba(255,255,255,0.25)" fontSize={10} tickFormatter={v => `${v/1_000_000}M`} tickLine={false} axisLine={false} width={36} />
-                      <Tooltip
-                        contentStyle={{ backgroundColor: "rgba(14,18,28,0.97)", borderColor: "rgba(255,255,255,0.1)", borderRadius: "10px", fontSize: "12px" }}
-                        itemStyle={{ color: "#fff" }}
-                        formatter={(v: number) => [formatCurrency(v), ""]}
-                      />
-                      <Area type="monotone" dataKey="income" name="Income" stroke="hsl(var(--primary))" strokeWidth={2} fillOpacity={1} fill="url(#colorIncome)" />
-                      <Area type="monotone" dataKey="expenses" name="Expenses" stroke="hsl(var(--destructive))" strokeWidth={2} fillOpacity={1} fill="url(#colorExpenses)" />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </div>
-              )}
-              <div className="flex items-center gap-5 mt-3 pt-3 border-t border-white/5 px-2 sm:px-0">
-                <div className="flex items-center gap-1.5">
-                  <div className="w-2.5 h-2.5 rounded-full bg-primary" />
-                  <span className="text-[11px] text-muted-foreground">Income</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <div className="w-2.5 h-2.5 rounded-full bg-destructive" />
-                  <span className="text-[11px] text-muted-foreground">Expenses</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Live Activity Feed */}
-          <Card className="glass-panel border-white/6">
-            <CardHeader className="pb-1 pt-4 px-4 sm:px-5">
-              <CardTitle className="uppercase tracking-[0.14em] text-[10px] sm:text-[11px] text-muted-foreground font-semibold flex items-center gap-2">
-                <Activity className="w-3.5 h-3.5 text-primary" />
-                Live Feed
-                <div className="ml-auto w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="px-4 sm:px-5 pb-4">
-              <div className="space-y-4 overflow-y-auto max-h-[260px] sm:max-h-[290px] pr-1 overscroll-contain">
-                {acts.length === 0 ? (
-                  <div className="flex flex-col items-center gap-3 py-8">
-                    <Clock className="w-8 h-8 text-white/10" />
-                    <p className="text-sm text-muted-foreground text-center">Belum ada aktivitas</p>
-                  </div>
-                ) : (
-                  acts.map((item) => (
-                    <div key={item.id} className="relative pl-5 before:absolute before:left-[8px] before:top-5 before:bottom-[-16px] last:before:bottom-0 before:w-px before:bg-white/8">
-                      <div className="absolute left-0 top-1 w-4 h-4 rounded-full bg-background border border-primary/40 flex items-center justify-center z-10">
-                        <div className="w-1 h-1 rounded-full bg-primary" />
-                      </div>
-                      <p className="text-[12px] sm:text-[13px] font-semibold text-foreground leading-tight">{item.action}</p>
-                      {item.description && (
-                        <p className="text-[10px] sm:text-[11px] text-muted-foreground mt-0.5 leading-relaxed line-clamp-2">{item.description}</p>
-                      )}
-                      <p className="text-[9px] sm:text-[10px] uppercase tracking-wider text-muted-foreground/50 mt-1">
-                        {(() => { try { return formatDistanceToNow(new Date(item.createdAt), { addSuffix: true }); } catch { return "baru saja"; } })()}
-                      </p>
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mt-6">
+        {/* Project */}
+        <Panel title="Project berjalan" action={<Link href="/projects" className="text-xs font-semibold text-primary hover:underline">Semua</Link>}>
+          {projects.isLoading ? (
+            <div className="space-y-3">{[0, 1, 2].map((i) => <Skeleton key={i} className="h-14" />)}</div>
+          ) : runningProjects.length === 0 ? (
+            <EmptyState icon={Film} title="Belum ada project berjalan" />
+          ) : (
+            <ul className="space-y-4">
+              {runningProjects.map((p) => (
+                <li key={p.id}>
+                  <Link href={`/projects/${p.id}`} className="block group">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-sm font-semibold text-foreground truncate group-hover:text-primary transition-colors">{p.title}</span>
+                      <span className="text-xs font-bold text-muted-foreground tabular-nums">{p.progress ?? 0}%</span>
                     </div>
-                  ))
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </FadeIn>
+                    <p className="text-[11px] text-muted-foreground truncate">{p.client || "Tanpa klien"}</p>
+                    <div className="mt-2 h-1.5 rounded-full bg-muted overflow-hidden">
+                      <div className="h-full rounded-full bg-primary" style={{ width: `${Math.min(100, Math.max(0, p.progress ?? 0))}%` }} />
+                    </div>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Panel>
 
-      {/* ── Quick Links — 2-col grid, tap-friendly ── */}
-      <FadeIn delay={260}>
-        <div>
-          <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground font-semibold mb-2.5 px-0.5">Menu Cepat</p>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-            {[
-              { label: "Projects", href: "/projects", icon: FolderOpen, desc: "Lihat semua proyek", color: "text-blue-400" },
-              { label: "Invoices", href: "/invoices", icon: CreditCard, desc: "Kelola invoice", color: "text-primary" },
-              { label: "Finance", href: "/finance", icon: DollarSign, desc: "Laporan keuangan", color: "text-emerald-400" },
-              { label: "Expenses", href: "/expenses", icon: TrendingDown, desc: "Catat pengeluaran", color: "text-rose-400" },
-              { label: "Crew", href: "/team", icon: Users, desc: "Manajemen tim", color: "text-violet-400" },
-              { label: "Academy", href: "/courses-admin", icon: BookOpen, desc: "Kelola kursus", color: "text-yellow-400" },
-              { label: "Clients", href: "/clients", icon: Activity, desc: "Manajemen klien", color: "text-cyan-400" },
-              { label: "CMS", href: "/cms", icon: Zap, desc: "Edit konten", color: "text-orange-400" },
-            ].map((link) => (
-              <a
-                key={link.href}
-                href={link.href}
-                className="group flex items-center gap-3 px-3.5 py-3 rounded-2xl border border-white/5 bg-white/2 hover:bg-white/5 active:bg-white/8 hover:border-primary/20 transition-all duration-200 no-underline active:scale-[0.97]"
-              >
-                <div className={`w-8 h-8 rounded-xl bg-white/5 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-200 ${link.color}`}>
-                  <link.icon className="w-4 h-4" />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-[13px] font-semibold text-foreground group-hover:text-primary transition-colors leading-tight truncate">{link.label}</p>
-                  <p className="text-[10px] text-muted-foreground truncate">{link.desc}</p>
-                </div>
-              </a>
-            ))}
-          </div>
-        </div>
-      </FadeIn>
+        {/* Invoice terbaru */}
+        <Panel title="Invoice terbaru" action={<Link href="/invoices" className="text-xs font-semibold text-primary hover:underline">Semua</Link>}>
+          {invoices.isLoading ? (
+            <div className="space-y-3">{[0, 1, 2].map((i) => <Skeleton key={i} className="h-12" />)}</div>
+          ) : recentInvoices.length === 0 ? (
+            <EmptyState icon={Receipt} title="Belum ada invoice" action={<Button size="sm" onClick={() => navigate("/invoices/new")}>Buat invoice</Button>} />
+          ) : (
+            <ul className="divide-y divide-border">
+              {recentInvoices.map((i) => {
+                const st = i.displayStatus ?? i.status;
+                const tone = st === "PAID" ? "success" : st === "OVERDUE" ? "danger" : st === "SENT" ? "info" : "neutral";
+                return (
+                  <li key={i.id}>
+                    <Link href={`/invoices/${i.id}`} className="flex items-center gap-3 py-3 hover:opacity-80">
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-sm font-semibold text-foreground truncate">{i.number}</span>
+                        <span className="block text-[11px] text-muted-foreground truncate">{i.clientName || "—"}</span>
+                      </span>
+                      <span className="text-right">
+                        <span className="block text-sm font-bold text-foreground tabular-nums">{rpShort(i.total)}</span>
+                        <Pill tone={tone as any} className="mt-0.5">{i.paymentStage === "DP" && st !== "PAID" ? "DP" : st}</Pill>
+                      </span>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </Panel>
 
+        {/* Aktivitas */}
+        <Panel title="Aktivitas terbaru" action={<Activity className="h-4 w-4 text-muted-foreground" />}>
+          {activity.isLoading ? (
+            <div className="space-y-3">{[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-10" />)}</div>
+          ) : (activity.data ?? []).length === 0 ? (
+            <EmptyState icon={Activity} title="Belum ada aktivitas" />
+          ) : (
+            <ul className="space-y-3.5">
+              {(activity.data ?? []).map((a) => (
+                <li key={a.id} className="flex gap-3">
+                  <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-primary" />
+                  <span className="min-w-0">
+                    <span className="block text-[13px] text-foreground leading-snug line-clamp-2">{a.description}</span>
+                    <span className="block text-[11px] text-muted-foreground mt-0.5">
+                      {formatDistanceToNow(new Date(a.createdAt), { addSuffix: true, locale: localeId })}
+                    </span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Panel>
+      </div>
     </div>
   );
 }

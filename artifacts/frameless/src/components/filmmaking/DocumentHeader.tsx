@@ -21,7 +21,7 @@ export function DocumentHeader({
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">{title}</h1>
-          <div className="flex items-center gap-3 mt-2 text-sm text-gray-600">
+          <div className="flex items-center gap-3 mt-2 text-sm text-muted-foreground/70">
             <Badge variant="outline" className="capitalize">
               {docType}
             </Badge>

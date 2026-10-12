@@ -108,7 +108,7 @@ export function CollaboratorDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="ghost" size="icon" className="rounded-xl hover:bg-zinc-800 relative" title="Collaborators">
+        <Button variant="ghost" size="icon" className="rounded-xl hover:bg-muted relative" title="Collaborators">
           <Users className="w-4 h-4" />
           {collaborators.length > 0 && (
             <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-orange-500 text-white text-[9px] font-bold flex items-center justify-center">
@@ -117,9 +117,9 @@ export function CollaboratorDialog({
           )}
         </Button>
       </DialogTrigger>
-      <DialogContent className="bg-zinc-900 border-zinc-700 text-zinc-100">
+      <DialogContent className="bg-card border-border text-foreground">
         <DialogHeader>
-          <DialogTitle className={`flex items-center gap-2 text-zinc-100`}>
+          <DialogTitle className={`flex items-center gap-2 text-foreground`}>
             <Users className={`w-4 h-4 ${accentColorClass}`} />
             Kelola Collaborator
           </DialogTitle>
@@ -129,34 +129,34 @@ export function CollaboratorDialog({
           {/* Tambah collaborator */}
           <div className="space-y-2">
             <div className="relative">
-              <Search className="w-3.5 h-3.5 text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2" />
+              <Search className="w-3.5 h-3.5 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
               <Input
                 placeholder="Cari nama crew..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="bg-zinc-800 border-zinc-700 text-zinc-100 pl-8"
+                className="bg-muted border-border text-foreground pl-8"
               />
             </div>
 
-            <div className="max-h-40 overflow-auto rounded-xl border border-zinc-800 divide-y divide-zinc-800">
+            <div className="max-h-40 overflow-auto rounded-xl border border-border divide-y divide-border">
               {loadingMembers ? (
-                <div className="flex items-center justify-center py-4 text-zinc-500 text-sm gap-2">
+                <div className="flex items-center justify-center py-4 text-muted-foreground text-sm gap-2">
                   <Loader2 className="w-3.5 h-3.5 animate-spin" /> Memuat daftar crew...
                 </div>
               ) : filteredMembers.length === 0 ? (
-                <p className="text-sm text-zinc-500 text-center py-4">Tidak ada crew yang cocok.</p>
+                <p className="text-sm text-muted-foreground text-center py-4">Tidak ada crew yang cocok.</p>
               ) : (
                 filteredMembers.map((m) => (
                   <button
                     key={m.id}
                     onClick={() => setSelectedMemberId(m.id)}
-                    className={`w-full flex items-center justify-between px-3 py-2 text-left text-sm hover:bg-zinc-800/60 transition-colors ${
-                      selectedMemberId === m.id ? "bg-zinc-800" : ""
+                    className={`w-full flex items-center justify-between px-3 py-2 text-left text-sm hover:bg-muted/60 transition-colors ${
+                      selectedMemberId === m.id ? "bg-muted" : ""
                     }`}
                   >
                     <span>
-                      <span className="text-zinc-200 font-medium">{m.name}</span>
-                      <span className="text-zinc-500 text-xs ml-2">{m.role}</span>
+                      <span className="text-foreground font-medium">{m.name}</span>
+                      <span className="text-muted-foreground text-xs ml-2">{m.role}</span>
                     </span>
                     {selectedMemberId === m.id && <span className={`text-xs ${accentColorClass}`}>Dipilih</span>}
                   </button>
@@ -166,12 +166,12 @@ export function CollaboratorDialog({
 
             <div className="flex gap-2">
               <Select value={role} onValueChange={(v: any) => setRole(v)}>
-                <SelectTrigger className="w-32 bg-zinc-800 border-zinc-700 text-zinc-100">
+                <SelectTrigger className="w-32 bg-muted border-border text-foreground">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="bg-zinc-800 border-zinc-700">
-                  <SelectItem value="viewer" className="text-zinc-100">Viewer</SelectItem>
-                  <SelectItem value="editor" className="text-zinc-100">Editor</SelectItem>
+                <SelectContent className="bg-muted border-border">
+                  <SelectItem value="viewer" className="text-foreground">Viewer</SelectItem>
+                  <SelectItem value="editor" className="text-foreground">Editor</SelectItem>
                 </SelectContent>
               </Select>
               <Button
@@ -185,12 +185,12 @@ export function CollaboratorDialog({
           </div>
 
           {/* List collaborator existing */}
-          <div className="space-y-2 pt-2 border-t border-zinc-800">
+          <div className="space-y-2 pt-2 border-t border-border">
             {collaborators.map((c) => (
-              <div key={c.id} className="flex items-center justify-between p-3 bg-zinc-800 rounded-xl">
+              <div key={c.id} className="flex items-center justify-between p-3 bg-muted rounded-xl">
                 <div>
-                  <p className="text-sm font-medium text-zinc-200">{c.memberName || c.memberEmail || c.crewMemberId}</p>
-                  <p className="text-xs text-zinc-500 capitalize">{c.role}</p>
+                  <p className="text-sm font-medium text-foreground">{c.memberName || c.memberEmail || c.crewMemberId}</p>
+                  <p className="text-xs text-muted-foreground capitalize">{c.role}</p>
                 </div>
                 <Button
                   variant="ghost"
@@ -204,7 +204,7 @@ export function CollaboratorDialog({
               </div>
             ))}
             {collaborators.length === 0 && (
-              <p className="text-sm text-zinc-500 text-center py-3">Hanya kamu yang punya akses ke dokumen ini.</p>
+              <p className="text-sm text-muted-foreground text-center py-3">Hanya kamu yang punya akses ke dokumen ini.</p>
             )}
           </div>
         </div>

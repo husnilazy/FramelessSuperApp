@@ -182,7 +182,7 @@ export default function TeamPage() {
     <div className="space-y-8 pb-8">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <h1 className="text-4xl font-heading tracking-wider text-white">Crew</h1>
+          <h1 className="text-4xl font-heading tracking-wider text-foreground">Crew</h1>
           <p className="text-muted-foreground uppercase tracking-widest text-sm font-semibold mt-1">Team Management</p>
         </div>
         <div className="flex gap-3">
@@ -192,7 +192,7 @@ export default function TeamPage() {
                 <Plus className="w-4 h-4 mr-2" /> Add Member
               </Button>
             </DialogTrigger>
-                <DialogContent className="bg-card border-white/10 text-white max-w-2xl">
+                <DialogContent className="bg-card border-foreground/10 text-foreground max-w-2xl">
               <DialogHeader>
                 <DialogTitle className="font-heading tracking-wider text-2xl">{editingMember ? "Edit Crew Member" : "Add Crew Member"}</DialogTitle>
               </DialogHeader>
@@ -212,7 +212,7 @@ export default function TeamPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 glass-panel rounded-xl p-1 border-white/10 w-fit">
+      <div className="flex gap-1 glass-panel rounded-xl p-1 border-foreground/10 w-fit">
         {([["members", "👥 Anggota"], ["chat", `💬 Admin Chat (${membersWithLogin.length})`]] as const).map(([t, l]) => (
           <button key={t} onClick={() => setActiveTab(t as any)} className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${activeTab === t ? "bg-primary/20 text-primary" : "text-muted-foreground hover:text-white"}`}>
             {l}
@@ -222,22 +222,22 @@ export default function TeamPage() {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card className="glass-panel border-white/5">
+        <Card className="glass-panel border-foreground/5">
           <CardContent className="p-4 text-center">
             <p className="text-3xl font-heading text-primary">{members?.length || 0}</p>
             <p className="text-xs uppercase tracking-widest text-muted-foreground mt-1">Total Crew</p>
           </CardContent>
         </Card>
-        <Card className="glass-panel border-white/5">
+        <Card className="glass-panel border-foreground/5">
           <CardContent className="p-4 text-center">
             <p className="text-3xl font-heading text-green-400">{membersWithLogin.length}</p>
             <p className="text-xs uppercase tracking-widest text-muted-foreground mt-1">Portal Aktif</p>
           </CardContent>
         </Card>
         {departments.slice(0, 2).map((dept) => (
-          <Card key={dept} className="glass-panel border-white/5">
+          <Card key={dept} className="glass-panel border-foreground/5">
             <CardContent className="p-4 text-center">
-              <p className="text-3xl font-heading text-white">
+              <p className="text-3xl font-heading text-foreground">
                 {members?.filter((m) => m.department === dept).length || 0}
               </p>
               <p className="text-xs uppercase tracking-widest text-muted-foreground mt-1 truncate">{dept}</p>
@@ -255,7 +255,7 @@ export default function TeamPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {members?.map((member) => (
-              <Card key={member.id} className="glass-panel border-white/5 group hover:border-primary/30 transition-all duration-300 hover:-translate-y-0.5" style={{ boxShadow: '0 4px 20px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,106,32,0.1)' }}>
+              <Card key={member.id} className="glass-panel border-foreground/5 group hover:border-primary/30 transition-all duration-300 hover:-translate-y-0.5" style={{ boxShadow: '0 4px 20px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,106,32,0.1)' }}>
                 <CardContent className="p-6">
                   <div className="flex items-start justify-between mb-4">
                     <div className="relative">
@@ -273,7 +273,7 @@ export default function TeamPage() {
                       )}
                       {(member as any).canLogin && (
                         <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 rounded-full flex items-center justify-center border-2 border-card">
-                          <Shield className="w-2.5 h-2.5 text-white" />
+                          <Shield className="w-2.5 h-2.5 text-foreground" />
                         </div>
                       )}
                     </div>
@@ -295,7 +295,7 @@ export default function TeamPage() {
                       <Edit className="w-4 h-4" />
                     </Button>
                   </div>
-                  <h3 className="text-lg font-semibold text-white mb-1">{member.name}</h3>
+                  <h3 className="text-lg font-semibold text-foreground mb-1">{member.name}</h3>
                   <div className="flex items-center gap-2 mb-2">
                     <Briefcase className="w-3 h-3 text-muted-foreground" />
                     <p className="text-sm text-muted-foreground">{member.role}</p>
@@ -323,12 +323,12 @@ export default function TeamPage() {
                   </div>
 
                   {/* Crew Portal Actions */}
-                  <div className="flex gap-2 border-t border-white/8 pt-3">
+                  <div className="flex gap-2 border-t border-foreground/8 pt-3">
                     {(member as any).canLogin ? (
                       <>
                         <button
                           onClick={() => openChat({ id: member.id, name: member.name })}
-                          className="flex-1 flex items-center justify-center gap-1.5 text-xs py-2 rounded-lg bg-white/5 border border-white/10 text-white hover:bg-white/10 transition-colors"
+                          className="flex-1 flex items-center justify-center gap-1.5 text-xs py-2 rounded-lg bg-foreground/5 border border-foreground/10 text-foreground hover:bg-foreground/10 transition-colors"
                         >
                           <MessageCircle className="w-3 h-3" /> Chat
                         </button>
@@ -372,22 +372,22 @@ export default function TeamPage() {
 
       {/* Admin Chat Tab */}
       {activeTab === "chat" && (
-        <div className="glass-panel rounded-xl border-white/10 overflow-hidden">
+        <div className="glass-panel rounded-xl border-foreground/10 overflow-hidden">
           {membersWithLogin.length === 0 ? (
             <div className="p-12 text-center text-muted-foreground">
               <MessageCircle className="w-10 h-10 mx-auto mb-3 opacity-30" />
               <p>Belum ada crew dengan akses portal. Aktifkan portal untuk mulai chat.</p>
             </div>
           ) : (
-            <div className="divide-y divide-white/5">
+            <div className="divide-y divide-foreground/5">
               {membersWithLogin.map(m => (
-                <div key={m.id} className="flex items-center justify-between p-5 hover:bg-white/2 transition-colors">
+                <div key={m.id} className="flex items-center justify-between p-5 hover:bg-foreground/2 transition-colors">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
                       <span className="text-primary font-heading">{m.name.charAt(0)}</span>
                     </div>
                     <div>
-                      <div className="font-semibold text-white text-sm">{m.name}</div>
+                      <div className="font-semibold text-foreground text-sm">{m.name}</div>
                       <div className="text-xs text-muted-foreground">{m.role} · {m.department}</div>
                     </div>
                   </div>
@@ -407,22 +407,22 @@ export default function TeamPage() {
       {/* Enable Crew Login Modal */}
       {crewLoginModal && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-card border border-white/10 rounded-2xl p-6 w-full max-w-sm space-y-4">
+          <div className="bg-card border border-foreground/10 rounded-2xl p-6 w-full max-w-sm space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-bold text-white">Aktifkan Crew Portal</h3>
-              <button onClick={() => setCrewLoginModal(null)} className="text-muted-foreground hover:text-white"><X className="w-4 h-4" /></button>
+              <h3 className="text-lg font-bold text-foreground">Aktifkan Crew Portal</h3>
+              <button onClick={() => setCrewLoginModal(null)} className="text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></button>
             </div>
-            <div className="p-3 bg-white/3 rounded-xl border border-white/8">
-              <div className="text-sm font-semibold text-white">{crewLoginModal.name}</div>
+            <div className="p-3 bg-foreground/3 rounded-xl border border-foreground/8">
+              <div className="text-sm font-semibold text-foreground">{crewLoginModal.name}</div>
               <div className="text-xs text-muted-foreground">{crewLoginModal.email}</div>
             </div>
             <div className="space-y-1">
               <label className="text-xs uppercase tracking-wider text-muted-foreground">Password</label>
-              <Input type="password" value={pwForm.password} onChange={e => setPwForm(p => ({...p, password: e.target.value}))} className="bg-white/5 border-white/10 text-white" placeholder="Min. 6 karakter" />
+              <Input type="password" value={pwForm.password} onChange={e => setPwForm(p => ({...p, password: e.target.value}))} className="bg-foreground/5 border-foreground/10 text-foreground" placeholder="Min. 6 karakter" />
             </div>
             <div className="space-y-1">
               <label className="text-xs uppercase tracking-wider text-muted-foreground">Konfirmasi Password</label>
-              <Input type="password" value={pwForm.confirm} onChange={e => setPwForm(p => ({...p, confirm: e.target.value}))} className="bg-white/5 border-white/10 text-white" placeholder="Ulangi password" />
+              <Input type="password" value={pwForm.confirm} onChange={e => setPwForm(p => ({...p, confirm: e.target.value}))} className="bg-foreground/5 border-foreground/10 text-foreground" placeholder="Ulangi password" />
             </div>
             <div className="flex gap-3 pt-1">
               <Button onClick={() => setCrewLoginModal(null)} variant="ghost" className="flex-1 text-muted-foreground">Batal</Button>
@@ -438,18 +438,18 @@ export default function TeamPage() {
       {/* Admin Chat Modal */}
       {chatModal && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-card border border-white/10 rounded-2xl w-full max-w-lg flex flex-col" style={{ height: "560px" }}>
-            <div className="flex items-center justify-between p-4 border-b border-white/10">
+          <div className="bg-card border border-foreground/10 rounded-2xl w-full max-w-lg flex flex-col" style={{ height: "560px" }}>
+            <div className="flex items-center justify-between p-4 border-b border-foreground/10">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
                   <span className="text-primary text-sm font-heading">{chatModal.name.charAt(0)}</span>
                 </div>
                 <div>
-                  <div className="font-semibold text-white text-sm">{chatModal.name}</div>
+                  <div className="font-semibold text-foreground text-sm">{chatModal.name}</div>
                   <div className="text-xs text-muted-foreground">Crew Portal Chat</div>
                 </div>
               </div>
-              <button onClick={() => { setChatModal(null); setChatMessages([]); }} className="text-muted-foreground hover:text-white"><X className="w-4 h-4" /></button>
+              <button onClick={() => { setChatModal(null); setChatMessages([]); }} className="text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></button>
             </div>
 
             <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3">
@@ -462,7 +462,7 @@ export default function TeamPage() {
                 const isAdmin = msg.senderRole === "admin";
                 return (
                   <div key={msg.id} className={`flex ${isAdmin ? "justify-end" : "justify-start"}`}>
-                    <div className={`max-w-[70%] px-3 py-2 rounded-2xl text-sm leading-relaxed ${isAdmin ? "bg-primary text-white rounded-br-sm" : "bg-white/8 border border-white/10 text-white rounded-bl-sm"}`}>
+                    <div className={`max-w-[70%] px-3 py-2 rounded-2xl text-sm leading-relaxed ${isAdmin ? "bg-primary text-white rounded-br-sm" : "bg-foreground/8 border border-foreground/10 text-white rounded-bl-sm"}`}>
                       <div className="text-[10px] opacity-60 mb-1">{msg.senderName}</div>
                       {msg.message}
                       <div className="text-[10px] opacity-50 mt-1 text-right">{new Date(msg.createdAt).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}</div>
@@ -472,15 +472,15 @@ export default function TeamPage() {
               })}
             </div>
 
-            <div className="p-4 border-t border-white/10 flex gap-2">
+            <div className="p-4 border-t border-foreground/10 flex gap-2">
               <input
                 value={chatInput} onChange={e => setChatInput(e.target.value)}
                 onKeyDown={e => e.key === "Enter" && !e.shiftKey && sendAdminChat()}
-                className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white outline-none placeholder:text-muted-foreground"
+                className="flex-1 bg-foreground/5 border border-foreground/10 rounded-xl px-3 py-2 text-sm text-foreground outline-none placeholder:text-muted-foreground"
                 placeholder="Ketik pesan ke crew..."
               />
               <button onClick={sendAdminChat} disabled={sendingChat || !chatInput.trim()} className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center hover:bg-primary/90 transition-colors">
-                <Send className="w-4 h-4 text-white" />
+                <Send className="w-4 h-4 text-foreground" />
               </button>
             </div>
           </div>
@@ -545,21 +545,21 @@ function NewMemberForm({ onSubmit, isPending, initialData }: { onSubmit: (data: 
           <div className="space-y-1">
             <label className="text-xs uppercase tracking-wider text-muted-foreground">Full Name *</label>
             <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })}
-              required className="bg-white/5 border-white/10 text-white" placeholder="Name" />
+              required className="bg-foreground/5 border-foreground/10 text-foreground" placeholder="Name" />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
               <label className="text-xs uppercase tracking-wider text-muted-foreground">Role *</label>
               <Input value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}
-                required className="bg-white/5 border-white/10 text-white" placeholder="e.g. Videographer" />
+                required className="bg-foreground/5 border-foreground/10 text-foreground" placeholder="e.g. Videographer" />
             </div>
             <div className="space-y-1">
               <label className="text-xs uppercase tracking-wider text-muted-foreground">Department</label>
               <Select value={form.department || "Production"} onValueChange={(v) => setForm({ ...form, department: v })}>
-                <SelectTrigger className="bg-white/5 border-white/10 text-white">
+                <SelectTrigger className="bg-foreground/5 border-foreground/10 text-foreground">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="bg-card border-white/10">
+                <SelectContent className="bg-card border-foreground/10">
                   <SelectItem value="Production">Production</SelectItem>
                   <SelectItem value="Post-Production">Post-Production</SelectItem>
                   <SelectItem value="STUDIODO">STUDIODO</SelectItem>
@@ -572,20 +572,20 @@ function NewMemberForm({ onSubmit, isPending, initialData }: { onSubmit: (data: 
           <div className="space-y-1">
             <label className="text-xs uppercase tracking-wider text-muted-foreground">Email</label>
             <Input type="email" value={form.email || ""} onChange={(e) => setForm({ ...form, email: e.target.value })}
-              className="bg-white/5 border-white/10 text-white" placeholder="email@frameless.com" />
+              className="bg-foreground/5 border-foreground/10 text-foreground" placeholder="email@frameless.com" />
           </div>
           <div className="space-y-1">
             <label className="text-xs uppercase tracking-wider text-muted-foreground">Username</label>
             <Input value={form.username || ""} onChange={(e) => setForm({ ...form, username: e.target.value })}
-              className="bg-white/5 border-white/10 text-white" placeholder="username (internal)" />
+              className="bg-foreground/5 border-foreground/10 text-foreground" placeholder="username (internal)" />
           </div>
           <div className="space-y-1">
             <label className="text-xs uppercase tracking-wider text-muted-foreground">Phone / WA</label>
             <div className="grid grid-cols-2 gap-2">
               <Input type="text" value={form.phone || ""} onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                className="bg-white/5 border-white/10 text-white" placeholder="+62 8..." />
+                className="bg-foreground/5 border-foreground/10 text-foreground" placeholder="+62 8..." />
               <Input type="text" value={form.whatsapp || ""} onChange={(e) => setForm({ ...form, whatsapp: e.target.value })}
-                className="bg-white/5 border-white/10 text-white" placeholder="WA number" />
+                className="bg-foreground/5 border-foreground/10 text-foreground" placeholder="WA number" />
             </div>
           </div>
         </div>
@@ -596,7 +596,7 @@ function NewMemberForm({ onSubmit, isPending, initialData }: { onSubmit: (data: 
             <label className="text-xs uppercase tracking-wider text-muted-foreground">Avatar (upload or URL)</label>
             <div className="flex gap-2">
               <Input value={form.avatarUrl || ""} onChange={(e) => setForm({ ...form, avatarUrl: e.target.value })}
-                className="bg-white/5 border-white/10 text-white flex-1 text-xs" placeholder="https://... or upload" />
+                className="bg-foreground/5 border-foreground/10 text-foreground flex-1 text-xs" placeholder="https://... or upload" />
               <button
                 type="button"
                 disabled={avatarUploading}
@@ -608,44 +608,44 @@ function NewMemberForm({ onSubmit, isPending, initialData }: { onSubmit: (data: 
             </div>
             {form.avatarUrl && (
               <div className="mt-1 flex items-center gap-2">
-                <img src={form.avatarUrl} alt="preview" className="w-8 h-8 rounded-full object-cover border border-white/20" />
+                <img src={form.avatarUrl} alt="preview" className="w-8 h-8 rounded-full object-cover border border-foreground/20" />
                 <span className="text-[10px] text-muted-foreground truncate max-w-[120px]">{form.avatarUrl}</span>
               </div>
             )}
           </div>
 
-          <div className="pt-2 border-t border-white/10">
+          <div className="pt-2 border-t border-foreground/10">
             <div className="text-xs uppercase tracking-wider text-muted-foreground font-semibold mb-1">Social (for public crew profile)</div>
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1">
                 <label className="text-[10px] text-muted-foreground">Instagram</label>
                 <Input type="text" value={form.instagram || ""} onChange={(e) => setForm({ ...form, instagram: e.target.value })}
-                  className="bg-white/5 border-white/10 text-white text-xs h-8" placeholder="@user or url" />
+                  className="bg-foreground/5 border-foreground/10 text-foreground text-xs h-8" placeholder="@user or url" />
               </div>
               <div className="space-y-1">
                 <label className="text-[10px] text-muted-foreground">LinkedIn</label>
                 <Input type="text" value={form.linkedin || ""} onChange={(e) => setForm({ ...form, linkedin: e.target.value })}
-                  className="bg-white/5 border-white/10 text-white text-xs h-8" placeholder="url" />
+                  className="bg-foreground/5 border-foreground/10 text-foreground text-xs h-8" placeholder="url" />
               </div>
               <div className="space-y-1">
                 <label className="text-[10px] text-muted-foreground">Twitter/X</label>
                 <Input type="text" value={form.twitter || ""} onChange={(e) => setForm({ ...form, twitter: e.target.value })}
-                  className="bg-white/5 border-white/10 text-white text-xs h-8" placeholder="url" />
+                  className="bg-foreground/5 border-foreground/10 text-foreground text-xs h-8" placeholder="url" />
               </div>
               <div className="space-y-1">
                 <label className="text-[10px] text-muted-foreground">Website</label>
                 <Input type="text" value={form.website || ""} onChange={(e) => setForm({ ...form, website: e.target.value })}
-                  className="bg-white/5 border-white/10 text-white text-xs h-8" placeholder="url" />
+                  className="bg-foreground/5 border-foreground/10 text-foreground text-xs h-8" placeholder="url" />
               </div>
             </div>
           </div>
 
-          <div className="p-2 bg-white/5 border border-white/10 rounded-lg flex items-center justify-between">
+          <div className="p-2 bg-foreground/5 border border-foreground/10 rounded-lg flex items-center justify-between">
             <div>
-              <div className="text-xs font-semibold text-white">Beri Akses Portal Crew</div>
+              <div className="text-xs font-semibold text-foreground">Beri Akses Portal Crew</div>
               <div className="text-[10px] text-muted-foreground">Bisa login ke crew dashboard</div>
             </div>
-            <button type="button" onClick={() => setForm({...form, canLogin: !form.canLogin})} className={`w-9 h-4 rounded-full relative transition-colors ${form.canLogin ? "bg-green-500" : "bg-white/10"}`}>
+            <button type="button" onClick={() => setForm({...form, canLogin: !form.canLogin})} className={`w-9 h-4 rounded-full relative transition-colors ${form.canLogin ? "bg-green-500" : "bg-foreground/10"}`}>
               <span className={`absolute top-0.5 w-3.5 h-3.5 rounded-full bg-white transition-all ${form.canLogin ? "left-[18px]" : "left-0.5"}`} />
             </button>
           </div>
@@ -653,10 +653,10 @@ function NewMemberForm({ onSubmit, isPending, initialData }: { onSubmit: (data: 
       </div>
 
       {form.canLogin && (
-        <div className="space-y-1 pt-2 border-t border-white/10">
+        <div className="space-y-1 pt-2 border-t border-foreground/10">
           <label className="text-xs uppercase tracking-wider text-muted-foreground">Password Login (untuk crew portal) *</label>
           <Input type="text" value={form.password || ""} onChange={(e) => setForm({ ...form, password: e.target.value })}
-            required={form.canLogin} className="bg-white/5 border-white/10 text-white" placeholder="Minimal 6 karakter" minLength={6} />
+            required={form.canLogin} className="bg-foreground/5 border-foreground/10 text-foreground" placeholder="Minimal 6 karakter" minLength={6} />
         </div>
       )}
 

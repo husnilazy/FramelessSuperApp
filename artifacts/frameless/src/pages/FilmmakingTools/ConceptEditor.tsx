@@ -224,13 +224,13 @@ export function ConceptEditor({ documentId, onSaved, onBack, onNavigateDoc }: Co
   const isResync = !!pipeline;
 
   if (loading) return (
-    <div className="flex items-center justify-center h-full bg-zinc-950">
+    <div className="flex items-center justify-center h-full bg-background">
       <Loader2 className="w-8 h-8 animate-spin text-amber-500" />
     </div>
   );
 
   return (
-    <div className="flex flex-col h-full bg-zinc-950 text-zinc-100">
+    <div className="flex flex-col h-full bg-background text-foreground">
       <EditorToolbar
         icon={<Lightbulb className="w-4 h-4" />}
         accentColorClass="text-amber-400"
@@ -276,7 +276,7 @@ export function ConceptEditor({ documentId, onSaved, onBack, onNavigateDoc }: Co
           {generating && (
             <div className="border border-amber-500/30 bg-amber-500/10 rounded-2xl p-5 flex items-center gap-4">
               <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center flex-shrink-0 shadow-lg shadow-amber-500/20">
-                <Clapperboard className="w-6 h-6 text-white" />
+                <Clapperboard className="w-6 h-6 text-foreground" />
               </div>
               <div className="flex-1">
                 <p className="font-semibold text-amber-200">{isResync ? "AI sedang memperbarui pipeline produksi..." : "AI is generating your production documents..."}</p>
@@ -329,49 +329,49 @@ export function ConceptEditor({ documentId, onSaved, onBack, onNavigateDoc }: Co
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <button
-                  className="flex items-center gap-3 p-3 bg-zinc-800/80 hover:bg-zinc-700/80 rounded-xl border border-zinc-700 transition-colors text-left group"
+                  className="flex items-center gap-3 p-3 bg-muted/80 hover:bg-secondary/80 rounded-xl border border-border transition-colors text-left group"
                   onClick={() => navigateDoc(generateResult.screenplayId)}
                 >
                   <div className="w-9 h-9 rounded-lg bg-purple-500/20 flex items-center justify-center flex-shrink-0">
                     <BookOpen className="w-4 h-4 text-purple-400" />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-xs text-zinc-500 uppercase tracking-wider">Narrative</p>
-                    <p className="text-sm font-semibold text-zinc-200 truncate">Screenplay</p>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wider">Narrative</p>
+                    <p className="text-sm font-semibold text-foreground truncate">Screenplay</p>
                   </div>
-                  <ChevronRight className="w-4 h-4 text-zinc-600 group-hover:text-zinc-400 ml-auto transition-colors" />
+                  <ChevronRight className="w-4 h-4 text-muted-foreground/70 group-hover:text-muted-foreground ml-auto transition-colors" />
                 </button>
 
                 <button
-                  className="flex items-center gap-3 p-3 bg-zinc-800/80 hover:bg-zinc-700/80 rounded-xl border border-zinc-700 transition-colors text-left group"
+                  className="flex items-center gap-3 p-3 bg-muted/80 hover:bg-secondary/80 rounded-xl border border-border transition-colors text-left group"
                   onClick={() => navigateDoc(generateResult.scriptBreakdownId)}
                 >
                   <div className="w-9 h-9 rounded-lg bg-blue-500/20 flex items-center justify-center flex-shrink-0">
                     <FileText className="w-4 h-4 text-blue-400" />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-xs text-zinc-500 uppercase tracking-wider">Script</p>
-                    <p className="text-sm font-semibold text-zinc-200 truncate">Breakdown</p>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wider">Script</p>
+                    <p className="text-sm font-semibold text-foreground truncate">Breakdown</p>
                   </div>
-                  <ChevronRight className="w-4 h-4 text-zinc-600 group-hover:text-zinc-400 ml-auto transition-colors" />
+                  <ChevronRight className="w-4 h-4 text-muted-foreground/70 group-hover:text-muted-foreground ml-auto transition-colors" />
                 </button>
 
                 <button
-                  className="flex items-center gap-3 p-3 bg-zinc-800/80 hover:bg-zinc-700/80 rounded-xl border border-zinc-700 transition-colors text-left group"
+                  className="flex items-center gap-3 p-3 bg-muted/80 hover:bg-secondary/80 rounded-xl border border-border transition-colors text-left group"
                   onClick={() => navigateDoc(generateResult.shotlistId)}
                 >
                   <div className="w-9 h-9 rounded-lg bg-emerald-500/20 flex items-center justify-center flex-shrink-0">
                     <Grid3x3 className="w-4 h-4 text-emerald-400" />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-xs text-zinc-500 uppercase tracking-wider">Camera</p>
-                    <p className="text-sm font-semibold text-zinc-200 truncate">Shotlist</p>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wider">Camera</p>
+                    <p className="text-sm font-semibold text-foreground truncate">Shotlist</p>
                   </div>
-                  <ChevronRight className="w-4 h-4 text-zinc-600 group-hover:text-zinc-400 ml-auto transition-colors" />
+                  <ChevronRight className="w-4 h-4 text-muted-foreground/70 group-hover:text-muted-foreground ml-auto transition-colors" />
                 </button>
               </div>
               {isResync && (
-                <p className="text-xs text-zinc-600 mt-3 text-center">
+                <p className="text-xs text-muted-foreground/70 mt-3 text-center">
                   Screenplay, Breakdown, dan Shotlist yang sudah ada tadi ikut diperbarui isinya (bukan bikin dokumen baru).
                 </p>
               )}
@@ -382,15 +382,15 @@ export function ConceptEditor({ documentId, onSaved, onBack, onNavigateDoc }: Co
           {!hasContent && !generating && !generateResult && (
             <div className="border border-dashed border-amber-500/20 bg-amber-500/5 rounded-2xl p-5 text-center">
               <Sparkles className="w-8 h-8 text-amber-500/50 mx-auto mb-2" />
-              <p className="text-sm text-zinc-400 font-medium">Write your concept below</p>
-              <p className="text-xs text-zinc-600 mt-1">
+              <p className="text-sm text-muted-foreground font-medium">Write your concept below</p>
+              <p className="text-xs text-muted-foreground/70 mt-1">
                 Describe your creative vision in the notes section, then click <span className="text-amber-400 font-semibold">✨ AI Generate</span> to automatically create a Screenplay, Script Breakdown, and Shotlist.
               </p>
             </div>
           )}
 
           {/* Notes */}
-          <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-6">
+          <div className="bg-card/50 border border-border rounded-2xl p-6">
             <h2 className="text-sm font-semibold text-amber-400 uppercase tracking-wider mb-3 flex items-center gap-2">
               <Lightbulb className="w-4 h-4" />
               Concept Notes
@@ -399,30 +399,30 @@ export function ConceptEditor({ documentId, onSaved, onBack, onNavigateDoc }: Co
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder={"Describe your creative vision...\n\nExample:\nWe want to create a product launch video for a new coffee brand. The mood should be warm, intimate, and artisanal. Key themes: morning ritual, craftmanship, community. Target audience: urban professionals aged 25-40.\n\nVisual style: Warm tones, shallow depth of field, natural light.\nLocation ideas: Cozy café interior, rooftop at sunrise.\nMusic vibe: Lo-fi jazz, acoustic guitar."}
-              className="bg-transparent border-none shadow-none focus-visible:ring-0 text-zinc-200 placeholder:text-zinc-600/60 resize-none min-h-[280px] text-base leading-7 p-0"
+              className="bg-transparent border-none shadow-none focus-visible:ring-0 text-foreground placeholder:text-muted-foreground/60 resize-none min-h-[280px] text-base leading-7 p-0"
             />
           </div>
 
           {/* Ideas */}
-          <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-6">
+          <div className="bg-card/50 border border-border rounded-2xl p-6">
             <h2 className="text-sm font-semibold text-amber-400 uppercase tracking-wider mb-3">
               Quick Ideas
             </h2>
             <div className="space-y-2 mb-3">
               {ideas.map((idea, i) => (
-                <div key={i} className="flex items-center gap-3 p-3 bg-zinc-800/60 rounded-xl group">
+                <div key={i} className="flex items-center gap-3 p-3 bg-muted/60 rounded-xl group">
                   <span className="text-amber-500 flex-shrink-0 text-lg leading-none">•</span>
-                  <span className="text-zinc-200 text-sm flex-1">{idea}</span>
+                  <span className="text-foreground text-sm flex-1">{idea}</span>
                   <button
                     onClick={() => setIdeas(ideas.filter((_, j) => j !== i))}
-                    className="text-zinc-700 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"
+                    className="text-muted-foreground/60 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"
                   >
                     <X className="w-4 h-4" />
                   </button>
                 </div>
               ))}
               {ideas.length === 0 && (
-                <p className="text-zinc-600 text-sm italic">No ideas added yet. Use this for bullet points like scene ideas, references, etc.</p>
+                <p className="text-muted-foreground/70 text-sm italic">No ideas added yet. Use this for bullet points like scene ideas, references, etc.</p>
               )}
             </div>
             <div className="flex gap-2">
@@ -431,9 +431,9 @@ export function ConceptEditor({ documentId, onSaved, onBack, onNavigateDoc }: Co
                 onChange={(e) => setNewIdea(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleAddIdea()}
                 placeholder="Add an idea (press Enter)..."
-                className="bg-zinc-800 border-zinc-700 text-zinc-100 placeholder:text-zinc-600"
+                className="bg-muted border-border text-foreground placeholder:text-muted-foreground/70"
               />
-              <Button onClick={handleAddIdea} variant="outline" className="border-zinc-700 text-zinc-300 hover:bg-zinc-800 flex-shrink-0">
+              <Button onClick={handleAddIdea} variant="outline" className="border-border text-foreground/80 hover:bg-muted flex-shrink-0">
                 <Plus className="w-4 h-4" />
               </Button>
             </div>
@@ -446,8 +446,8 @@ export function ConceptEditor({ documentId, onSaved, onBack, onNavigateDoc }: Co
                 <Sparkles className="w-6 h-6 text-amber-400" />
               </div>
               <div className="flex-1 min-w-[200px]">
-                <p className="font-semibold text-zinc-200">{isResync ? "Sudah ubah konsepnya?" : "Ready to produce?"}</p>
-                <p className="text-sm text-zinc-500 mt-0.5">
+                <p className="font-semibold text-foreground">{isResync ? "Sudah ubah konsepnya?" : "Ready to produce?"}</p>
+                <p className="text-sm text-muted-foreground mt-0.5">
                   {isResync
                     ? "Update Screenplay, Breakdown, dan Shotlist yang sudah ada supaya sesuai konsep terbaru."
                     : "Let AI automatically generate a full Screenplay, Script Breakdown, and Shotlist from your concept above."}
