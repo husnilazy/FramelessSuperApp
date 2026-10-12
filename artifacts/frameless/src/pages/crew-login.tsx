@@ -42,7 +42,10 @@ export default function CrewLoginPage() {
   const branding = {
     logoUrl: brand.logoUrl || crewBranding.logoUrl,
     companyName: brand.name || crewBranding.companyName,
-    invert: brand.logoUrl ? brand.invertLogo : false,
+    // Logo CMS umumnya putih (untuk latar gelap): di tema terang jadikan siluet gelap agar terbaca.
+    filter: brand.logoUrl
+      ? (brand.invertLogo ? "brightness(0) invert(1)" : undefined)
+      : (isDark ? undefined : "brightness(0)"),
   };
 
   useEffect(() => { fetchCrewBranding().then(setCrewBranding); }, []);
@@ -75,7 +78,7 @@ export default function CrewLoginPage() {
   const primary = "#FF6A20";
 
   const logoEl = branding.logoUrl ? (
-    <img src={branding.logoUrl} alt={branding.companyName} style={{ maxHeight: 48, maxWidth: 150, objectFit: "contain", ...(branding.invert ? { filter: "brightness(0) invert(1)" } : {}) }} />
+    <img src={branding.logoUrl} alt={branding.companyName} style={{ maxHeight: 48, maxWidth: 150, objectFit: "contain", ...(branding.filter ? { filter: branding.filter } : {}) }} />
   ) : (
     <div style={{ width: 52, height: 52, borderRadius: 14, background: primary, display: "grid", placeItems: "center", fontWeight: 900, fontSize: 20, color: "#fff" }}>F</div>
   );
