@@ -12,6 +12,9 @@ import {
   FolderOpen, Tag, TrendingUp, Eye,
 } from "lucide-react";
 
+import { PageHeader } from "@/components/shell/page-header";
+import { KpiCard } from "@/components/shell/ui";
+import { Button } from "@/components/ui/button";
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface Task { id: string; title: string; status: string; priority: string; assignee?: string; dueDate?: string; }
 interface Project {
@@ -327,33 +330,18 @@ export default function ProjectsPage() {
 
   return (
     <div style={{ fontFamily: FONT, color: "#f0f0f0", paddingBottom: 60 }}>
-      {/* Header */}
-      <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginBottom: 32, flexWrap: "wrap", gap: 16 }}>
-        <div>
-          <h1 style={{ fontSize: 36, fontWeight: 900, color: "hsl(var(--foreground))", letterSpacing: "-.03em", margin: "0 0 4px" }}>Projects</h1>
-          <p style={{ fontSize: 12, color: "rgb(var(--ink) / calc(.35 + var(--ink-boost)))", textTransform: "uppercase", letterSpacing: ".14em", fontWeight: 600 }}>Manajemen Proyek Frameless Creative</p>
-        </div>
-        <button onClick={() => setModal("new")} style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 20px", borderRadius: 12, background: OR, border: "none", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: FONT }}>
-          <Plus size={15} /> New Project
-        </button>
-      </div>
+      <PageHeader
+        eyebrow="Operasional"
+        title="Project"
+        description="Manajemen proyek Frameless Creative."
+        actions={<Button onClick={() => setModal("new")}><Plus size={15} className="mr-2" /> Project Baru</Button>}
+      />
 
-      {/* Stats */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(160px,1fr))", gap: 14, marginBottom: 28 }}>
-        {[
-          { l: "Total Projects", v: stats.total, icon: <Film size={15} color={OR} />, color: OR },
-          { l: "Active", v: stats.active, icon: <TrendingUp size={15} color="var(--c-green)" />, color: "var(--c-green)" },
-          { l: "Completed", v: stats.completed, icon: <CheckCircle2 size={15} color="var(--c-blue)" />, color: "var(--c-blue)" },
-          { l: "Total Budget", v: formatCurrency(stats.totalBudget), icon: <DollarSign size={15} color="var(--c-amber)" />, color: "var(--c-amber)" },
-        ].map(s => (
-          <div key={s.l} style={{ padding: "16px 18px", borderRadius: 16, background: "rgb(var(--ink) / .03)", border: "1px solid rgb(var(--ink) / .06)" }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-              <p style={{ fontSize: 10, fontWeight: 700, color: "rgb(var(--ink) / calc(.35 + var(--ink-boost)))", textTransform: "uppercase", letterSpacing: ".12em", margin: 0 }}>{s.l}</p>
-              {s.icon}
-            </div>
-            <p style={{ fontSize: 22, fontWeight: 900, color: s.color, margin: 0, letterSpacing: "-.02em" }}>{s.v}</p>
-          </div>
-        ))}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
+        <KpiCard label="Total project" value={stats.total} icon={Film} tone="primary" />
+        <KpiCard label="Aktif" value={stats.active} icon={TrendingUp} tone="success" />
+        <KpiCard label="Selesai" value={stats.completed} icon={CheckCircle2} tone="info" />
+        <KpiCard label="Total budget" value={formatCurrency(stats.totalBudget)} icon={DollarSign} tone="warning" />
       </div>
 
       {/* Toolbar */}

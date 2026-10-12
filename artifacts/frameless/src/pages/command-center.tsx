@@ -10,6 +10,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useAuth, getToken } from "@/lib/auth";
 
+import { PageHeader } from "@/components/shell/page-header";
 export default function CommandCenterPage() {
   const [activeTab, setActiveTab] = useState("overview");
   const { toast } = useToast();
@@ -25,24 +26,14 @@ export default function CommandCenterPage() {
 
   return (
     <div className="space-y-6 pb-20">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-black tracking-tight text-foreground flex items-center gap-3">
-            <Activity className="w-8 h-8 text-primary" />
-            Command Center
-          </h1>
-          <p className="text-muted-foreground mt-1 text-sm font-medium">
-            Real-time operations, crew workload, and project pipeline monitoring.
-          </p>
-        </div>
-        
-        <div className="flex items-center gap-2">
-          <BroadcastButton />
-          <QuickAssignButton />
-        </div>
-      </div>
+      <PageHeader
+        eyebrow="Utama"
+        title="Command Center"
+        description="Pantau operasional, beban kerja crew, dan pipeline project secara real-time."
+        actions={<><BroadcastButton /><QuickAssignButton /></>}
+      />
 
-      <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide border-b border-border/40">
+      <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none border-b border-border/40">
         {tabs.map(tab => (
           <button
             key={tab.id}

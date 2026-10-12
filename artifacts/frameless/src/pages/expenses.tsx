@@ -10,9 +10,12 @@ import {
   Receipt, Calendar, RefreshCw, Edit2, Check,
   AlertCircle, Upload, FileText, Loader2,
   Image as ImageIcon, Printer, Layers, Copy, ListPlus,
+  Tag, BarChart2,
 } from "lucide-react";
 import { BarChart, Bar, Cell, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 
+import { PageTitle } from "@/components/shell/page-header";
+import { KpiCard } from "@/components/shell/ui";
 const OR = "hsl(var(--primary))";
 const FONT = "'Plus Jakarta Sans',sans-serif";
 
@@ -809,10 +812,7 @@ export default function ExpensesPage() {
     <div style={{ fontFamily: FONT, color: "#f0f0f0", paddingBottom: 60 }}>
 
       <div style={{ display: "flex", alignItems: isMobile ? "flex-start" : "flex-end", justifyContent: "space-between", marginBottom: isMobile ? 18 : 28, flexDirection: isMobile ? "column" : "row", gap: isMobile ? 12 : 16 }}>
-        <div>
-          <h1 style={{ fontSize: isMobile ? 26 : 34, fontWeight: 900, color: "hsl(var(--foreground))", letterSpacing: "-.03em", margin: "0 0 4px" }}>Pengeluaran</h1>
-          <p style={{ fontSize: 11, color: "rgb(var(--ink) / calc(.35 + var(--ink-boost)))", textTransform: "uppercase", letterSpacing: ".12em", fontWeight: 600 }}>Expense Tracker · Frameless Creative</p>
-        </div>
+        <PageTitle eyebrow="Keuangan" title="Pengeluaran" description="Catatan dan analisis pengeluaran." />
         <div style={{ display: "flex", gap: 8, width: isMobile ? "100%" : "auto" }}>
           <button onClick={loadData} style={{ width: 36, height: 36, borderRadius: 10, background: "rgb(var(--ink) / .06)", border: "1px solid rgb(var(--ink) / .1)", cursor: "pointer", color: "rgb(var(--ink) / calc(.5 + var(--ink-boost)))", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><RefreshCw size={14} /></button>
           {!isMobile && <button onClick={() => setPrintModal(true)} style={{ ...btnBase, background: "rgb(var(--ink) / .06)", color: "rgb(var(--ink) / calc(.7 + var(--ink-boost)))", border: "1px solid rgb(var(--ink) / .1)", whiteSpace: "nowrap" }}><Printer size={14} /> Cetak Laporan</button>}
@@ -821,19 +821,11 @@ export default function ExpensesPage() {
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(auto-fit,minmax(160px,1fr))", gap: isMobile ? 10 : 12, marginBottom: isMobile ? 20 : 28 }}>
-        {[
-          { l: "Total Pengeluaran", v: formatCurrency(totalAll), c: "var(--c-red)", sub: `${expenses.length} transaksi` },
-          { l: "Terbanyak", v: catData[0]?.name || "—", c: OR, sub: catData[0] ? formatCurrency(catData[0].value) : "" },
-          { l: "Rata-rata", v: formatCurrency(expenses.length > 0 ? totalAll / expenses.length : 0), c: "var(--c-amber)", sub: "per transaksi" },
-          { l: "Bulan Ini", v: formatCurrency(monthlyData[monthlyData.length - 1]?.total || 0), c: "var(--c-violet)", sub: new Date().toLocaleString("id-ID", { month: "short", year: "numeric" }) },
-        ].map(s => (
-          <div key={s.l} style={{ padding: isMobile ? "14px" : "18px 20px", borderRadius: 14, background: "rgb(var(--ink) / .03)", border: "1px solid rgb(var(--ink) / .07)" }}>
-            <p style={{ fontSize: 9, fontWeight: 700, color: "rgb(var(--ink) / calc(.3 + var(--ink-boost)))", textTransform: "uppercase", letterSpacing: ".12em", margin: "0 0 6px", lineHeight: 1.3 }}>{s.l}</p>
-            <p style={{ fontSize: 20, fontWeight: 900, color: s.c, margin: "0 0 4px", letterSpacing: "-.01em" }}>{s.v}</p>
-            {s.sub && <p style={{ fontSize: 11, color: "rgb(var(--ink) / calc(.3 + var(--ink-boost)))", margin: 0 }}>{s.sub}</p>}
-          </div>
-        ))}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
+        <KpiCard label="Total pengeluaran" value={formatCurrency(totalAll)} icon={Receipt} tone="danger" sub={`${expenses.length} transaksi`} />
+        <KpiCard label="Terbanyak" value={catData[0]?.name || "—"} icon={Tag} tone="primary" sub={catData[0] ? formatCurrency(catData[0].value) : ""} />
+        <KpiCard label="Rata-rata" value={formatCurrency(expenses.length > 0 ? totalAll / expenses.length : 0)} icon={BarChart2} tone="warning" sub="per transaksi" />
+        <KpiCard label="Bulan ini" value={formatCurrency(monthlyData[monthlyData.length - 1]?.total || 0)} icon={Calendar} tone="violet" sub={new Date().toLocaleString("id-ID", { month: "short", year: "numeric" })} />
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: isMobile ? 14 : 20, marginBottom: isMobile ? 20 : 28 }}>

@@ -13,6 +13,7 @@ import {
   Search, Eye, Trash2, CheckCircle2, Settings,
 } from "lucide-react";
 
+import { PageTitle } from "@/components/shell/page-header";
 const OR = "hsl(var(--primary))";
 const FONT = "'Plus Jakarta Sans',sans-serif";
 
@@ -603,10 +604,7 @@ ${reportHeaderHtml(brand, "Laporan Formal", "Laba Rugi & Neraca", [`Periode: ${f
 
       {/* ── Header ── */}
       <div style={{ display: "flex", alignItems: isMobile ? "flex-start" : "flex-end", justifyContent: "space-between", marginBottom: isMobile ? 18 : 28, flexDirection: isMobile ? "column" : "row", gap: 12 }}>
-        <div>
-          <h1 style={{ fontSize: isMobile ? 24 : 32, fontWeight: 900, color: "hsl(var(--foreground))", letterSpacing: "-.03em", margin: "0 0 4px" }}>Akuntansi</h1>
-          <p style={{ fontSize: 11, color: "rgb(var(--ink) / calc(.35 + var(--ink-boost)))", textTransform: "uppercase", letterSpacing: ".12em", fontWeight: 600 }}>Double-Entry Bookkeeping · Frameless Creative</p>
-        </div>
+        <PageTitle eyebrow="Keuangan" title="Akuntansi" description="Pembukuan double-entry: jurnal, buku besar, dan laporan." />
         <div style={{ display: "flex", gap: 8, width: isMobile ? "100%" : "auto", flexWrap: "wrap" }}>
           {/* Period picker */}
           <input type="date" value={periodFrom} onChange={e => setPeriodFrom(e.target.value)} style={{ ...ipt, width: isMobile ? "calc(50% - 4px)" : 150 }} />

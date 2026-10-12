@@ -12,6 +12,7 @@ import { InvoiceDocDialog } from "@/components/invoice-doc-dialog";
 import { CompanyProfileDialog } from "@/components/company-profile-dialog";
 import type { InvoiceDocKind } from "@/lib/invoice-docs";
 
+import { PageHeader } from "@/components/shell/page-header";
 const STATUS_CONFIG: Record<string, { color: string; icon: any; label: string }> = {
   DRAFT: { color: "bg-muted/20 text-muted-foreground border-muted/30", icon: Clock, label: "Draft" },
   SENT: { color: "bg-blue-500/20 text-blue-400 border-blue-500/30", icon: TrendingUp, label: "Sent" },
@@ -76,23 +77,21 @@ export default function InvoicesPage() {
 
   return (
     <div className="space-y-8 pb-8">
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <h1 className="text-4xl font-heading tracking-wider text-foreground">Invoices</h1>
-          <p className="text-muted-foreground uppercase tracking-widest text-sm font-semibold mt-1">Billing & Collections</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={() => setSettingsOpen(true)} className="border-foreground/20 text-foreground hover:bg-foreground/10" title="Kop surat & rekening">
-            <Settings2 className="w-4 h-4 sm:mr-2" /><span className="hidden sm:inline">Pengaturan Dokumen</span>
-          </Button>
-          <Button
-            onClick={() => navigate("/invoices/new")}
-            className="bg-primary hover:bg-primary/90 text-white font-heading tracking-wider"
-          >
-            <Plus className="w-4 h-4 mr-2" /> New Invoice
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        eyebrow="Keuangan"
+        title="Invoice"
+        description="Tagihan, pembayaran, dan kwitansi."
+        actions={
+          <>
+            <Button variant="outline" onClick={() => setSettingsOpen(true)} title="Kop surat & rekening">
+              <Settings2 className="w-4 h-4 sm:mr-2" /><span className="hidden sm:inline">Pengaturan Dokumen</span>
+            </Button>
+            <Button onClick={() => navigate("/invoices/new")}>
+              <Plus className="w-4 h-4 mr-2" /> Invoice Baru
+            </Button>
+          </>
+        }
+      />
 
       {recon.length > 0 && (
         <div className="rounded-xl border border-yellow-500/30 bg-yellow-500/5 p-4 space-y-3">

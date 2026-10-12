@@ -10,6 +10,9 @@ import {
   CheckCircle2, XCircle, RefreshCcw,
 } from "lucide-react";
 
+import { PageHeader } from "@/components/shell/page-header";
+import { KpiCard } from "@/components/shell/ui";
+import { SectionTabs } from "@/components/shell/section-tabs";
 const STATUS_CONFIG: Record<string, { color: string; icon: any; label: string }> = {
   DRAFT: { color: "bg-muted/20 text-muted-foreground border-muted/30", icon: Clock, label: "Draft" },
   SENT: { color: "bg-blue-500/20 text-blue-400 border-blue-500/30", icon: TrendingUp, label: "Terkirim" },
@@ -64,57 +67,24 @@ export default function QuotationsPage() {
 
   return (
     <div className="space-y-8 pb-8">
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <h1 className="text-4xl font-heading tracking-wider text-foreground">Penawaran</h1>
-          <p className="text-muted-foreground uppercase tracking-widest text-sm font-semibold mt-1">
-            Surat Penawaran Project & Jasa
-          </p>
-        </div>
-        <Button
-          onClick={() => navigate("/quotations/new")}
-          className="bg-primary hover:bg-primary/90 text-white font-heading tracking-wider"
-        >
-          <Plus className="w-4 h-4 mr-2" /> Buat Penawaran
-        </Button>
+      <PageHeader
+        eyebrow="Keuangan"
+        title="Penawaran"
+        description="Surat penawaran project dan jasa."
+        actions={<Button onClick={() => navigate("/quotations/new")}><Plus className="w-4 h-4 mr-2" /> Buat Penawaran</Button>}
+      />
+
+      <div className="grid grid-cols-1 min-[480px]:grid-cols-3 gap-3 sm:gap-4">
+        <KpiCard label="Total nilai penawaran" value={formatCurrency(totalValue)} icon={FileText} tone="primary" />
+        <KpiCard label="Deal / dikonversi" value={formatCurrency(acceptedValue)} icon={CheckCircle2} tone="success" />
+        <KpiCard label="Menunggu respon" value={pendingCount} icon={Clock} tone="info" />
       </div>
 
-      <div className="grid grid-cols-3 gap-4">
-        <Card className="glass-panel border-primary/20">
-          <CardContent className="p-4 text-center">
-            <p className="text-xs uppercase tracking-widest text-primary mb-1">Total Nilai Penawaran</p>
-            <p className="text-xl font-heading text-primary">{formatCurrency(totalValue)}</p>
-          </CardContent>
-        </Card>
-        <Card className="glass-panel border-green-500/20">
-          <CardContent className="p-4 text-center">
-            <p className="text-xs uppercase tracking-widest text-green-400 mb-1">Deal / Dikonversi</p>
-            <p className="text-xl font-heading text-green-400">{formatCurrency(acceptedValue)}</p>
-          </CardContent>
-        </Card>
-        <Card className="glass-panel border-blue-500/20">
-          <CardContent className="p-4 text-center">
-            <p className="text-xs uppercase tracking-widest text-blue-400 mb-1">Menunggu Respon</p>
-            <p className="text-xl font-heading text-blue-400">{pendingCount}</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="flex gap-2 flex-wrap">
-        {["ALL", "DRAFT", "SENT", "ACCEPTED", "REJECTED", "CONVERTED"].map((s) => (
-          <button
-            key={s}
-            onClick={() => setStatusFilter(s)}
-            className={`px-4 py-1.5 rounded-md text-xs uppercase tracking-widest font-semibold border transition-all duration-200 ${
-              statusFilter === s
-                ? "bg-primary/20 text-primary border-primary/40"
-                : "bg-foreground/5 text-muted-foreground border-foreground/10 hover:bg-foreground/10"
-            }`}
-          >
-            {s === "ALL" ? "Semua" : STATUS_CONFIG[s]?.label || s}
-          </button>
-        ))}
-      </div>
+      <SectionTabs
+        value={statusFilter}
+        onChange={setStatusFilter}
+        tabs={["ALL", "DRAFT", "SENT", "ACCEPTED", "REJECTED", "CONVERTED"].map((k) => ({ value: k, label: k === "ALL" ? "Semua" : STATUS_CONFIG[k]?.label || k }))}
+      />
 
       {loading ? (
         <div className="flex items-center justify-center py-20">

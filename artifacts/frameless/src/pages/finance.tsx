@@ -16,6 +16,7 @@ import {
   ArrowUpRight, ArrowDownRight, Calendar, Tag, Layers,
 } from "lucide-react";
 
+import { PageTitle } from "@/components/shell/page-header";
 const OR = "hsl(var(--primary))";
 const FONT = "'Plus Jakarta Sans',sans-serif";
 const MONTHS_ID = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
@@ -891,10 +892,7 @@ ${equipment.length > 0 ? `<div class="section">
 
       {/* ── Header ── */}
       <div style={{ display: "flex", alignItems: isMobile ? "flex-start" : "flex-end", justifyContent: "space-between", marginBottom: isMobile ? 20 : 28, flexDirection: isMobile ? "column" : "row", gap: isMobile ? 12 : 16 }}>
-        <div>
-          <h1 style={{ fontSize: isMobile ? 26 : 34, fontWeight: 900, color: "hsl(var(--foreground))", letterSpacing: "-.03em", margin: "0 0 4px" }}>Keuangan</h1>
-          <p style={{ fontSize: 11, color: "rgb(var(--ink) / calc(.35 + var(--ink-boost)))", textTransform: "uppercase", letterSpacing: ".12em", fontWeight: 600 }}>Finance & Accounting · Frameless Creative</p>
-        </div>
+        <PageTitle eyebrow="Keuangan" title="Keuangan" description="Ringkasan pemasukan, pengeluaran, laba, dan aset." />
         <div style={{ display: "flex", gap: 8, alignItems: "center", width: isMobile ? "100%" : "auto" }}>
           <select value={period} onChange={e => setPeriod(e.target.value)} style={{ ...ipt, cursor: "pointer", flex: isMobile ? 1 : "none", width: isMobile ? "auto" : "auto" }}>
             {years.map(y => <option key={y} value={y} style={{ background: "hsl(var(--card))" }}>{y}</option>)}

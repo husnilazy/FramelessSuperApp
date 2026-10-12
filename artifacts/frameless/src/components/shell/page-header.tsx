@@ -26,3 +26,14 @@ export function PageHeader({
     </div>
   );
 }
+
+/** Hanya blok judul (tanpa kolom aksi) untuk halaman yang header-nya punya tombol sendiri. */
+export function PageTitle({ title, description, eyebrow }: { title: ReactNode; description?: ReactNode; eyebrow?: ReactNode }) {
+  return (
+    <div className="min-w-0">
+      {eyebrow && <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-primary mb-1.5">{eyebrow}</p>}
+      <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground leading-tight">{title}</h1>
+      {description && <p className="text-sm text-muted-foreground mt-1.5 max-w-2xl">{description}</p>}
+    </div>
+  );
+}

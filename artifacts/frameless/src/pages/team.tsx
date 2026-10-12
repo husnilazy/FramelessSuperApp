@@ -10,6 +10,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Users, Mail, Briefcase, Trash2, Shield, ShieldOff, MessageCircle, Send, Key, X, Edit } from "lucide-react";
 
+import { PageTitle } from "@/components/shell/page-header";
+import { KpiCard } from "@/components/shell/ui";
+import { SectionTabs } from "@/components/shell/section-tabs";
 const DEPT_COLORS: Record<string, string> = {
   Production: "bg-primary/20 text-primary border-primary/30",
   "Post-Production": "bg-blue-500/20 text-blue-400 border-blue-500/30",
@@ -180,16 +183,13 @@ export default function TeamPage() {
 
   return (
     <div className="space-y-8 pb-8">
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <h1 className="text-4xl font-heading tracking-wider text-foreground">Crew</h1>
-          <p className="text-muted-foreground uppercase tracking-widest text-sm font-semibold mt-1">Team Management</p>
-        </div>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <PageTitle eyebrow="Operasional" title="Crew" description="Kelola anggota tim, akses portal, dan chat admin." />
         <div className="flex gap-3">
           <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setEditingMember(null); }}>
             <DialogTrigger asChild>
-              <Button className="bg-primary hover:bg-primary/90 text-white font-heading tracking-wider">
-                <Plus className="w-4 h-4 mr-2" /> Add Member
+              <Button>
+                <Plus className="w-4 h-4 mr-2" /> Tambah Anggota
               </Button>
             </DialogTrigger>
                 <DialogContent className="bg-card border-foreground/10 text-foreground max-w-2xl">
@@ -211,38 +211,20 @@ export default function TeamPage() {
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-1 glass-panel rounded-xl p-1 border-foreground/10 w-fit">
-        {([["members", "👥 Anggota"], ["chat", `💬 Admin Chat (${membersWithLogin.length})`]] as const).map(([t, l]) => (
-          <button key={t} onClick={() => setActiveTab(t as any)} className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${activeTab === t ? "bg-primary/20 text-primary" : "text-muted-foreground hover:text-white"}`}>
-            {l}
-          </button>
-        ))}
-      </div>
+      <SectionTabs
+        value={activeTab as "members" | "chat"}
+        onChange={setActiveTab as any}
+        tabs={[
+          { value: "members", label: "Anggota", icon: Users },
+          { value: "chat", label: "Admin Chat", icon: MessageCircle, count: membersWithLogin.length },
+        ] as const}
+      />
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card className="glass-panel border-foreground/5">
-          <CardContent className="p-4 text-center">
-            <p className="text-3xl font-heading text-primary">{members?.length || 0}</p>
-            <p className="text-xs uppercase tracking-widest text-muted-foreground mt-1">Total Crew</p>
-          </CardContent>
-        </Card>
-        <Card className="glass-panel border-foreground/5">
-          <CardContent className="p-4 text-center">
-            <p className="text-3xl font-heading text-green-400">{membersWithLogin.length}</p>
-            <p className="text-xs uppercase tracking-widest text-muted-foreground mt-1">Portal Aktif</p>
-          </CardContent>
-        </Card>
-        {departments.slice(0, 2).map((dept) => (
-          <Card key={dept} className="glass-panel border-foreground/5">
-            <CardContent className="p-4 text-center">
-              <p className="text-3xl font-heading text-foreground">
-                {members?.filter((m) => m.department === dept).length || 0}
-              </p>
-              <p className="text-xs uppercase tracking-widest text-muted-foreground mt-1 truncate">{dept}</p>
-            </CardContent>
-          </Card>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <KpiCard label="Total crew" value={members?.length || 0} icon={Users} tone="primary" />
+        <KpiCard label="Portal aktif" value={membersWithLogin.length} icon={Key} tone="success" />
+        {departments.slice(0, 2).map((dept, i) => (
+          <KpiCard key={dept} label={String(dept ?? "")} value={members?.filter((m) => m.department === dept).length || 0} icon={Briefcase} tone={i ? "violet" : "info"} />
         ))}
       </div>
 
