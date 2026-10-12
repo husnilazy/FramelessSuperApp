@@ -22,7 +22,7 @@ async function verifyReadAccess(documentId: string, user: { id: string; role: st
 
   if (!document) return null;
   if (document.crewId === user.id) return document;
-  if (user.role === "admin") return document;
+  if (String(user.role).toLowerCase() === "admin") return document;
 
   const [collaborator] = await db
     .select()

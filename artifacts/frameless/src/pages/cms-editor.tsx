@@ -4,6 +4,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
+import { PageHeader } from "@/components/shell/page-header";
+import { SectionTabs } from "@/components/shell/section-tabs";
 import { Save, Upload, Play, Trash2, Plus, X, Image, Video, Globe, Settings2, Tag, Palette, Users2 } from "lucide-react";
 
 function authHeader() {
@@ -899,20 +901,19 @@ export default function CmsEditorPage() {
 
   return (
     <div className="space-y-8 pb-8">
-      <div>
-        <h1 className="text-3xl font-black tracking-tight text-foreground">CMS Editor</h1>
-        <p className="text-sm text-muted-foreground mt-1">Kelola konten, video, dan logo landing page Frameless Creative</p>
-      </div>
+      <PageHeader eyebrow="Konten" title="CMS Website" description="Kelola konten, layanan, galeri crew, video, dan logo klien di landing page." />
 
-      {/* Tabs */}
-      <div className="flex gap-1 glass-panel rounded-xl p-1 border-border w-fit">
-        {([["content", "📝 Konten"], ["services", "🛠️ Layanan"], ["gallery", "🎞️ Crew Gallery"], ["videos", "🎬 Videos"], ["logos", "🏢 Logo Klien"]] as const).map(([t, l]) => (
-          <button key={t} onClick={() => setActiveTab(t)}
-            className={`px-5 py-2.5 rounded-lg text-[13px] font-semibold transition-all ${activeTab === t ? "bg-primary/15 text-primary border border-primary/20" : "text-muted-foreground hover:text-foreground"}`}>
-            {l}
-          </button>
-        ))}
-      </div>
+      <SectionTabs
+        value={activeTab}
+        onChange={setActiveTab}
+        tabs={[
+          { value: "content", label: "Konten", icon: Settings2 },
+          { value: "services", label: "Layanan", icon: Tag },
+          { value: "gallery", label: "Crew Gallery", icon: Image },
+          { value: "videos", label: "Videos", icon: Video },
+          { value: "logos", label: "Logo Klien", icon: Users2 },
+        ] as const}
+      />
 
       {activeTab === "content" && <ContentTab />}
       {activeTab === "services" && <ServicesTab />}

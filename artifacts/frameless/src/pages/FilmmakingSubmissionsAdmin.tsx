@@ -18,6 +18,8 @@ import {
 } from "@/components/ui/table";
 import { CheckCircle, MessageSquare, Eye, Inbox, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { PageHeader } from "@/components/shell/page-header";
+import { SectionTabs } from "@/components/shell/section-tabs";
 
 interface Submission {
   id: string;
@@ -146,42 +148,30 @@ export function FilmmakingSubmissionsAdmin() {
   );
 
   return (
-    <div className="flex flex-col gap-4 p-6 bg-background text-foreground min-h-full">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Filmmaking Submissions</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">Review dokumen produksi yang dikirim crew untuk approval.</p>
-        </div>
-      </div>
+    <div className="space-y-5 pb-10">
+      <PageHeader eyebrow="Konten" title="Submisi Film" description="Review dokumen produksi yang dikirim crew untuk persetujuan." />
 
-      <div className="flex gap-1 border-b border-border pb-3">
-        {(["all", "pending", "approved", "revision_requested"] as const).map(
-          (status) => (
-            <button
-              key={status}
-              onClick={() => setFilter(status)}
-              className={`px-4 py-1.5 rounded-lg text-sm font-medium capitalize transition-all whitespace-nowrap ${
-                filter === status
-                  ? "bg-orange-500 text-white shadow-md shadow-orange-500/20"
-                  : "text-muted-foreground hover:text-zinc-200 hover:bg-muted"
-              }`}
-            >
-              {status.replace("_", " ")}
-            </button>
-          )
-        )}
-      </div>
+      <SectionTabs
+        value={filter}
+        onChange={setFilter}
+        tabs={[
+          { value: "all", label: "Semua" },
+          { value: "pending", label: "Menunggu" },
+          { value: "approved", label: "Disetujui" },
+          { value: "revision_requested", label: "Perlu revisi" },
+        ] as const}
+      />
 
       {loading ? (
         <div className="flex items-center justify-center gap-2 p-10 text-muted-foreground">
-          <Loader2 className="w-4 h-4 animate-spin" /> Loading submissions...
+          <Loader2 className="w-4 h-4 animate-spin" /> Memuat submisi…
         </div>
       ) : submissions.length === 0 ? (
         <div className="flex flex-col items-center gap-3 p-12 text-center">
           <div className="w-16 h-16 rounded-2xl bg-card border border-border flex items-center justify-center">
             <Inbox className="w-7 h-7 text-muted-foreground/70" />
           </div>
-          <p className="text-muted-foreground">No submissions found</p>
+          <p className="text-muted-foreground">Belum ada submisi pada filter ini</p>
         </div>
       ) : (
         <div className="border border-border rounded-2xl overflow-x-auto bg-card/40">

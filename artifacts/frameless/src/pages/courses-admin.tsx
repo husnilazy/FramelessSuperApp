@@ -11,6 +11,9 @@ import {
   Upload, Users, Video, X,
 } from "lucide-react";
 import { formatCurrency } from "@/lib/formatters";
+import { PageHeader } from "@/components/shell/page-header";
+import { KpiCard } from "@/components/shell/ui";
+import { SectionTabs } from "@/components/shell/section-tabs";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface Package {
@@ -641,62 +644,42 @@ export default function CoursesAdminPage() {
   // ── Render ───────────────────────────────────────────────────────────────────
   return (
     <div className="space-y-8 pb-16">
-      {/* ── Header ── */}
-      <div className="flex items-center justify-between flex-wrap gap-4">
-        <div>
-          <h1 className="text-3xl font-black tracking-tight text-foreground">Videography Courses</h1>
-          <p className="text-sm text-muted-foreground mt-1">Kelola course, paket, materi, dan pendaftaran siswa</p>
-        </div>
-        <Button
-          onClick={() => openCourseEditor({ level: "beginner", category: "videography", isPublished: true, packages: [], orderIndex: courses.length * 10 })}
-          className="bg-primary hover:bg-primary/90 text-white rounded-xl"
-        >
-          <Plus className="w-4 h-4 mr-2" /> Tambah Course
-        </Button>
+      <PageHeader
+        eyebrow="Konten"
+        title="Kursus"
+        description="Kelola course, paket, materi, pendaftaran siswa, workshop, dan gallery."
+        actions={
+          <Button onClick={() => openCourseEditor({ level: "beginner", category: "videography", isPublished: true, packages: [], orderIndex: courses.length * 10 })}>
+            <Plus className="w-4 h-4 mr-2" /> Tambah Course
+          </Button>
+        }
+      />
+
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <KpiCard label="Total Course" value={courses.length} icon={BookOpen} tone="primary" />
+        <KpiCard label="Total Siswa" value={enrollments.length} icon={Users} tone="info" />
+        <KpiCard label="Siswa Aktif" value={enrollments.filter((e) => e.status === "active").length} icon={Check} tone="success" />
+        <KpiCard label="Total Revenue" value={formatCurrency(totalRevenue)} icon={Download} tone="violet" />
       </div>
 
-      {/* ── Stats ── */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {[
-          { l: "Total Course",      v: courses.length,                                             c: "text-foreground" },
-          { l: "Total Siswa",       v: enrollments.length,                                         c: "text-primary" },
-          { l: "Siswa Aktif",       v: enrollments.filter((e) => e.status === "active").length,    c: "text-green-400" },
-          { l: "Total Revenue",     v: formatCurrency(totalRevenue),                               c: "text-emerald-400" },
-        ].map((s) => (
-          <Card key={s.l} className="glass-panel border-border">
-            <CardContent className="p-4 text-center">
-              <p className={`text-2xl font-black ${s.c}`}>{s.v}</p>
-              <p className="text-[11px] uppercase tracking-wider text-muted-foreground mt-1">{s.l}</p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {/* ── Tabs ── */}
-      <div className="flex gap-1 glass-panel rounded-xl p-1 border-border w-fit flex-wrap">
-        {(["courses", "packages", "materials", "enrollments", "workshop", "gallery", "settings"] as const).map((t) => (
-          <button
-            key={t}
-            onClick={() => {
-              setTab(t);
-              if (t === "materials" && selectedCourseForMat) loadMaterials(selectedCourseForMat);
-              if (t === "workshop"  && selectedCourseForWs)  loadWorkshops(selectedCourseForWs);
-              if (t === "gallery"   && selectedCourseForGal) loadGallery(selectedCourseForGal);
-            }}
-            className={`px-4 py-2.5 rounded-lg text-[13px] font-semibold transition-all ${
-              tab === t ? "bg-primary/15 text-primary border border-primary/20" : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            {t === "courses"     ? `🎬 Courses (${courses.length})` :
-             t === "packages"    ? "💳 Paket" :
-             t === "materials"   ? "📚 Materi" :
-             t === "enrollments" ? `📋 Pendaftaran (${enrollments.length})` :
-             t === "workshop"    ? "🎪 Workshop" :
-             t === "gallery"     ? "🖼️ Gallery" :
-                                   "⚙️ Pengaturan"}
-          </button>
-        ))}
-      </div>
+      <SectionTabs
+        value={tab}
+        onChange={(t) => {
+          setTab(t);
+          if (t === "materials" && selectedCourseForMat) loadMaterials(selectedCourseForMat);
+          if (t === "workshop"  && selectedCourseForWs)  loadWorkshops(selectedCourseForWs);
+          if (t === "gallery"   && selectedCourseForGal) loadGallery(selectedCourseForGal);
+        }}
+        tabs={[
+          { value: "courses", label: "Courses", icon: Film, count: courses.length },
+          { value: "packages", label: "Paket", icon: FileText },
+          { value: "materials", label: "Materi", icon: BookOpen },
+          { value: "enrollments", label: "Pendaftaran", icon: Users, count: enrollments.length },
+          { value: "workshop", label: "Workshop", icon: Calendar },
+          { value: "gallery", label: "Gallery", icon: Image },
+          { value: "settings", label: "Pengaturan", icon: Settings },
+        ] as const}
+      />
 
       {/* ════════════════════════════════════════════════
           COURSES TAB

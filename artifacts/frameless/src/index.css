@@ -483,3 +483,7 @@ input:focus-visible, textarea:focus-visible, select:focus-visible { outline: non
 @media (max-width: 479px) {
   main [style*="repeat(4"], main [style*="repeat(5"], main [style*="repeat(6"], main [style*="repeat(3"], main [style*="repeat(2"] { grid-template-columns: minmax(0, 1fr) !important; }
 }
+
+/* Scroll horizontal tanpa scrollbar (tab bar, carousel) */
+.scrollbar-none { scrollbar-width: none; -ms-overflow-style: none; }
+.scrollbar-none::-webkit-scrollbar { display: none; }

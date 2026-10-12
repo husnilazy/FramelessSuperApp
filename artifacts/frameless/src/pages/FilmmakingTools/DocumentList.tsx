@@ -221,9 +221,9 @@ export function DocumentList({ onOpenDoc }: DocumentListProps = {}) {
   }
 
   return (
-    <div className="flex flex-col h-full bg-background text-foreground">
+    <div className="flex flex-col h-full min-w-0 max-w-full overflow-x-hidden bg-background text-foreground">
       {/* Header */}
-      <div className="flex items-center justify-between px-6 py-5 border-b border-border/60 bg-card/50 backdrop-blur-sm sticky top-0 z-10">
+      <div className="flex flex-wrap items-center justify-between gap-3 px-4 sm:px-6 py-4 sm:py-5 border-b border-border/60 bg-card/50 backdrop-blur-sm sticky top-0 z-10">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-orange-500 to-rose-600 flex items-center justify-center shadow-lg shadow-orange-500/20">
             <Clapperboard className="w-5 h-5 text-foreground" />
@@ -325,8 +325,8 @@ export function DocumentList({ onOpenDoc }: DocumentListProps = {}) {
       </div>
 
       {/* Filter Tabs + Search */}
-      <div className="flex flex-col sm:flex-row sm:items-center gap-3 px-6 py-3 border-b border-border/60">
-        <div className="flex gap-1 overflow-x-auto">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3 px-4 sm:px-6 py-3 border-b border-border/60 min-w-0">
+        <div className="flex gap-1 overflow-x-auto scrollbar-none max-w-full">
           {(["all", "concept", "screenplay", "script", "shotlist"] as const).map((type) => (
             <button
               key={type}
@@ -353,7 +353,7 @@ export function DocumentList({ onOpenDoc }: DocumentListProps = {}) {
       </div>
 
       {/* Document Grid */}
-      <div className="flex-1 overflow-auto p-6">
+      <div className="flex-1 overflow-auto p-4 sm:p-6">
         {filteredDocs.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full gap-4 text-center py-20">
             <div className="w-20 h-20 rounded-2xl bg-muted/80 flex items-center justify-center">

@@ -97,6 +97,35 @@ router.get("/payments/enrollment/:id", requireAdmin);
 router.get("/enrollments/:id", requireAdmin);
 router.patch("/course-workshops/:id/increment", requireAdmin);
 
+// Route yang di file aslinya hanya `requireAuth` (= SIAPA PUN yang punya akun valid, bukan cek peran).
+// Tanpa penjaga ini, akun biasa bisa mengubah CMS/kursus/pembayaran dan membaca data peserta.
+// Aturan: semua method tulis wajib admin; GET hanya admin untuk data sensitif. Endpoint publik
+// (inquiry, beli/unduh aset, katalog, payment-settings/public) sengaja dikecualikan.
+const WRITE_ADMIN_PREFIXES = [
+  "/cms", "/courses", "/course-packages", "/course-materials", "/course-workshops",
+  "/course-gallery", "/enrollments", "/payment-settings", "/site-logos", "/site-videos",
+  "/digital-assets", "/uploads",
+];
+const PUBLIC_WRITES = [/^\/cms\/inquiry\/?$/, /^\/digital-assets\/[^/]+\/(purchase|download)\/?$/];
+const ADMIN_READS = [
+  /^\/enrollments(\/|$)/, /^\/payment-settings\/?$/,
+  /^\/courses\/[^/]+\/(packages|materials|workshops|gallery)\/?$/,
+];
+router.use((req, res, next) => {
+  const p = req.path;
+  if (req.method === "OPTIONS") return next();
+  const isRead = req.method === "GET" || req.method === "HEAD";
+  if (isRead) {
+    return ADMIN_READS.some((re) => re.test(p)) ? requireAdmin(req, res, next) : next();
+  }
+  if (PUBLIC_WRITES.some((re) => re.test(p))) return next();
+  if (WRITE_ADMIN_PREFIXES.some((pre) => p === pre || p.startsWith(pre + "/"))) return requireAdmin(req, res, next);
+  next();
+});
+
+// Pendaftaran akun mandiri ditutup: akun baru hanya dibuat admin (tidak ada UI yang memakainya).
+router.post("/auth/register", requireAdmin);
+
 // Chat internal tim: admin ATAU crew yang login.
 router.use("/chat/messages", requireUniversalAuth);
 

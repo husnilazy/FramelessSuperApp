@@ -7,9 +7,11 @@ import { useToast } from "@/hooks/use-toast";
 import {
   Plus, Trash2, Edit3, Package, Upload, X, Check,
   Star, Eye, EyeOff, Download, FileText, Image, Link,
-  ChevronDown, ChevronUp, ExternalLink,
+  ChevronDown, ChevronUp, ExternalLink, CheckCircle2, Wallet,
 } from "lucide-react";
 import { formatCurrency } from "@/lib/formatters";
+import { PageHeader } from "@/components/shell/page-header";
+import { KpiCard } from "@/components/shell/ui";
 
 interface DigitalAsset {
   id: string; title: string; description: string; category: string;
@@ -275,7 +277,7 @@ export default function DigitalAssetsAdminPage() {
 
   const { data: assets = [], isLoading } = useQuery<DigitalAsset[]>({
     queryKey: ["/api/digital-assets"],
-    queryFn:  () => fetch("/api/digital-assets", { headers: authHeader() as any }).then(r => r.json()),
+    queryFn:  () => fetch("/api/digital-assets", { headers: authHeader() as any }).then(async r => { if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || `HTTP ${r.status}`); return r.json(); }),
   });
 
   const createMut = useMutation({
@@ -284,7 +286,7 @@ export default function DigitalAssetsAdminPage() {
         method: "POST",
         headers: { "Content-Type": "application/json", ...authHeader() } as any,
         body: JSON.stringify(data),
-      }).then(r => r.json()),
+      }).then(async r => { if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || `HTTP ${r.status}`); return r.json(); }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["/api/digital-assets"] });
       setShowForm(false);
@@ -299,7 +301,7 @@ export default function DigitalAssetsAdminPage() {
         method: "PUT",
         headers: { "Content-Type": "application/json", ...authHeader() } as any,
         body: JSON.stringify(data),
-      }).then(r => r.json()),
+      }).then(async r => { if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || `HTTP ${r.status}`); return r.json(); }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["/api/digital-assets"] });
       setEditing(null);
@@ -310,11 +312,12 @@ export default function DigitalAssetsAdminPage() {
 
   const deleteMut = useMutation({
     mutationFn: (id: string) =>
-      fetch(`/api/digital-assets/${id}`, { method: "DELETE", headers: authHeader() as any }).then(r => r.json()),
+      fetch(`/api/digital-assets/${id}`, { method: "DELETE", headers: authHeader() as any }).then(async r => { if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || `HTTP ${r.status}`); return r.json(); }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["/api/digital-assets"] });
       toast({ title: "Aset dihapus" });
     },
+    onError: () => toast({ variant: "destructive", title: "Gagal menghapus aset" }),
   });
 
   async function toggleActive(asset: DigitalAsset) {
@@ -338,41 +341,28 @@ export default function DigitalAssetsAdminPage() {
 
   return (
     <div className="space-y-8 pb-10">
-      {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-4">
-        <div>
-          <h1 className="text-3xl font-black tracking-tight text-foreground">Digital Assets Store</h1>
-          <p className="text-sm text-muted-foreground mt-1">Kelola produk digital — preset, LUT, template, dan aset kreatif lainnya</p>
-        </div>
-        <div className="flex gap-3">
-          <a href="/store" target="_blank"
-            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-muted-foreground border border-border hover:text-foreground hover:bg-muted/50 transition-all">
-            <Eye className="w-4 h-4" /> Lihat Store
-          </a>
-          <Button
-            onClick={() => { setEditing(null); setShowForm(true); }}
-            className="bg-primary hover:bg-primary/90 text-white rounded-xl">
-            <Plus className="w-4 h-4 mr-2" /> Tambah Aset
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        eyebrow="Konten"
+        title="Aset Digital"
+        description="Kelola produk digital: preset, LUT, template, dan aset kreatif lainnya."
+        actions={
+          <>
+            <a href="/store" target="_blank" rel="noreferrer"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-muted-foreground border border-border hover:text-foreground hover:bg-muted/50 transition-colors">
+              <Eye className="w-4 h-4" /> Lihat Store
+            </a>
+            <Button onClick={() => { setEditing(null); setShowForm(true); }}>
+              <Plus className="w-4 h-4 mr-2" /> Tambah Aset
+            </Button>
+          </>
+        }
+      />
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        {[
-          { label: "Total Aset",   val: assets.length,                             color: "text-foreground" },
-          { label: "Aktif",        val: assets.filter(a => a.isActive).length,      color: "text-green-400" },
-          { label: "Featured",     val: assets.filter(a => a.isFeatured).length,    color: "text-primary" },
-          { label: "Gratis",       val: assets.filter(a => a.price === 0).length,   color: "text-blue-400" },
-          { label: "Est. Revenue", val: totalRevenue > 0 ? formatCurrency(totalRevenue) : "—", color: "text-emerald-400" },
-        ].map(s => (
-          <Card key={s.label} className="glass-panel border-border">
-            <CardContent className="p-4 text-center">
-              <p className={`text-2xl font-black ${s.color}`}>{s.val}</p>
-              <p className="text-[11px] uppercase tracking-wider text-muted-foreground mt-1">{s.label}</p>
-            </CardContent>
-          </Card>
-        ))}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <KpiCard label="Total Aset" value={assets.length} icon={Package} tone="primary" />
+        <KpiCard label="Aktif" value={assets.filter(a => a.isActive).length} icon={CheckCircle2} tone="success" sub={`${assets.filter(a => a.isFeatured).length} featured`} />
+        <KpiCard label="Gratis" value={assets.filter(a => a.price === 0).length} icon={Download} tone="info" />
+        <KpiCard label="Est. Revenue" value={totalRevenue > 0 ? formatCurrency(totalRevenue) : "—"} icon={Wallet} tone="violet" />
       </div>
 
       {/* Add / Edit Form */}

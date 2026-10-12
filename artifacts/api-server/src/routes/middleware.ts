@@ -7,6 +7,10 @@ const supabaseUrl = process.env.SUPABASE_URL || "";
 const supabaseKey = process.env.SUPABASE_ANON_KEY || "";
 
 const supabase = createClient(supabaseUrl, supabaseKey);
+// Tabel `users` dilindungi RLS: pembacaan profil/peran harus lewat service role, bukan anon key.
+const supabaseDb = createClient(supabaseUrl, process.env.SUPABASE_SERVICE_ROLE_KEY || supabaseKey, {
+  auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+});
 
 /** Token darurat (aktif hanya bila EMERGENCY_JWT_SECRET di-set) — sama dengan penjaga di middlewares/auth.ts */
 function emergencyUser(token: string): { id: string; email: string; role: string } | null {
@@ -114,7 +118,7 @@ export async function requireAdmin(
     const userId = data.user.id;
 
     // Get user profile untuk check role
-    const { data: userProfile, error: profileError } = await supabase
+    const { data: userProfile, error: profileError } = await supabaseDb
       .from("users")
       .select("*")
       .eq("id", userId)
@@ -177,7 +181,7 @@ export async function getTokenUserId(req: Request): Promise<string | null> {
 // Helper: Get full user profile
 export async function getUserProfile(userId: string): Promise<any> {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseDb
       .from("users")
       .select("*")
       .eq("id", userId)
@@ -242,7 +246,7 @@ export async function requireUniversalAuth(
       return;
     }
 
-    const { data: userProfile } = await supabase
+    const { data: userProfile } = await supabaseDb
       .from("users")
       .select("*")
       .eq("id", data.user.id)

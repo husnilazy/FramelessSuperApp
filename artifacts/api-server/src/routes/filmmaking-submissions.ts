@@ -93,7 +93,7 @@ router.get("/filmmaking-submissions", requireUniversalAuth, async (req: AuthedRe
     }
 
     // Check if admin (role === "admin")
-    if (req.user.role !== "admin") {
+    if (String(req.user.role).toLowerCase() !== "admin") {
       res.status(403).json({ error: "Only admins can view submissions" });
       return;
     }
@@ -184,7 +184,7 @@ router.get("/filmmaking-submissions/:id", requireUniversalAuth, async (req: Auth
     }
 
     // Check access: admin or submitter
-    if (req.user.role !== "admin" && req.user.id !== submission.submittedBy) {
+    if (String(req.user.role).toLowerCase() !== "admin" && req.user.id !== submission.submittedBy) {
       res.status(403).json({ error: "No access to this submission" });
       return;
     }
@@ -208,7 +208,7 @@ router.post("/filmmaking-submissions/:id/approve", requireUniversalAuth, async (
     }
 
     // Check if admin
-    if (req.user.role !== "admin") {
+    if (String(req.user.role).toLowerCase() !== "admin") {
       res.status(403).json({ error: "Only admins can approve submissions" });
       return;
     }
@@ -252,7 +252,7 @@ router.post(
       }
 
       // Check if admin
-      if (req.user.role !== "admin") {
+      if (String(req.user.role).toLowerCase() !== "admin") {
         res.status(403).json({ error: "Only admins can request revisions" });
         return;
       }

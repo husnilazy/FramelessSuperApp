@@ -3,6 +3,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
+import { PageHeader } from "@/components/shell/page-header";
+import { SectionTabs } from "@/components/shell/section-tabs";
 import { Save, Building2, Smartphone, CreditCard, Key, Globe, CheckCircle2, XCircle, ShieldCheck } from "lucide-react";
 
 interface PaymentSetting { id?: string; provider: string; label: string; isEnabled: boolean; config: string; }
@@ -165,32 +167,32 @@ export default function PaymentSettingsPage() {
 
   return (
     <div className="space-y-8 pb-8">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-black tracking-tight text-foreground">Payment Settings</h1>
-          <p className="text-sm text-muted-foreground mt-1">Kelola metode pembayaran dan integrasi payment gateway</p>
-        </div>
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <CheckCircle2 className="w-4 h-4 text-green-400" />
-          <span>{enabledCount} metode aktif</span>
-        </div>
-      </div>
+      <PageHeader
+        eyebrow="Sistem"
+        title="Pembayaran"
+        description="Kelola metode pembayaran dan integrasi payment gateway."
+        actions={
+          <span className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1.5 text-sm font-semibold text-foreground">
+            <CheckCircle2 className={`w-4 h-4 ${enabledCount ? "text-success" : "text-muted-foreground"}`} />
+            {enabledCount} metode aktif
+          </span>
+        }
+      />
 
-      {/* Tab */}
-      <div className="flex gap-1 glass-panel rounded-xl p-1 border-border w-fit">
-        {([["manual", "💳 Manual Transfer"], ["midtrans", "🔒 Midtrans Gateway"]] as const).map(([t, l]) => (
-          <button key={t} onClick={() => setActiveTab(t)}
-            className={`px-5 py-2.5 rounded-lg text-[13px] font-semibold transition-all ${activeTab === t ? "bg-primary/15 text-primary border border-primary/20" : "text-muted-foreground hover:text-foreground"}`}>
-            {l}
-          </button>
-        ))}
-      </div>
+      <SectionTabs
+        value={activeTab}
+        onChange={setActiveTab}
+        tabs={[
+          { value: "manual", label: "Transfer Manual", icon: Building2 },
+          { value: "midtrans", label: "Midtrans Gateway", icon: ShieldCheck },
+        ] as const}
+      />
 
       {/* MANUAL TRANSFER TAB */}
       {activeTab === "manual" && (
-        <div className="grid grid-cols-12 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Left: Provider List */}
-          <div className="col-span-4 space-y-3">
+          <div className="lg:col-span-4 space-y-3">
             <div className="space-y-1.5">
               <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold px-1">Bank Transfer</p>
               {BANK_PROVIDERS.map(p => {
@@ -226,7 +228,7 @@ export default function PaymentSettingsPage() {
           </div>
 
           {/* Right: Config */}
-          <div className="col-span-8">
+          <div className="lg:col-span-8">
             {sel && (
               <Card className="glass-panel border-border">
                 <CardContent className="p-6 space-y-5">
