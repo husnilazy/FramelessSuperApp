@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "wouter";
 import { motion } from "framer-motion";
-import { ExternalLink, Loader2, ArrowLeft, Share2, Check } from "lucide-react";
+import { ExternalLink, Loader2, ArrowLeft, Share2, Check, FolderOpen, Inbox, Package } from "lucide-react";
 
 type PageItem = {
   id: string;
@@ -87,7 +87,7 @@ export default function CrewLinkSubPage() {
   if (notFound || !page) return (
     <div style={{ minHeight: "100dvh", background: "#050505", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 10, fontFamily: FONT, color: "rgba(255,255,255,.4)", padding: 24, textAlign: "center" }}>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;700;800;900&display=swap');`}</style>
-      <div style={{ fontSize: 52, marginBottom: 4 }}>📂</div>
+      <div style={{ marginBottom: 8, color: "rgba(255,255,255,.35)", display: "flex", justifyContent: "center" }}><FolderOpen size={46} strokeWidth={1.3} /></div>
       <div style={{ fontSize: 20, fontWeight: 900, color: "#fff" }}>Halaman tidak ditemukan</div>
       <div style={{ fontSize: 13, color: "rgba(255,255,255,.4)", maxWidth: 280, lineHeight: 1.6 }}>
         Link ini sudah tidak aktif atau belum pernah dibuat.
@@ -242,7 +242,7 @@ export default function CrewLinkSubPage() {
         {/* ── Items grid ── */}
         {activeItems.length === 0 ? (
           <div style={{ textAlign: "center", color: "rgba(255,255,255,.25)", padding: "56px 0", fontSize: 14 }}>
-            <div style={{ fontSize: 40, marginBottom: 12 }}>📭</div>
+            <div style={{ marginBottom: 12, color: "rgba(255,255,255,.35)", display: "flex", justifyContent: "center" }}><Inbox size={38} strokeWidth={1.3} /></div>
             Belum ada item di halaman ini.
           </div>
         ) : (
@@ -344,7 +344,7 @@ function ItemCard({
           display: "flex", alignItems: "center", justifyContent: "center",
           position: "relative",
         }}>
-          <div style={{ fontSize: isMobile ? 28 : 36, opacity: 0.7 }}>📦</div>
+          <div style={{ opacity: 0.6, color: "#fff" }}><Package size={isMobile ? 26 : 34} strokeWidth={1.4} /></div>
           {/* Accent dot top-right */}
           <div style={{ position: "absolute", top: 8, right: 8, width: 6, height: 6, borderRadius: "50%", background: accent, opacity: 0.5 }} />
         </div>

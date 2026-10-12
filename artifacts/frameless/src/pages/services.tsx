@@ -2,7 +2,8 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { CheckCircle2, MessageCircle, Mail, X, Play, ArrowRight, ChevronRight, Sparkles, Loader2 } from "lucide-react";
+import { CheckCircle2, MessageCircle, Mail, X, Play, ArrowRight, ChevronRight, Sparkles, Loader2, Check, Clock, Award, Target, Zap, Gem } from "lucide-react";
+import { ServiceIcon } from "@/lib/service-icons";
 import { AiEstimationForm } from "@/components/AiEstimationForm";
 
 import { MotionLayer } from "@/lib/landing-motion";
@@ -21,14 +22,22 @@ body{overflow-x:hidden;}
 @keyframes fadeUp{from{opacity:0;transform:translateY(18px);}to{opacity:1;transform:translateY(0);}}
 @keyframes pulse{0%,100%{opacity:.6;}50%{opacity:1;}}
 
-.svc-item{transition:border-color .25s,background .25s,transform .25s,box-shadow .25s;box-shadow:0 18px 40px rgba(0,0,0,.16);}
-.svc-item:hover{border-color:#FF6A2055!important;transform:translateY(-2px);box-shadow:0 24px 52px rgba(0,0,0,.22);}
-.svc-grid{grid-template-columns:repeat(auto-fit,minmax(280px,1fr)) !important;}
+.svc-item{transition:border-color .3s,transform .35s cubic-bezier(.16,1,.3,1),background .3s;}
+.svc-item:hover{transform:translateY(-3px);}
+.svc-item .svc-title{transition:color .2s;}
+.svc-item:hover .svc-title{color:#FF6A20;}
+.svc-cta{transition:transform .2s cubic-bezier(.34,1.56,.64,1),box-shadow .2s,background .2s;}
+.svc-cta:hover{transform:translateY(-1px);box-shadow:0 10px 26px rgba(255,106,32,.32);}
+.svc-cta:active{transform:scale(.96);}
+.svc-grid{grid-template-columns:repeat(auto-fill,minmax(min(100%,340px),1fr)) !important;}
+.clamp3{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;}
 
 /* Responsive adjustments */
 @media(max-width:1024px){
-  .svc-grid{grid-template-columns:1fr!important;}
   .pxs{padding-left:24px!important;padding-right:24px!important;}
+}
+@media(max-width:700px){
+  .svc-grid{grid-template-columns:1fr!important;}
 }
 @media(max-width:768px){
   .pxs{padding-left:20px!important;padding-right:20px!important;}
@@ -225,100 +234,92 @@ export default function ServicesPage() {
                         Semua Layanan<br /><span style={{ color: "rgba(255,255,255,.3)" }}>dalam Satu Atap</span>
                     </h2>
 
-                    <div className="svc-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))", gap: 20 }}>
+                    <div className="svc-grid" style={{ display: "grid", gap: 20, alignItems: "stretch" }}>
                         {services.map((s, i) => {
+                            const features = s.features || [];
+                            const tags = s.tags || [];
+                            const hv = s.highlightVideoUrl;
+                            const yt = hv && !isDirectVideo(hv) ? ytId(hv) : null;
+                            const thumb = hv && !isDirectVideo(hv) ? getThumb(hv) : "";
                             return (
-                                <div key={s.slug || i} id={s.slug} className="svc-item" style={{ background: "rgba(255,255,255,.025)", border: "1px solid rgba(255,255,255,.07)", borderRadius: 24, padding: "28px", scrollMarginTop: 80, display: "flex", flexDirection: "column", gap: 0 }}>
+                                <article key={s.slug || i} id={s.slug} className="svc-item" style={{ background: "rgba(255,255,255,.03)", border: "1px solid rgba(255,255,255,.08)", borderRadius: 24, padding: 24, scrollMarginTop: 80, display: "flex", flexDirection: "column", minWidth: 0 }}>
                                     {/* Header */}
-                                    <div style={{ display: "flex", alignItems: "flex-start", gap: 16, marginBottom: 16 }}>
-                                        <div style={{ width: 50, height: 50, borderRadius: 15, background: `${OR}18`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, flexShrink: 0 }}>{s.icon}</div>
-                                        <div style={{ flex: 1 }}>
-                                            <h3 style={{ fontSize: 19, fontWeight: 800, color: "#fff", margin: "0 0 5px", letterSpacing: "-.02em" }}>{s.title}</h3>
-                                            <p style={{ fontSize: 13, color: "rgba(255,255,255,.45)", lineHeight: 1.65, margin: 0 }}>{s.description}</p>
+                                    <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 14 }}>
+                                        <ServiceIcon title={s.title} slug={s.slug} size={46} accent={OR} />
+                                        <div style={{ minWidth: 0, flex: 1 }}>
+                                            <h3 className="svc-title" style={{ fontSize: 18, fontWeight: 800, color: "#fff", letterSpacing: "-.02em", lineHeight: 1.25, margin: 0 }}>{s.title}</h3>
+                                            {s.duration && (
+                                                <p style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11.5, color: "rgba(255,255,255,.42)", margin: "5px 0 0", fontWeight: 600 }}>
+                                                    <Clock size={12} /> {s.duration}
+                                                </p>
+                                            )}
                                         </div>
                                     </div>
 
-                                    {/* Tags + duration */}
-                                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 18 }}>
-                                        {(s.tags || []).map(t => <span key={t} style={{ fontSize: 10, padding: "3px 10px", borderRadius: 100, background: "rgba(255,255,255,.07)", color: "rgba(255,255,255,.45)", fontWeight: 600 }}>{t}</span>)}
-                                        {s.duration && <span style={{ fontSize: 10, padding: "3px 10px", borderRadius: 100, background: `${OR}18`, color: OR, fontWeight: 700, border: `1px solid ${OR}33` }}>⏱ {s.duration}</span>}
-                                    </div>
+                                    <p className="clamp3" style={{ fontSize: 13.5, color: "rgba(255,255,255,.52)", lineHeight: 1.68, margin: "0 0 16px" }}>{s.description}</p>
 
-                                    {/* Features grid */}
-                                    {s.features && s.features.length > 0 && (
-                                        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))", gap: 8, marginBottom: 20 }}>
-                                            {s.features.map(f => (
-                                                <div key={f} style={{ display: "flex", alignItems: "flex-start", gap: 7, fontSize: 12, color: "rgba(255,255,255,.55)" }}>
-                                                    <CheckCircle2 size={11} color={OR} style={{ flexShrink: 0, marginTop: 1 }} />{f}
-                                                </div>
-                                            ))}
+                                    {/* Tags */}
+                                    {tags.length > 0 && (
+                                        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 18 }}>
+                                            {tags.slice(0, 4).map(t => <span key={t} style={{ fontSize: 11, padding: "3px 10px", borderRadius: 100, border: "1px solid rgba(255,255,255,.1)", color: "rgba(255,255,255,.55)", fontWeight: 600 }}>{t}</span>)}
+                                            {tags.length > 4 && <span style={{ fontSize: 11, padding: "3px 8px", color: "rgba(255,255,255,.35)", fontWeight: 600 }}>+{tags.length - 4}</span>}
                                         </div>
                                     )}
 
-                                    {/* Video highlight: prioritaskan field highlightVideoUrl dari CMS, fallback ke video portfolio matching */}
-                                    {(() => {
-                                        const hv = s.highlightVideoUrl;
-                                        if (hv && isDirectVideo(hv)) {
-                                            // File video langsung (mp4/webm) — autoplay muted loop, tanpa controls/branding
-                                            return (
-                                                <div onClick={() => setModal(hv)} style={{ borderRadius: 14, overflow: "hidden", cursor: "pointer", aspectRatio: "16/9", background: "#000", position: "relative", marginBottom: 18 }}>
-                                                    <video src={hv} autoPlay muted loop playsInline style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
-                                                    <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,.15)", display: "flex", alignItems: "center", justifyContent: "center", opacity: 0, transition: "opacity .2s" }}
-                                                        onMouseEnter={e => (e.currentTarget as HTMLElement).style.opacity = "1"}
-                                                        onMouseLeave={e => (e.currentTarget as HTMLElement).style.opacity = "0"}>
-                                                        <div style={{ width: 44, height: 44, borderRadius: "50%", background: OR, display: "flex", alignItems: "center", justifyContent: "center" }}><Play size={16} style={{ fill: "#fff", color: "#fff", marginLeft: 2 }} /></div>
-                                                    </div>
-                                                </div>
-                                            );
-                                        }
-                                        if (hv) {
-                                            // YouTube/Vimeo link — autoplay muted via embed (klik untuk buka modal full dengan suara)
-                                            const ytAutoplay = ytId(hv) ? `https://www.youtube.com/embed/${ytId(hv)}?autoplay=1&mute=1&loop=1&playlist=${ytId(hv)}&controls=0&rel=0` : "";
-                                            return (
-                                                <div onClick={() => setModal(hv)} style={{ borderRadius: 14, overflow: "hidden", cursor: "pointer", aspectRatio: "16/9", background: "#000", position: "relative", marginBottom: 18 }}>
-                                                    {ytAutoplay
-                                                        ? <iframe src={ytAutoplay} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", border: "none", pointerEvents: "none" }} allow="autoplay;encrypted-media" />
-                                                        : getThumb(hv) && <img src={getThumb(hv)} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} alt={s.title} />
-                                                    }
-                                                    <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                                                        <div style={{ width: 44, height: 44, borderRadius: "50%", background: `${OR}cc`, display: "flex", alignItems: "center", justifyContent: "center" }}><Play size={16} style={{ fill: "#fff", color: "#fff", marginLeft: 2 }} /></div>
-                                                    </div>
-                                                </div>
-                                            );
-                                        }
-                                        // Belum ada video highlight di CMS — tampilkan placeholder jelas, JANGAN tebak-tebak dari portfolio
-                                        return (
-                                            <div style={{ borderRadius: 14, overflow: "hidden", aspectRatio: "16/9", background: "rgba(255,255,255,.025)", border: "1px dashed rgba(255,255,255,.12)", position: "relative", marginBottom: 18, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8 }}>
-                                                <Play size={22} color="rgba(255,255,255,.18)" />
-                                                <p style={{ fontSize: 11, color: "rgba(255,255,255,.28)", textAlign: "center", margin: 0, padding: "0 20px" }}>Belum ada video highlight<br />Upload di CMS → Layanan</p>
-                                            </div>
-                                        );
-                                    })()}
+                                    {/* Video highlight (hanya jika ada) */}
+                                    {hv && (
+                                        <div onClick={() => setModal(hv)} style={{ borderRadius: 16, overflow: "hidden", cursor: "pointer", aspectRatio: "16/9", background: "#000", position: "relative", marginBottom: 18 }}>
+                                            {isDirectVideo(hv)
+                                                ? <video src={hv} autoPlay muted loop playsInline style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                                                : yt
+                                                    ? <iframe src={`https://www.youtube.com/embed/${yt}?autoplay=1&mute=1&loop=1&playlist=${yt}&controls=0&rel=0`} title={s.title} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", border: "none", pointerEvents: "none" }} allow="autoplay;encrypted-media" />
+                                                    : thumb && <img src={thumb} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} alt={s.title} />}
+                                            <span style={{ position: "absolute", right: 12, bottom: 12, width: 36, height: 36, borderRadius: "50%", background: "rgba(10,10,12,.62)", backdropFilter: "blur(8px)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff" }}>
+                                                <Play size={13} style={{ fill: "#fff", marginLeft: 1 }} />
+                                            </span>
+                                        </div>
+                                    )}
 
-                                    {/* Price + CTA */}
-                                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "auto", paddingTop: 14, borderTop: "1px solid rgba(255,255,255,.07)" }}>
-                                        {s.price && (
-                                            <div>
-                                                <p style={{ fontSize: 9, color: "rgba(255,255,255,.3)", margin: "0 0 2px", textTransform: "uppercase", letterSpacing: ".1em" }}>Estimasi harga</p>
-                                                <p style={{ fontSize: 17, fontWeight: 800, color: OR, margin: 0 }}>{s.price}</p>
-                                            </div>
-                                        )}
-                                        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                                            <button onClick={() => openInquiry(s)}
-                                                style={{
-                                                    display: "inline-flex", alignItems: "center", gap: 8,
-                                                    padding: "8px 14px", borderRadius: 20, background: `linear-gradient(90deg, ${OR}, #e85a00)`,
-                                                    border: "none", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: FONT,
-                                                    boxShadow: "0 8px 20px rgba(255,106,32,.12)", transition: "transform .12s ease, box-shadow .12s ease"
-                                                }}
-                                                onMouseEnter={(e: any) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 12px 28px rgba(255,106,32,.16)'; }}
-                                                onMouseLeave={(e: any) => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '0 8px 20px rgba(255,106,32,.12)'; }}
-                                            >
-                                                Hubungi Kami <ArrowRight size={13} />
+                                    {/* Fitur */}
+                                    {features.length > 0 && (
+                                        <ul style={{ listStyle: "none", display: "flex", flexDirection: "column", gap: 9, margin: "0 0 20px", padding: 0 }}>
+                                            {features.slice(0, 5).map(f => (
+                                                <li key={f} style={{ display: "flex", alignItems: "flex-start", gap: 9, fontSize: 13, color: "rgba(255,255,255,.62)", lineHeight: 1.45 }}>
+                                                    <Check size={14} color={OR} strokeWidth={2.4} style={{ flexShrink: 0, marginTop: 2 }} />{f}
+                                                </li>
+                                            ))}
+                                            {features.length > 5 && (
+                                                <li style={{ fontSize: 12, color: "rgba(255,255,255,.35)", paddingLeft: 23 }}>+{features.length - 5} fasilitas lainnya</li>
+                                            )}
+                                        </ul>
+                                    )}
+
+                                    {/* Harga + CTA: selalu menempel di dasar kartu */}
+                                    <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginTop: "auto", paddingTop: 18, borderTop: "1px solid rgba(255,255,255,.08)" }}>
+                                        <div style={{ minWidth: 0 }}>
+                                            {s.price ? (
+                                                <>
+                                                    <p style={{ fontSize: 10, color: "rgba(255,255,255,.34)", margin: "0 0 3px", textTransform: "uppercase", letterSpacing: ".12em", fontWeight: 700 }}>Mulai dari</p>
+                                                    <p style={{ fontSize: 18, fontWeight: 800, color: "#fff", margin: 0, letterSpacing: "-.02em", whiteSpace: "nowrap" }}>{s.price.replace(/\+$/, "")}</p>
+                                                </>
+                                            ) : (
+                                                <p style={{ fontSize: 13, color: "rgba(255,255,255,.45)", margin: 0, fontWeight: 600 }}>Harga sesuai brief</p>
+                                            )}
+                                        </div>
+                                        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                                            {s.slug && (
+                                                <a href={`/services/${encodeURIComponent(s.slug)}`} aria-label={`Detail ${s.title}`} className="outline-btn"
+                                                    style={{ height: 40, padding: "0 14px", borderRadius: 100, border: "1px solid rgba(255,255,255,.14)", color: "rgba(255,255,255,.75)", textDecoration: "none", fontSize: 13, fontWeight: 700, display: "inline-flex", alignItems: "center", whiteSpace: "nowrap" }}>
+                                                    Detail
+                                                </a>
+                                            )}
+                                            <button onClick={() => openInquiry(s)} className="svc-cta"
+                                                style={{ height: 40, display: "inline-flex", alignItems: "center", gap: 8, padding: "0 18px", borderRadius: 100, background: OR, border: "none", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: FONT, whiteSpace: "nowrap" }}>
+                                                Konsultasi <ArrowRight size={14} />
                                             </button>
                                         </div>
                                     </div>
-                                </div>
+                                </article>
                             );
                         })}
                     </div>
@@ -332,13 +333,13 @@ export default function ServicesPage() {
                     <h2 style={{ fontSize: "clamp(28px,4vw,46px)", fontWeight: 900, letterSpacing: "-.04em", color: "#fff", marginBottom: 48, lineHeight: 1.0 }}>Kenapa Pilih<span style={{ color: OR }}> Frameless?</span></h2>
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))", gap: 20, maxWidth: 960, margin: "0 auto" }}>
                         {[
-                            { icon: "🏆", title: "Berpengalaman", desc: "8+ tahun di industri dengan 200+ proyek sukses dari berbagai kategori." },
-                            { icon: "🎯", title: "Tepat Sasaran", desc: "Kami pahami goals bisnismu dan pastikan setiap frame punya tujuan." },
-                            { icon: "⚡", title: "Turnaround Cepat", desc: "Jadwal produksi transparan dan delivery tepat waktu sesuai kontrak." },
-                            { icon: "💎", title: "Kualitas Premium", desc: "Equipment profesional, crew terlatih, dan standar produksi tertinggi." },
+                            { Icon: Award, title: "Berpengalaman", desc: "8+ tahun di industri dengan 200+ proyek sukses dari berbagai kategori." },
+                            { Icon: Target, title: "Tepat Sasaran", desc: "Kami pahami goals bisnismu dan pastikan setiap frame punya tujuan." },
+                            { Icon: Zap, title: "Turnaround Cepat", desc: "Jadwal produksi transparan dan delivery tepat waktu sesuai kontrak." },
+                            { Icon: Gem, title: "Kualitas Premium", desc: "Equipment profesional, crew terlatih, dan standar produksi tertinggi." },
                         ].map(w => (
-                            <div key={w.title} style={{ padding: "28px 24px", borderRadius: 20, background: "rgba(255,255,255,.02)", border: "1px solid rgba(255,255,255,.06)", boxShadow: "0 12px 30px rgba(0,0,0,.1)" }}>
-                                <div style={{ fontSize: 36, marginBottom: 14 }}>{w.icon}</div>
+                            <div key={w.title} style={{ padding: "28px 24px", borderRadius: 22, background: "rgba(255,255,255,.025)", border: "1px solid rgba(255,255,255,.07)", textAlign: "left" }}>
+                                <span style={{ width: 46, height: 46, borderRadius: 15, display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 16, background: `${OR}14`, color: OR, boxShadow: `inset 0 0 0 1px ${OR}26` }}><w.Icon size={21} strokeWidth={1.6} /></span>
                                 <h3 style={{ fontSize: 16, fontWeight: 700, color: "#fff", marginBottom: 8 }}>{w.title}</h3>
                                 <p style={{ fontSize: 13, color: "rgba(255,255,255,.43)", lineHeight: 1.65 }}>{w.desc}</p>
                             </div>
@@ -365,7 +366,7 @@ export default function ServicesPage() {
                     <div style={{ background: "#111318", border: "1px solid rgba(255,255,255,.12)", borderRadius: 28, padding: "36px 32px", width: "100%", maxWidth: 460, position: "relative", boxShadow: "0 24px 80px rgba(0,0,0,.4)" }}>
                         <button onClick={() => setFormOpen(false)} style={{ position: "absolute", top: 16, right: 16, width: 34, height: 34, borderRadius: "50%", background: "rgba(255,255,255,.07)", border: "none", cursor: "pointer", color: "rgba(255,255,255,.5)", display: "flex", alignItems: "center", justifyContent: "center" }}><X size={14} /></button>
                         <h3 style={{ fontSize: 22, fontWeight: 800, color: "#fff", marginBottom: 8 }}>Kirim Inquiry</h3>
-                        {selService && <p style={{ fontSize: 13, color: OR, marginBottom: 20, fontWeight: 600 }}>{selService.icon} {selService.title}</p>}
+                        {selService && <p style={{ fontSize: 13, color: OR, marginBottom: 20, fontWeight: 600 }}>{selService.title}</p>}
                         <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                             {[
                               { k: "name", l: "Nama Lengkap *", ph: "Nama kamu" }, 

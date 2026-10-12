@@ -815,7 +815,7 @@ export function CrewLinkInBio() {
                         </button>
                         {pages.length > 0 && (
                           <div style={{ background: "rgba(167,139,250,.06)", border: "1px solid #a78bfa33", borderRadius: 10, padding: "10px 14px", fontSize: 11, color: "rgba(255,255,255,.5)", lineHeight: 1.6 }}>
-                            💡 <strong style={{ color: "#a78bfa" }}>Tips:</strong> Tambahkan sub-page sebagai link di bio utama. Contoh: label "📦 My Equipment", URL <code style={{ color: "#a78bfa" }}>/@{profile.username || "username"}/equipment</code>
+                            <strong style={{ color: "#a78bfa" }}>Tips:</strong> Tambahkan sub-page sebagai link di bio utama. Contoh: label "📦 My Equipment", URL <code style={{ color: "#a78bfa" }}>/@{profile.username || "username"}/equipment</code>
                           </div>
                         )}
                       </div>

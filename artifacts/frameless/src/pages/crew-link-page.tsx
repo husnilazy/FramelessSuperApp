@@ -21,6 +21,7 @@ import {
   Star,
   ExternalLink,
   Loader2,
+  Film,
 } from "lucide-react";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -259,7 +260,7 @@ export default function CrewLinkPage() {
         }}
       >
         <style>{`@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;700;800;900&display=swap');`}</style>
-        <div style={{ fontSize: 48, marginBottom: 8 }}>🎬</div>
+        <div style={{ marginBottom: 10, color: "rgba(255,255,255,.35)", display: "flex", justifyContent: "center" }}><Film size={44} strokeWidth={1.3} /></div>
         <div style={{ fontSize: 20, fontWeight: 900, color: "#fff" }}>Profil tidak ditemukan</div>
         <div style={{ fontSize: 14, color: "rgba(255,255,255,.4)", maxWidth: 300 }}>
           @{username} belum punya halaman publik, atau link sudah tidak aktif.

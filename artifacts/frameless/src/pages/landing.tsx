@@ -10,8 +10,9 @@ import {
   Star, Clock, TrendingUp, Volume2, VolumeX,
   Linkedin, Twitter, Globe,
   Clapperboard, Music2, Camera, Tv, Heart, Smartphone, Building2, PartyPopper,
-  Check, Download, Wrench,
+  Check, Download, Wrench, Palette,
 } from "lucide-react";
+import { serviceIconFor } from "@/lib/service-icons";
 import { formatCurrency } from "@/lib/formatters";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -98,8 +99,8 @@ const SERVICE_ICON_MAP: Record<string, any> = {
   "corporate-video": Building2,
   "event-coverage": PartyPopper,
 };
-function getServiceIcon(slug: string) {
-  return SERVICE_ICON_MAP[slug] || Film;
+function getServiceIcon(slug: string, title?: string) {
+  return SERVICE_ICON_MAP[slug] || serviceIconFor(title, slug) || Film;
 }
 
 // ── Default Services ──────────────────────────────────────────────────────────
@@ -760,7 +761,7 @@ export default function LandingPage() {
                     const opac   = ([1, 0.55, 0.25] as const)[ab];
                     const zIdx   = ([15, 8, 3] as const)[ab];
                     const STEP   = 340;
-                    const Icon   = getServiceIcon(s.slug);
+                    const Icon   = getServiceIcon(s.slug, s.title);
                     const hv     = s.highlightVideoUrl;
                     const hvEmbed = isC && hv && !isDirectVideo(hv) ? autoEmbed(hv, true) : "";
 
@@ -1615,7 +1616,7 @@ export default function LandingPage() {
                           borderRadius: 100, fontWeight: 800, textTransform: "uppercase",
                           letterSpacing: ".1em", boxShadow: `0 4px 16px ${OR}44`,
                         }}>
-                          ⭐ Unggulan
+                          <Star size={11} style={{ marginRight: 4 }} /> Unggulan
                         </div>
                       )}
 
@@ -1788,7 +1789,7 @@ export default function LandingPage() {
               {pubAssets.map(asset => (
                 <a key={asset.id} href="/store" className="asset-card" style={{ textDecoration: "none", borderRadius: 20, overflow: "hidden", border: "1px solid rgba(255,255,255,.08)", background: "rgba(255,255,255,.025)", display: "flex", flexDirection: "column", transition: "transform .25s,border-color .25s" }}>
                   <div style={{ aspectRatio: "4/3", background: asset.thumbnailUrl ? `url(${asset.thumbnailUrl}) center/cover` : `linear-gradient(135deg,${OR}22,${c2}22)`, position: "relative", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    {!asset.thumbnailUrl && <span style={{ fontSize: 36 }}>🎨</span>}
+                    {!asset.thumbnailUrl && <Palette size={34} strokeWidth={1.4} color="rgba(255,255,255,.35)" />}
                     {asset.category && <div style={{ position: "absolute", top: 12, left: 12, background: "rgba(0,0,0,.6)", backdropFilter: "blur(8px)", borderRadius: 8, padding: "3px 10px" }}><span style={{ fontSize: 10, color: "rgba(255,255,255,.7)", fontWeight: 600 }}>{asset.category}</span></div>}
                     {asset.fileType && <div style={{ position: "absolute", top: 12, right: 12, background: `${OR}22`, border: `1px solid ${OR}44`, borderRadius: 8, padding: "3px 10px" }}><span style={{ fontSize: 10, color: OR, fontWeight: 700 }}>{asset.fileType}</span></div>}
                   </div>
@@ -1805,7 +1806,7 @@ export default function LandingPage() {
             </div>
           ) : (
             <div style={{ textAlign: "center", padding: "56px 40px", borderRadius: 22, border: "2px dashed rgba(255,255,255,.08)" }}>
-              <div style={{ fontSize: 44, marginBottom: 14 }}>🎨</div>
+              <div style={{ marginBottom: 14, color: "rgba(255,255,255,.3)" }}><Palette size={40} strokeWidth={1.3} /></div>
               <p style={{ color: "rgba(255,255,255,.33)", fontSize: 14, marginBottom: 16 }}>Aset digital segera hadir.</p>
               <a href="/digital-assets-admin" style={{ color: OR, textDecoration: "none", fontWeight: 700, fontSize: 13 }}>Tambah aset di admin →</a>
             </div>
@@ -2086,7 +2087,7 @@ export default function LandingPage() {
                   onMouseLeave={e => (e.target as HTMLElement).style.color = "rgba(255,255,255,.22)"}>{lbl}</a>
               ))}
             </div>
-            <p style={{ fontSize: 11, color: "rgba(255,255,255,.14)" }}>Built with ❤️ Frameless Team</p>
+            <p style={{ fontSize: 11, color: "rgba(255,255,255,.14)" }}>Dibuat oleh Frameless Team</p>
           </div>
         </div>
       </footer>

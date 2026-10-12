@@ -682,7 +682,7 @@ function EnrollModal({ selectedPkg, allPkgs, courseName, courseId, waNumber, onC
                   onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.opacity = ".9")}
                   onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.opacity = "1")}
                 >
-                  {isTrial || price === 0 ? "✓ Mulai Trial Gratis — Langsung Akses" : "Lanjut ke Pembayaran →"}
+                  {isTrial || price === 0 ? "Mulai Trial Gratis — Langsung Akses" : "Lanjut ke Pembayaran →"}
                 </button>
               </div>
 
@@ -799,7 +799,7 @@ function EnrollModal({ selectedPkg, allPkgs, courseName, courseId, waNumber, onC
                     boxShadow: `0 8px 24px ${ORANGE}44`,
                   }}
                 >
-                  🔄 Cek Status Pembayaran
+                  Cek Status Pembayaran
                 </button>
                 <button
                   onClick={onClose}
@@ -1702,7 +1702,7 @@ export default function CoursePage() {
                         background: ORANGE, color: "#fff", fontSize: 10, fontWeight: 800,
                         letterSpacing: ".1em", textTransform: "uppercase", whiteSpace: "nowrap",
                       }}>
-                        ⭐ Paling Populer
+                        Paling Populer
                       </div>
                     )}
                     {isPopular && showDisc && (
@@ -1712,7 +1712,7 @@ export default function CoursePage() {
                         background: ORANGE, color: "#fff", fontSize: 10, fontWeight: 800,
                         letterSpacing: ".1em", textTransform: "uppercase", whiteSpace: "nowrap",
                       }}>
-                        🔥 Promo Terbaik
+                        Promo Terbaik
                       </div>
                     )}
 
@@ -1790,7 +1790,7 @@ export default function CoursePage() {
                       {/* Hemat */}
                       {showDisc && price > 0 && (
                         <div className="price-save">
-                          💰 Hemat {formatCurrency(origP! - price)}
+                          Hemat {formatCurrency(origP! - price)}
                         </div>
                       )}
 
@@ -1843,7 +1843,7 @@ export default function CoursePage() {
                         ? (pkg.isTrial ? "#fbbf24" : showDisc ? "#f87171" : ORANGE)
                         : TEXT_DIM,
                     }}>
-                      <span>{isSelected ? (showDisc ? "🔥 Paket dipilih ✓" : "Paket dipilih ✓") : "Pilih paket ini"}</span>
+                      <span>{isSelected ? (showDisc ? "Paket dipilih" : "Paket dipilih") : "Pilih paket ini"}</span>
                       <ChevronRight size={15} />
                     </div>
                   </button>
@@ -2167,7 +2167,7 @@ export default function CoursePage() {
                           )}
                           {almostFull && !soldOut && (
                             <span style={{ fontSize: 10, fontWeight: 800, padding: "4px 12px", borderRadius: 100, background: "rgba(251,146,60,.2)", border: "1px solid rgba(251,146,60,.4)", color: "#fb923c", backdropFilter: "blur(8px)", letterSpacing: ".1em", textTransform: "uppercase" }}>
-                              🔥 Hampir penuh
+                              Hampir penuh
                             </span>
                           )}
                           {ws.videoUrl && (
@@ -2215,7 +2215,7 @@ export default function CoursePage() {
                           <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 8 }}>
                             <h3 style={{ margin: 0, fontSize: "clamp(20px,2.5vw,28px)", fontWeight: 900, letterSpacing: "-0.04em" }}>{ws.title}</h3>
                             {soldOut && <span style={{ fontSize: 10, fontWeight: 800, padding: "3px 10px", borderRadius: 100, background: "rgba(239,68,68,.15)", border: "1px solid rgba(239,68,68,.3)", color: "#f87171", textTransform: "uppercase", letterSpacing: ".08em" }}>Penuh</span>}
-                            {almostFull && !soldOut && <span style={{ fontSize: 10, fontWeight: 800, padding: "3px 10px", borderRadius: 100, background: "rgba(251,146,60,.15)", border: "1px solid rgba(251,146,60,.3)", color: "#fb923c", textTransform: "uppercase", letterSpacing: ".08em" }}>🔥 Hampir penuh</span>}
+                            {almostFull && !soldOut && <span style={{ fontSize: 10, fontWeight: 800, padding: "3px 10px", borderRadius: 100, background: "rgba(251,146,60,.15)", border: "1px solid rgba(251,146,60,.3)", color: "#fb923c", textTransform: "uppercase", letterSpacing: ".08em" }}>Hampir penuh</span>}
                           </div>
                           {ws.description && <p style={{ margin: 0, color: TEXT_DIM, fontSize: 14, lineHeight: 1.7 }}>{ws.description}</p>}
                         </div>

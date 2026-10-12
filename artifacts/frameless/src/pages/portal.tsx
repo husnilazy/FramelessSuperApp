@@ -907,7 +907,7 @@ function UpgradeView({ course, enrollment, isDark }: {
           Unlock Akses Penuh
         </p>
         <h3 style={{ margin: "0 0 10px", fontSize: 18, fontWeight: 900 }}>
-          🚀 Akses Semua Materi {course.title}
+          Akses Semua Materi {course.title}
         </h3>
         <p style={{ margin: "0 0 18px", fontSize: 13, color: TEXT_DIM, lineHeight: 1.6 }}>
           Dengan upgrade, kamu bisa akses seluruh video materi, progress tracking lengkap,

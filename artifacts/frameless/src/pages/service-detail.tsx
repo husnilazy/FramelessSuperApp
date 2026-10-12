@@ -8,8 +8,9 @@ import { useToast } from "@/hooks/use-toast";
 import {
   ArrowLeft, Play, X, CheckCircle2, MessageCircle,
   Mail, ChevronRight, Clock, ArrowRight, Star,
-  ExternalLink, ImageIcon, Film,
+  ExternalLink, ImageIcon, Film, RefreshCw,
 } from "lucide-react";
+import { ServiceIcon } from "@/lib/service-icons";
 
 import { MotionLayer } from "@/lib/landing-motion";
 interface CmsData { [s:string]:{[k:string]:string} }
@@ -150,7 +151,7 @@ export default function ServiceDetailPage() {
     setSubmitting(true);
     try {
       await fetch("/api/cms/inquiry",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({...form,service:service?.title,slug})});
-      toast({title:"Pesan terkirim! 🎉",description:"Tim kami akan menghubungi kamu dalam 1x24 jam."});
+      toast({title:"Pesan terkirim!",description:"Tim kami akan menghubungi kamu dalam 1x24 jam."});
       setInquiryOpen(false);
       setForm({name:"",email:"",phone:"",message:""});
     } catch {
@@ -223,7 +224,7 @@ export default function ServiceDetailPage() {
             {/* Left */}
             <div>
               <div className="fu d1" style={{display:"inline-flex",alignItems:"center",gap:8,padding:"5px 14px",borderRadius:100,background:`${OR}18`,border:`1px solid ${OR}33`,marginBottom:22}}>
-                <span style={{fontSize:20}}>{service.icon}</span>
+                <ServiceIcon title={service.title} slug={service.slug} size={26} accent={OR} />
                 <span style={{fontSize:10,fontWeight:700,letterSpacing:".18em",color:OR,textTransform:"uppercase"}}>Layanan Frameless Creative</span>
               </div>
               <h1 className="fu d2" style={{fontSize:"clamp(36px,5.5vw,66px)",fontWeight:900,letterSpacing:"-.045em",color:"#fff",marginBottom:18,lineHeight:1.0}}>{service.title}</h1>
@@ -251,14 +252,14 @@ export default function ServiceDetailPage() {
                 {(service.tags||[]).map(t=>(
                   <span key={t} style={{fontSize:12,padding:"5px 14px",borderRadius:100,background:"rgba(255,255,255,.07)",color:"rgba(255,255,255,.55)",fontWeight:600,border:"1px solid rgba(255,255,255,.1)"}}>{t}</span>
                 ))}
-                {service.duration&&<span style={{fontSize:12,padding:"5px 14px",borderRadius:100,background:`${OR}18`,color:OR,fontWeight:700,border:`1px solid ${OR}33`}}>⏱ {service.duration}</span>}
+                {service.duration&&<span style={{display:"inline-flex",alignItems:"center",fontSize:12,padding:"5px 14px",borderRadius:100,background:`${OR}18`,color:OR,fontWeight:700,border:`1px solid ${OR}33`}}><Clock size={12} style={{verticalAlign:"-2px",marginRight:5}} />{service.duration}</span>}
               </div>
 
               {/* Social proof */}
               <div style={{display:"flex",gap:24,flexWrap:"wrap"}}>
-                {[{icon:"⭐",v:"4.9/5",l:"Rating klien"},{icon:"✅",v:"200+",l:"Project selesai"},{icon:"🔄",v:"85%",l:"Repeat order"}].map(s=>(
+                {[{Icon:Star,v:"4.9/5",l:"Rating klien"},{Icon:CheckCircle2,v:"200+",l:"Project selesai"},{Icon:RefreshCw,v:"85%",l:"Repeat order"}].map(s=>(
                   <div key={s.l} style={{display:"flex",alignItems:"center",gap:6}}>
-                    <span style={{fontSize:15}}>{s.icon}</span>
+                    <s.Icon size={15} color={OR} strokeWidth={2} />
                     <span style={{fontSize:13,color:"rgba(255,255,255,.45)"}}><strong style={{color:"#fff",fontWeight:800}}>{s.v}</strong> {s.l}</span>
                   </div>
                 ))}
@@ -269,10 +270,10 @@ export default function ServiceDetailPage() {
             <div style={{position:"sticky",top:80}}>
               <div style={{background:"rgba(255,255,255,.035)",border:`1px solid ${OR}33`,borderRadius:24,padding:"28px 24px",backdropFilter:"blur(16px)"}}>
                 <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:16}}>
-                  <div style={{fontSize:32}}>{service.icon}</div>
+                  <ServiceIcon title={service.title} slug={service.slug} size={46} accent={OR} />
                   <div>
                     <p style={{fontSize:14,fontWeight:700,color:"#fff",margin:0}}>{service.title}</p>
-                    {service.duration&&<p style={{fontSize:11,color:"rgba(255,255,255,.4)",margin:"2px 0 0"}}>⏱ {service.duration}</p>}
+                    {service.duration&&<p style={{display:"flex",alignItems:"center",fontSize:11,color:"rgba(255,255,255,.4)",margin:"2px 0 0"}}><Clock size={11} style={{verticalAlign:"-1px",marginRight:4}} />{service.duration}</p>}
                   </div>
                 </div>
                 {service.price&&(
@@ -291,7 +292,7 @@ export default function ServiceDetailPage() {
                   </a>
                 )}
                 <div style={{marginTop:14,display:"flex",gap:6,justifyContent:"center",flexWrap:"wrap"}}>
-                  {["✅ Konsultasi gratis","🔒 No hidden fee","⚡ Respon cepat"].map(t=>(
+                  {["Konsultasi gratis","Tanpa biaya tersembunyi","Respon cepat"].map(t=>(
                     <span key={t} style={{fontSize:10,color:"rgba(255,255,255,.3)"}}>{t}</span>
                   ))}
                 </div>
@@ -318,7 +319,7 @@ export default function ServiceDetailPage() {
         {service.features&&service.features.length>0&&(
           <section className="pxs" style={{maxWidth:1200,margin:"0 auto",padding:"0 24px 72px"}}>
             <h2 style={{fontSize:"clamp(22px,3vw,32px)",fontWeight:800,color:"#fff",letterSpacing:"-.03em",marginBottom:28}}>
-              Yang Kamu Dapat <span style={{color:OR}}>✓</span>
+              Yang Kamu Dapat
             </h2>
             <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:12}}>
               {service.features.map((feat,i)=>(
@@ -391,7 +392,7 @@ export default function ServiceDetailPage() {
                 <a key={s.slug} href={`/services/${s.slug}`} style={{textDecoration:"none",padding:"18px 20px",borderRadius:16,background:"rgba(255,255,255,.025)",border:"1px solid rgba(255,255,255,.07)",display:"flex",gap:12,alignItems:"flex-start",transition:"border-color .2s,transform .2s"}}
                   onMouseEnter={e=>{const el=e.currentTarget as HTMLElement;el.style.borderColor=`${OR}44`;el.style.transform="translateY(-2px)";}}
                   onMouseLeave={e=>{const el=e.currentTarget as HTMLElement;el.style.borderColor="rgba(255,255,255,.07)";el.style.transform="translateY(0)";}}>
-                  <span style={{fontSize:22,flexShrink:0}}>{s.icon}</span>
+                  <ServiceIcon title={s.title} slug={s.slug} size={38} accent={OR} />
                   <div>
                     <p style={{fontSize:13,fontWeight:700,color:"#fff",margin:"0 0 4px"}}>{s.title}</p>
                     <p style={{fontSize:11,color:"rgba(255,255,255,.4)",lineHeight:1.5}}>{s.description.slice(0,60)}...</p>
@@ -434,7 +435,7 @@ export default function ServiceDetailPage() {
           <div style={{background:"#111318",border:"1px solid rgba(255,255,255,.1)",borderRadius:24,padding:"36px 30px",width:"100%",maxWidth:440,position:"relative"}}>
             <button onClick={()=>setInquiryOpen(false)} style={{position:"absolute",top:14,right:14,width:30,height:30,borderRadius:"50%",background:"rgba(255,255,255,.06)",border:"none",cursor:"pointer",color:"rgba(255,255,255,.5)",display:"flex",alignItems:"center",justifyContent:"center"}}><X size={14}/></button>
             <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:6}}>
-              <span style={{fontSize:22}}>{service.icon}</span>
+              <ServiceIcon title={service.title} slug={service.slug} size={36} accent={OR} />
               <h3 style={{fontSize:19,fontWeight:800,color:"#fff",letterSpacing:"-.02em"}}>Request Penawaran</h3>
             </div>
             <p style={{fontSize:12,color:OR,fontWeight:600,marginBottom:22}}>{service.title}</p>
@@ -458,10 +459,10 @@ export default function ServiceDetailPage() {
                   </a>
                 )}
                 <button type="submit" disabled={submitting||!form.name||!form.email} style={{flex:1,padding:"13px",borderRadius:12,background:OR,border:"none",color:"#fff",fontSize:13,fontWeight:800,cursor:"pointer",fontFamily:FONT,opacity:submitting?0.7:1}}>
-                  {submitting?"Mengirim...":"Kirim Pesan 📩"}
+                  {submitting?"Mengirim...":"Kirim Pesan"}
                 </button>
               </div>
-              <p style={{fontSize:11,color:"rgba(255,255,255,.25)",textAlign:"center"}}>🔒 Data aman. Kami tidak spam.</p>
+              <p style={{fontSize:11,color:"rgba(255,255,255,.25)",textAlign:"center"}}>Data aman. Kami tidak spam.</p>
             </form>
           </div>
         </div>
