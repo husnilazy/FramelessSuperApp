@@ -46,6 +46,7 @@ import {
   StopCircle,
 } from "lucide-react";
 
+import { useBrand } from "@/lib/brand";
 type CrewUser = {
   id: string;
   name: string;
@@ -136,8 +137,8 @@ type Tab = "overview" | "projects" | "tasks" | "crew" | "files" | "calendar" | "
 
 const FONT = "'Plus Jakarta Sans', sans-serif";
 const DEFAULT_PRIMARY = "#FF6A20";
-const DEFAULT_LINE = "rgba(255,255,255,0.12)";
-const DEFAULT_SURFACE = "rgba(255,255,255,0.055)";
+const DEFAULT_LINE = "rgb(var(--ink) / 0.12)";
+const DEFAULT_SURFACE = "rgb(var(--ink) / 0.055)";
 
 // Extra safety: in case any old code still references these
 const OR = DEFAULT_PRIMARY;
@@ -152,13 +153,13 @@ function useCrewVisuals() {
 
   const glass = isDark
     ? {
-        bg: "rgba(255,255,255,0.055)",
-        bgStrong: "rgba(255,255,255,0.08)",
-        border: "rgba(255,255,255,0.10)",
+        bg: "rgb(var(--ink) / 0.055)",
+        bgStrong: "rgb(var(--ink) / 0.08)",
+        border: "rgb(var(--ink) / 0.10)",
         borderActive: `${primary}55`,
         text: "#f8fafc",
-        muted: "rgba(255,255,255,0.52)",
-        surface: "rgba(255,255,255,0.045)",
+        muted: "rgb(var(--ink) / calc(0.52 + var(--ink-boost)))",
+        surface: "rgb(var(--ink) / 0.045)",
       }
     : {
         bg: "rgba(255,255,255,0.78)",
@@ -344,21 +345,17 @@ function Card({ children, style }: { children: React.ReactNode; style?: React.CS
   return (
     <section
       style={{
-        background: "rgba(255,255,255,0.048)",
-        border: "1px solid rgba(255,255,255,0.10)",
-        borderRadius: 16,
+        background: "hsl(var(--card))",
+        border: "1px solid hsl(var(--border))",
+        borderRadius: 18,
         padding: 18,
+        boxShadow: "0 1px 2px rgb(0 0 0 / .06), 0 10px 30px -18px rgb(0 0 0 / .35)",
         transition: "border-color .25s, box-shadow .25s",
+        minWidth: 0,
         ...style,
       }}
-      onMouseEnter={e => {
-        (e.currentTarget as HTMLElement).style.borderColor = "rgba(255,255,255,.16)";
-        (e.currentTarget as HTMLElement).style.boxShadow = "0 8px 32px rgba(0,0,0,.3)";
-      }}
-      onMouseLeave={e => {
-        (e.currentTarget as HTMLElement).style.borderColor = "rgba(255,255,255,.10)";
-        (e.currentTarget as HTMLElement).style.boxShadow = "none";
-      }}
+      onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = "rgb(var(--ink) / .22)"; }}
+      onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = "hsl(var(--border))"; }}
     >
       {children}
     </section>
@@ -386,9 +383,9 @@ function IconButton({
         width: 38,
         height: 38,
         borderRadius: 10,
-        border: `1px solid ${active ? DEFAULT_PRIMARY : "rgba(255,255,255,0.10)"}`,
-        background: active ? `${DEFAULT_PRIMARY}22` : "rgba(255,255,255,.04)",
-        color: active ? DEFAULT_PRIMARY : "rgba(255,255,255,.72)",
+        border: `1px solid ${active ? DEFAULT_PRIMARY : "rgb(var(--ink) / 0.10)"}`,
+        background: active ? `${DEFAULT_PRIMARY}22` : "rgb(var(--ink) / .04)",
+        color: active ? DEFAULT_PRIMARY : "rgb(var(--ink) / calc(.72 + var(--ink-boost)))",
         display: "flex", alignItems: "center", justifyContent: "center",
         cursor: "pointer",
         transition: "background .18s, border-color .18s, transform .22s cubic-bezier(.34,1.56,.64,1), box-shadow .2s",
@@ -397,12 +394,12 @@ function IconButton({
       onMouseEnter={e => {
         const el = e.currentTarget as HTMLButtonElement;
         el.style.transform = "translateY(-1px) scale(1.08)";
-        el.style.borderColor = active ? DEFAULT_PRIMARY : "rgba(255,255,255,.22)";
+        el.style.borderColor = active ? DEFAULT_PRIMARY : "rgb(var(--ink) / .22)";
       }}
       onMouseLeave={e => {
         const el = e.currentTarget as HTMLButtonElement;
         el.style.transform = "";
-        el.style.borderColor = active ? DEFAULT_PRIMARY : "rgba(255,255,255,.10)";
+        el.style.borderColor = active ? DEFAULT_PRIMARY : "rgb(var(--ink) / .10)";
       }}
       onMouseDown={e => { (e.currentTarget as HTMLButtonElement).style.transform = "scale(.9)"; }}
       onMouseUp={e => { (e.currentTarget as HTMLButtonElement).style.transform = ""; }}
@@ -415,7 +412,7 @@ function IconButton({
 function ProgressBar({ value, color = DEFAULT_PRIMARY }: { value?: number | null; color?: string }) {
   const pct = Math.max(0, Math.min(100, Number(value || 0)));
   return (
-    <div style={{ height: 6, borderRadius: 999, background: "rgba(255,255,255,.07)", overflow: "hidden" }}>
+    <div style={{ height: 6, borderRadius: 999, background: "rgb(var(--ink) / .09)", overflow: "hidden" }}>
       <div style={{
         width: `${pct}%`, height: "100%", borderRadius: 999,
         background: `linear-gradient(90deg, ${color}cc, ${color})`,
@@ -607,8 +604,8 @@ function CrewDashboard({ user, onLogout }: { user: CrewUser; onLogout: () => voi
 
   // Make OR / LINE / SURFACE available immediately for all code below (fixes TDZ error)
   const OR = primary || DEFAULT_PRIMARY;
-  const LINE = glass?.border || (isDark ? "rgba(255,255,255,0.10)" : "rgba(15,23,42,0.10)");
-  const SURFACE = glass?.surface || (isDark ? "rgba(255,255,255,0.045)" : "rgba(255,255,255,0.65)");
+  const LINE = glass?.border || (isDark ? "rgb(var(--ink) / 0.10)" : "rgba(15,23,42,0.10)");
+  const SURFACE = glass?.surface || (isDark ? "rgb(var(--ink) / 0.045)" : "rgba(255,255,255,0.65)");
 
   const [tab, setTab] = useState<Tab>("overview");
   const [calendarView, setCalendarView] = useState<CalendarView>("week");
@@ -898,10 +895,10 @@ function CrewDashboard({ user, onLogout }: { user: CrewUser; onLogout: () => voi
 
   function teamAvailability(member: TeamMember) {
     const status = normalizeStatus(member.status);
-    if (!member.isActive) return { label: "Offline", color: "rgba(255,255,255,.35)" };
+    if (!member.isActive) return { label: "Offline", color: "rgb(var(--ink) / calc(.35 + var(--ink-boost)))" };
     const isOnShoot = todayEvents.some((event) => eventType(event) === "shoot" && (event.assignedTo === member.id || event.assignedTo === "all"));
     if (isOnShoot || status.includes("shoot")) return { label: "On-shoot", color: DEFAULT_PRIMARY };
-    if (status.includes("offline")) return { label: "Offline", color: "rgba(255,255,255,.35)" };
+    if (status.includes("offline")) return { label: "Offline", color: "rgb(var(--ink) / calc(.35 + var(--ink-boost)))" };
     return { label: "Available", color: "#34d399" };
   }
 
@@ -1063,8 +1060,14 @@ function CrewDashboard({ user, onLogout }: { user: CrewUser; onLogout: () => voi
   ];
 
   // Dynamic logo element (reused in header)
-  const LogoMark = branding.logoUrl ? (
-    <img src={branding.logoUrl} alt={branding.companyName} style={{ height: branding.logoSize || 28, maxWidth: 120, objectFit: "contain" }} />
+  // Logo mengikuti tema: logo merek (terang/gelap) bila ada; logo CMS (putih) dijadikan siluet gelap di tema terang.
+  const brandHook = useBrand();
+  const logoSrc = brandHook.logoUrl || branding.logoUrl;
+  const logoFilter = brandHook.logoUrl
+    ? (brandHook.invertLogo ? "brightness(0) invert(1)" : undefined)
+    : (isDark ? undefined : "brightness(0)");
+  const LogoMark = logoSrc ? (
+    <img src={logoSrc} alt={branding.companyName} style={{ height: branding.logoSize || 28, maxWidth: 120, objectFit: "contain", filter: logoFilter }} />
   ) : (
     <div style={{ width: 28, height: 28, borderRadius: 8, background: primary, display: "grid", placeItems: "center", fontWeight: 900, fontSize: 13, color: "#fff" }}>F</div>
   );
@@ -1075,6 +1078,7 @@ function CrewDashboard({ user, onLogout }: { user: CrewUser; onLogout: () => voi
     <div 
       style={{ 
         minHeight: "100dvh", 
+        overflowX: "clip",
         background: isDark ? "#050505" : "#f1f3f7", 
         color: glass.text, 
         fontFamily: FONT,
@@ -1084,7 +1088,7 @@ function CrewDashboard({ user, onLogout }: { user: CrewUser; onLogout: () => voi
       }}
     >
       {/* Full Page Animated Mesh Gradient */}
-      <div style={{ position: 'absolute', inset: 0, zIndex: 0, pointerEvents: 'none', opacity: isDark ? 0.28 : 0.18 }}>
+      <div style={{ position: 'absolute', inset: 0, zIndex: 0, pointerEvents: 'none', overflow: 'hidden', opacity: isDark ? 0.28 : 0.18 }}>
         <div className="global-mesh" style={{ background: m1, top: '5%', left: '-5%', width: '45%', height: '45%', animation: 'meshMove1 28s ease-in-out infinite' }} />
         <div className="global-mesh" style={{ background: m2, top: '20%', right: '-8%', width: '50%', height: '50%', animation: 'meshMove2 35s ease-in-out infinite reverse' }} />
         <div className="global-mesh" style={{ background: m3, bottom: '-10%', left: '15%', width: '40%', height: '40%', animation: 'meshMove3 24s ease-in-out infinite' }} />
@@ -1095,7 +1099,7 @@ function CrewDashboard({ user, onLogout }: { user: CrewUser; onLogout: () => voi
         *{box-sizing:border-box}
         ::-webkit-scrollbar{width:6px;height:6px}
         ::-webkit-scrollbar-track{background:transparent}
-        ::-webkit-scrollbar-thumb{background:${isDark ? "rgba(255,255,255,.18)" : "rgba(15,23,42,.18)"};border-radius:999px}
+        ::-webkit-scrollbar-thumb{background:${isDark ? "rgb(var(--ink) / .18)" : "rgba(15,23,42,.18)"};border-radius:999px}
 
         .mesh-layer .mesh-blob {
           position: absolute;
@@ -1118,6 +1122,7 @@ function CrewDashboard({ user, onLogout }: { user: CrewUser; onLogout: () => voi
         .crew-shell{display:grid;grid-template-columns:248px minmax(0,1fr);min-height:100dvh}
         .crew-main{padding:24px 28px;min-width:0}
 
+        html, body { overflow-x: hidden; max-width: 100%; }
         .global-mesh {
           position: absolute;
           border-radius: 50%;
@@ -1168,7 +1173,7 @@ function CrewDashboard({ user, onLogout }: { user: CrewUser; onLogout: () => voi
           66% { transform: translate(-11%, -5%) scale(0.95); }
         }
         .nav-item{transition:all .15s cubic-bezier(0.23,1,0.32,1)}
-        .nav-item:hover{background:${isDark ? "rgba(255,255,255,.08)" : "rgba(15,23,42,.06)"}!important}
+        .nav-item:hover{background:${isDark ? "rgb(var(--ink) / .08)" : "rgba(15,23,42,.06)"}!important}
         .glass-card{background:${glass.bg};border:1px solid ${glass.border};border-radius:16px;backdrop-filter:blur(22px);transition:transform .2s cubic-bezier(0.23,1,0.32,1), box-shadow .2s}
         .glass-card:hover{transform:translateY(-1px);box-shadow:0 10px 30px ${isDark ? "rgba(0,0,0,0.3)" : "rgba(15,23,42,0.07)"}}
         .metric-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
@@ -1239,6 +1244,10 @@ function CrewDashboard({ user, onLogout }: { user: CrewUser; onLogout: () => voi
           /* AI FAB shifts left on mobile to not overlap bottom nav button */
           .ai-fab-wrap{bottom:calc(72px + env(safe-area-inset-bottom,0px))!important}
         }
+        @media(max-width:480px){
+          .crew-portal-label{display:none}
+          header .mobile-toggle{padding:6px!important}
+        }
         @media(max-width:640px){
           .metric-grid{grid-template-columns:1fr 1fr!important}
           .crew-main{padding:14px 12px;padding-bottom:calc(80px + env(safe-area-inset-bottom,0px))}
@@ -1255,7 +1264,7 @@ function CrewDashboard({ user, onLogout }: { user: CrewUser; onLogout: () => voi
         backdropFilter: "blur(28px)",
         WebkitBackdropFilter: "blur(28px)",
         display: "flex", alignItems: "center", justifyContent: "space-between",
-        padding: "0 20px",
+        padding: "0 clamp(10px, 3vw, 20px)", gap: 8, minWidth: 0,
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
           <button
@@ -1270,7 +1279,7 @@ function CrewDashboard({ user, onLogout }: { user: CrewUser; onLogout: () => voi
 
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             {LogoMark}
-            <div>
+            <div className="crew-portal-label">
               <div style={{ 
                 fontWeight: 600, 
                 fontSize: 12, 
@@ -1408,7 +1417,7 @@ function CrewDashboard({ user, onLogout }: { user: CrewUser; onLogout: () => voi
                     {typeof item.count === "number" && (
                       <span style={{
                         fontSize: 10, fontWeight: 800, padding: "1px 7px", borderRadius: 999,
-                        background: active ? primary : "rgba(255,255,255,.1)", color: active ? "#fff" : glass.muted,
+                        background: active ? primary : "rgb(var(--ink) / .1)", color: active ? "#fff" : glass.muted,
                       }}>{item.count}</span>
                     )}
                   </button>
@@ -1438,20 +1447,22 @@ function CrewDashboard({ user, onLogout }: { user: CrewUser; onLogout: () => voi
         {/* Main Content Area */}
         <main className="crew-main">
           {/* Beautiful personalized greeting */}
-          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, marginBottom: 22 }} className="toolbar-wrap">
+          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, marginBottom: tab === "overview" ? 22 : 14 }} className="toolbar-wrap">
             <div>
               <div style={{ fontSize: 13, color: glass.muted, fontWeight: 600, marginBottom: 2 }}>
                 {now.toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long" })}
               </div>
-              <h1 style={{ margin: 0, fontSize: "clamp(26px, 4.2vw, 34px)", lineHeight: 1.05, fontWeight: 900, letterSpacing: "-0.025em" }}>
+              <h1 style={{ margin: 0, fontSize: tab === "overview" ? "clamp(26px, 4.2vw, 34px)" : "clamp(20px, 3vw, 24px)", lineHeight: 1.1, fontWeight: 900, letterSpacing: "-0.025em" }}>
                 Selamat {now.getHours() < 12 ? "pagi" : now.getHours() < 18 ? "siang" : "malam"}, {user.name.split(" ")[0]}
               </h1>
-              {branding.welcomeMessage && (
+              {tab === "overview" && branding.welcomeMessage && (
                 <p style={{ margin: "6px 0 0", color: primary, fontSize: 13, fontWeight: 600 }}>{branding.welcomeMessage}</p>
               )}
-              <p style={{ margin: "4px 0 0", color: glass.muted, fontSize: 13 }}>
-                {urgentDeadlines.length} deadline dekat • {todayEvents.length} event hari ini
-              </p>
+              {tab === "overview" && (
+                <p style={{ margin: "4px 0 0", color: glass.muted, fontSize: 13 }}>
+                  {urgentDeadlines.length} deadline dekat • {todayEvents.length} event hari ini
+                </p>
+              )}
             </div>
 
             <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
@@ -1578,11 +1589,11 @@ function CrewDashboard({ user, onLogout }: { user: CrewUser; onLogout: () => voi
                 {team.map((member) => {
                   const availability = teamAvailability(member);
                   return (
-                    <div key={member.id} style={{ border: `1px solid ${DEFAULT_LINE}`, borderRadius: 8, padding: 13, background: "rgba(255,255,255,.03)", display: "flex", gap: 12 }}>
+                    <div key={member.id} style={{ border: `1px solid ${DEFAULT_LINE}`, borderRadius: 8, padding: 13, background: "rgb(var(--ink) / .03)", display: "flex", gap: 12 }}>
                       <Avatar member={member} size={44} />
                       <div style={{ minWidth: 0 }}>
                         <div style={{ fontSize: 14, fontWeight: 900 }}>{member.name}</div>
-                        <div style={{ color: "rgba(255,255,255,.45)", fontSize: 12, marginTop: 3 }}>{member.role || member.department || "Crew"}</div>
+                        <div style={{ color: "rgb(var(--ink) / calc(.45 + var(--ink-boost)))", fontSize: 12, marginTop: 3 }}>{member.role || member.department || "Crew"}</div>
                         <div style={{ marginTop: 9 }}>
                           <Pill color={availability.color}>{availability.label}</Pill>
                         </div>
@@ -1626,13 +1637,13 @@ function CrewDashboard({ user, onLogout }: { user: CrewUser; onLogout: () => voi
                     const file = e.dataTransfer.files?.[0];
                     if (file) setUploadFile(file);
                   }}
-                  style={{ border: `1px dashed ${DEFAULT_LINE}`, borderRadius: 8, padding: 18, minHeight: 112, display: "grid", placeItems: "center", cursor: "pointer", background: "rgba(255,255,255,.03)", textAlign: "center" }}
+                  style={{ border: `1px dashed ${DEFAULT_LINE}`, borderRadius: 8, padding: 18, minHeight: 112, display: "grid", placeItems: "center", cursor: "pointer", background: "rgb(var(--ink) / .03)", textAlign: "center" }}
                 >
                   <input id="crew-upload-input" type="file" style={{ display: "none" }} onChange={(e) => setUploadFile(e.target.files?.[0] || null)} />
                   <div>
                     <Upload size={24} color={DEFAULT_PRIMARY} style={{ margin: "0 auto 8px" }} />
                     <div style={{ fontSize: 13, fontWeight: 900 }}>{uploadFile ? uploadFile.name : "Drop atau pilih file"}</div>
-                    <div style={{ color: "rgba(255,255,255,.42)", fontSize: 11, marginTop: 4 }}>{uploadFile ? `${(uploadFile.size / 1024 / 1024).toFixed(2)} MB` : "Footage, preview, PDF, deck, atau final export"}</div>
+                    <div style={{ color: "rgb(var(--ink) / calc(.42 + var(--ink-boost)))", fontSize: 11, marginTop: 4 }}>{uploadFile ? `${(uploadFile.size / 1024 / 1024).toFixed(2)} MB` : "Footage, preview, PDF, deck, atau final export"}</div>
                   </div>
                 </div>
                 <div style={{ height: 12 }} />
@@ -1703,7 +1714,7 @@ function CrewDashboard({ user, onLogout }: { user: CrewUser; onLogout: () => voi
                 title="My Portfolio / Output Kerjaan" 
                 subtitle="Kumpulan hasil kerjaan final yang sudah kamu selesaikan. Bisa digunakan sebagai referensi dan portofolio internal."
               />
-              <div style={{ display: "grid", gap: 12 }}>
+              <div style={{ display: "grid", gap: 12, gridTemplateColumns: "minmax(0, 1fr)" }}>
                 {myPortfolioFiles.length > 0 ? (
                   myPortfolioFiles.map((file: any) => (
                     <div 
@@ -1712,12 +1723,12 @@ function CrewDashboard({ user, onLogout }: { user: CrewUser; onLogout: () => voi
                         border: `1px solid ${DEFAULT_LINE}`, 
                         borderRadius: 12, 
                         padding: 16, 
-                        background: "rgba(255,255,255,0.03)" 
+                        background: "rgb(var(--ink) / 0.03)" 
                       }}
                     >
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 4 }}>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 4, overflowWrap: "anywhere" }}>
                             {file.title}
                           </div>
                           <div style={{ fontSize: 13, color: glass.muted, marginBottom: 8 }}>
@@ -1758,34 +1769,35 @@ function CrewDashboard({ user, onLogout }: { user: CrewUser; onLogout: () => voi
           )}
 
           {tab === "brief" && (
-            <BriefPage projects={projectsForDisplay} tasks={urgentDeadlines} events={todayEvents} user={user} />
+            <BriefPage projects={projectsForDisplay} tasks={urgentDeadlines} events={todayEvents} user={user} team={team} allTasks={tasks} />
           )}
 
           {tab === "chat" && (
-            <Card style={{ height: "calc(100dvh - 116px)", display: "flex", flexDirection: "column" }}>
+            <Card style={{ height: "calc(100dvh - 230px)", minHeight: 420, display: "flex", flexDirection: "column" }}>
               <SectionHeader title="Team Chat" subtitle="Koordinasi cepat untuk update produksi." />
               <div style={{ flex: 1, overflowY: "auto", display: "grid", alignContent: "start", gap: 10, paddingRight: 4 }}>
                 {messages.map((message) => {
                   const mine = message.senderId === user.id;
                   return (
                     <div key={message.id} style={{ display: "flex", justifyContent: mine ? "flex-end" : "flex-start" }}>
-                      <div style={{ maxWidth: "78%", border: `1px solid ${mine ? "rgba(255,106,32,.35)" : DEFAULT_LINE}`, background: mine ? "rgba(255,106,32,.15)" : "rgba(255,255,255,.04)", borderRadius: 8, padding: 11 }}>
-                        <div style={{ fontSize: 11, color: mine ? DEFAULT_PRIMARY : "rgba(255,255,255,.45)", fontWeight: 900, marginBottom: 4 }}>{message.senderName}</div>
-                        <div style={{ fontSize: 13, color: "#fff", lineHeight: 1.5 }}>{message.content}</div>
+                      <div style={{ maxWidth: "78%", border: `1px solid ${mine ? "rgba(255,106,32,.35)" : DEFAULT_LINE}`, background: mine ? "rgba(255,106,32,.15)" : "rgb(var(--ink) / .04)", borderRadius: 8, padding: 11 }}>
+                        <div style={{ fontSize: 11, color: mine ? DEFAULT_PRIMARY : "rgb(var(--ink) / calc(.45 + var(--ink-boost)))", fontWeight: 900, marginBottom: 4 }}>{message.senderName}</div>
+                        <div style={{ fontSize: 13, color: "hsl(var(--foreground))", lineHeight: 1.5, wordBreak: "break-word" }}>{message.content}</div>
                         {message.fileUrl && (
                           <a href={message.fileUrl} target="_blank" rel="noreferrer" style={{ color: "#93c5fd", fontSize: 12, fontWeight: 800, display: "inline-flex", alignItems: "center", gap: 6, marginTop: 8 }}>
                             <Paperclip size={13} /> {message.fileName || "Attachment"}
                           </a>
                         )}
-                        <div style={{ color: "rgba(255,255,255,.3)", fontSize: 10, marginTop: 6 }}>{formatTime(message.createdAt)}</div>
+                        <div style={{ color: "rgb(var(--ink) / calc(.3 + var(--ink-boost)))", fontSize: 10, marginTop: 6 }}>{formatTime(message.createdAt)}</div>
                       </div>
                     </div>
                   );
                 })}
+                {!messages.length && <EmptyState icon={<MessageSquare size={24} />} title="Belum ada pesan. Mulai percakapan tim." />}
                 <div ref={chatBottom} />
               </div>
               {chatFile && (
-                <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 8, color: "rgba(255,255,255,.7)", fontSize: 12 }}>
+                <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 8, color: "rgb(var(--ink) / calc(.7 + var(--ink-boost)))", fontSize: 12 }}>
                   <Paperclip size={14} /> {chatFile.name}
                   <button type="button" onClick={() => setChatFile(null)} style={resetButton} title="Remove attachment">
                     <X size={14} />
@@ -1861,7 +1873,7 @@ function CrewDashboard({ user, onLogout }: { user: CrewUser; onLogout: () => voi
                     <span style={{
                       position: "absolute", top: 4, right: "calc(50% - 18px)",
                       minWidth: 14, height: 14, borderRadius: 999,
-                      background: active ? primary : "rgba(255,255,255,.25)",
+                      background: active ? primary : "rgb(var(--ink) / .25)",
                       color: active ? "#fff" : glass.muted,
                       fontSize: 8, fontWeight: 900,
                       display: "flex", alignItems: "center", justifyContent: "center",
@@ -1937,7 +1949,7 @@ function CrewDashboard({ user, onLogout }: { user: CrewUser; onLogout: () => voi
               }}
             >
             {/* Header */}
-            <div style={{ padding: '22px 28px', borderBottom: `1px solid ${glass.border}`, background: 'rgba(255,255,255,0.02)' }}>
+            <div style={{ padding: '22px 28px', borderBottom: `1px solid ${glass.border}`, background: 'rgb(var(--ink) / 0.02)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16 }}>
                 <div>
                   <div style={{ fontSize: 22, fontWeight: 900, lineHeight: 1.1 }}>{selectedProject.title}</div>
@@ -1994,7 +2006,7 @@ function CrewDashboard({ user, onLogout }: { user: CrewUser; onLogout: () => voi
 
                 {/* Upload Area - File + Link */}
                 <div style={{ 
-                  background: 'rgba(255,255,255,0.03)', 
+                  background: 'rgb(var(--ink) / 0.03)', 
                   border: `1px solid ${glass.border}`, 
                   borderRadius: 14, 
                   padding: 16, 
@@ -2121,7 +2133,7 @@ function CrewDashboard({ user, onLogout }: { user: CrewUser; onLogout: () => voi
                         style={{ 
                           padding: '0 20px', 
                           borderRadius: 10, 
-                          background: addingProjectLink ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.08)', 
+                          background: addingProjectLink ? 'rgb(var(--ink) / 0.04)' : 'rgb(var(--ink) / 0.08)', 
                           color: glass.text, 
                           border: `1px solid ${glass.border}`, 
                           fontWeight: 600, 
@@ -2152,7 +2164,7 @@ function CrewDashboard({ user, onLogout }: { user: CrewUser; onLogout: () => voi
                           justifyContent: 'space-between', 
                           alignItems: 'center',
                           padding: '12px 16px', 
-                          background: 'rgba(255,255,255,0.035)', 
+                          background: 'rgb(var(--ink) / 0.035)', 
                           borderRadius: 12,
                           border: `1px solid ${glass.border}`
                         }}
@@ -2160,7 +2172,7 @@ function CrewDashboard({ user, onLogout }: { user: CrewUser; onLogout: () => voi
                         <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: 0 }}>
                           <div style={{ 
                             width: 36, height: 36, borderRadius: 8, 
-                            background: file.category === 'link' ? 'rgba(59,130,246,0.15)' : 'rgba(255,255,255,0.08)',
+                            background: file.category === 'link' ? 'rgba(59,130,246,0.15)' : 'rgb(var(--ink) / 0.08)',
                             display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
                           }}>
                             {file.category === 'link' ? '🔗' : '📄'}
@@ -2178,7 +2190,7 @@ function CrewDashboard({ user, onLogout }: { user: CrewUser; onLogout: () => voi
                           rel="noreferrer"
                           style={{ 
                             padding: '7px 16px', 
-                            background: 'rgba(255,255,255,0.06)', 
+                            background: 'rgb(var(--ink) / 0.06)', 
                             borderRadius: 8, 
                             fontSize: 13,
                             fontWeight: 600,
@@ -2193,7 +2205,7 @@ function CrewDashboard({ user, onLogout }: { user: CrewUser; onLogout: () => voi
                     ))}
                   </div>
                 ) : (
-                  <div style={{ padding: 20, textAlign: 'center', color: glass.muted, fontSize: 13, background: 'rgba(255,255,255,0.02)', borderRadius: 12 }}>
+                  <div style={{ padding: 20, textAlign: 'center', color: glass.muted, fontSize: 13, background: 'rgb(var(--ink) / 0.02)', borderRadius: 12 }}>
                     Belum ada file atau link di project ini.
                   </div>
                 )}
@@ -2291,7 +2303,7 @@ function CrewDashboard({ user, onLogout }: { user: CrewUser; onLogout: () => voi
                 {selectedTask.description && (
                   <div style={{ marginBottom: 18 }}>
                     <div style={{ fontSize: 11, textTransform: "uppercase", color: glass.muted, marginBottom: 6, letterSpacing: 0.5 }}>Details / Brief</div>
-                    <div style={{ fontSize: 14, lineHeight: 1.6, color: "rgba(255,255,255,0.85)", whiteSpace: "pre-wrap" }}>{selectedTask.description}</div>
+                    <div style={{ fontSize: 14, lineHeight: 1.6, color: "rgb(var(--ink) / calc(0.85 + var(--ink-boost)))", whiteSpace: "pre-wrap" }}>{selectedTask.description}</div>
                   </div>
                 )}
 
@@ -2362,7 +2374,7 @@ function CrewDashboard({ user, onLogout }: { user: CrewUser; onLogout: () => voi
                       {parsed.notes.length > 0 && (
                         <div style={{ marginBottom: 8, maxHeight: 120, overflow: "auto", padding: "8px 10px", background: "rgba(0,0,0,0.15)", borderRadius: 8, border: `1px solid ${glass.border}` }}>
                           {parsed.notes.slice().reverse().map((n, i) => (
-                            <div key={i} style={{ fontSize: 12, color: "rgba(255,255,255,0.75)", marginBottom: 4 }}>
+                            <div key={i} style={{ fontSize: 12, color: "rgb(var(--ink) / calc(0.75 + var(--ink-boost)))", marginBottom: 4 }}>
                               <span style={{ color: glass.muted, fontSize: 10 }}>[{new Date(n.time).toLocaleString("id-ID", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}]</span> {n.text}
                             </div>
                           ))}
@@ -2398,7 +2410,7 @@ function CrewDashboard({ user, onLogout }: { user: CrewUser; onLogout: () => voi
                             updateTask(selectedTask, { description: newDesc.trim() });
                             setModalNoteInput("");
                           }}
-                          style={{ padding: "8px 16px", borderRadius: 8, background: "rgba(255,255,255,0.1)", color: "#fff", fontWeight: 600, fontSize: 13, border: `1px solid ${glass.border}` }}
+                          style={{ padding: "8px 16px", borderRadius: 8, background: "rgb(var(--ink) / 0.1)", color: "#fff", fontWeight: 600, fontSize: 13, border: `1px solid ${glass.border}` }}
                         >
                           + Note
                         </button>
@@ -2438,7 +2450,7 @@ function CrewDashboard({ user, onLogout }: { user: CrewUser; onLogout: () => voi
                       );
                     })}
                   </div>
-                  <div style={{ fontSize: 11, color: "rgba(255,255,255,.35)", marginTop: 8 }}>Checklist lebih detail: gunakan timer untuk tracking waktu kerja yang realtime ke admin.</div>
+                  <div style={{ fontSize: 11, color: "rgb(var(--ink) / calc(.35 + var(--ink-boost)))", marginTop: 8 }}>Checklist lebih detail: gunakan timer untuk tracking waktu kerja yang realtime ke admin.</div>
                 </div>
               </div>
 
@@ -2630,7 +2642,7 @@ function SectionHeader({ title, subtitle, children }: { title: string; subtitle?
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 14, marginBottom: 15 }} className="toolbar-wrap">
       <div>
         <h2 style={{ margin: 0, fontSize: 18, fontWeight: 900 }}>{title}</h2>
-        {subtitle && <p style={{ margin: "5px 0 0", color: "rgba(255,255,255,.46)", fontSize: 12 }}>{subtitle}</p>}
+        {subtitle && <p style={{ margin: "5px 0 0", color: "rgb(var(--ink) / calc(.46 + var(--ink-boost)))", fontSize: 12 }}>{subtitle}</p>}
       </div>
       {children}
     </div>
@@ -2639,7 +2651,7 @@ function SectionHeader({ title, subtitle, children }: { title: string; subtitle?
 
 function Segmented({ value, onChange, options }: { value: string; onChange: (value: string) => void; options: Array<[string, string]> }) {
   return (
-    <div style={{ display: "inline-flex", padding: 3, border: `1px solid ${DEFAULT_LINE}`, borderRadius: 8, background: "rgba(255,255,255,.035)" }}>
+    <div style={{ display: "inline-flex", padding: 3, border: `1px solid ${DEFAULT_LINE}`, borderRadius: 8, background: "rgb(var(--ink) / .035)" }}>
       {options.map(([id, label]) => (
         <button
           key={id}
@@ -2648,7 +2660,7 @@ function Segmented({ value, onChange, options }: { value: string; onChange: (val
           style={{
             border: "none",
             background: value === id ? DEFAULT_PRIMARY : "transparent",
-            color: value === id ? "#fff" : "rgba(255,255,255,.62)",
+            color: value === id ? "#fff" : "rgb(var(--ink) / calc(.62 + var(--ink-boost)))",
             borderRadius: 6,
             padding: "7px 10px",
             fontSize: 11,
@@ -2680,14 +2692,14 @@ function ProjectsPanel({ projects, team, onOpenProjects }: { projects: Project[]
             <div key={project.id} className="project-row" style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 170px", gap: 14, alignItems: "center", borderBottom: `1px solid ${DEFAULT_LINE}`, paddingBottom: 11 }}>
               <div style={{ minWidth: 0 }}>
                 <div style={{ fontSize: 14, fontWeight: 900, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{project.title}</div>
-                <div style={{ color: "rgba(255,255,255,.45)", fontSize: 11, marginTop: 4 }}>
+                <div style={{ color: "rgb(var(--ink) / calc(.45 + var(--ink-boost)))", fontSize: 11, marginTop: 4 }}>
                   {project.client || "Internal"} - {owner?.name || "Unassigned"} - Deadline {formatDate(project.deadline)}
                 </div>
               </div>
               <div>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
                   <Pill color={PHASE_COLORS[phase] || "#93c5fd"}>{(project.status || "Active").replace("_", " ")}</Pill>
-                  <span style={{ fontSize: 11, fontWeight: 900, color: "rgba(255,255,255,.7)" }}>{project.progress || 0}%</span>
+                  <span style={{ fontSize: 11, fontWeight: 900, color: "rgb(var(--ink) / calc(.7 + var(--ink-boost)))" }}>{project.progress || 0}%</span>
                 </div>
                 <ProgressBar value={project.progress} color={PHASE_COLORS[phase] || DEFAULT_PRIMARY} />
               </div>
@@ -2705,19 +2717,19 @@ function ProjectDetailRow({ project, team, tasks }: { project: Project; team: Te
   const phase = normalizeStatus(project.status || "active");
   const done = tasks.filter((task) => ["done", "completed"].includes(normalizeStatus(task.status))).length;
   return (
-    <div style={{ border: `1px solid ${DEFAULT_LINE}`, borderRadius: 8, padding: 15, background: "rgba(255,255,255,.03)" }}>
+    <div style={{ border: `1px solid ${DEFAULT_LINE}`, borderRadius: 8, padding: 15, background: "rgb(var(--ink) / .03)" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, marginBottom: 13 }} className="toolbar-wrap">
         <div>
           <div style={{ display: "flex", alignItems: "center", gap: 9, flexWrap: "wrap" }}>
             <h3 style={{ margin: 0, fontSize: 16, fontWeight: 900 }}>{project.title}</h3>
             <Pill color={PHASE_COLORS[phase] || DEFAULT_PRIMARY}>{(project.status || "Active").replace("_", " ")}</Pill>
           </div>
-          <p style={{ margin: "5px 0 0", color: "rgba(255,255,255,.46)", fontSize: 12 }}>{project.client || "Internal"} - {project.projectType || "Production"}</p>
+          <p style={{ margin: "5px 0 0", color: "rgb(var(--ink) / calc(.46 + var(--ink-boost)))", fontSize: 12 }}>{project.client || "Internal"} - {project.projectType || "Production"}</p>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           {owner && <Avatar member={owner} size={28} />}
           <div style={{ textAlign: "right" }}>
-            <div style={{ fontSize: 11, color: "rgba(255,255,255,.45)" }}>PIC</div>
+            <div style={{ fontSize: 11, color: "rgb(var(--ink) / calc(.45 + var(--ink-boost)))" }}>PIC</div>
             <div style={{ fontSize: 12, fontWeight: 900 }}>{owner?.name || "Unassigned"}</div>
           </div>
         </div>
@@ -2731,7 +2743,7 @@ function ProjectDetailRow({ project, team, tasks }: { project: Project; team: Te
         <Pill color="#34d399">{done} selesai</Pill>
         <Pill color="#fb923c">Deadline {formatDate(project.deadline)}</Pill>
       </div>
-      {project.description && <p style={{ margin: "12px 0 0", color: "rgba(255,255,255,.52)", fontSize: 12, lineHeight: 1.55 }}>{project.description}</p>}
+      {project.description && <p style={{ margin: "12px 0 0", color: "rgb(var(--ink) / calc(.52 + var(--ink-boost)))", fontSize: 12, lineHeight: 1.55 }}>{project.description}</p>}
     </div>
   );
 }
@@ -2751,7 +2763,7 @@ function WorkloadPanel({ tasks, events }: { tasks: Task[]; events: CalendarEvent
               <div style={{ height: Math.max(16, countMeet * 18 + 18), background: "#34d399", borderRadius: 3 }} />
               <div style={{ height: Math.max(18, countEdit * 18 + 20), background: "#60a5fa", borderRadius: 3 }} />
               <div style={{ height: Math.max(20, countShoot * 20 + 20), background: DEFAULT_PRIMARY, borderRadius: 3 }} />
-              <div style={{ textAlign: "center", fontSize: 10, color: "rgba(255,255,255,.45)", fontWeight: 800 }}>{day.toLocaleDateString("id-ID", { weekday: "short" })}</div>
+              <div style={{ textAlign: "center", fontSize: 10, color: "rgb(var(--ink) / calc(.45 + var(--ink-boost)))", fontWeight: 800 }}>{day.toLocaleDateString("id-ID", { weekday: "short" })}</div>
             </div>
           );
         })}
@@ -2767,7 +2779,7 @@ function WorkloadPanel({ tasks, events }: { tasks: Task[]; events: CalendarEvent
 
 function Legend({ color, label }: { color: string; label: string }) {
   return (
-    <span style={{ display: "inline-flex", alignItems: "center", gap: 6, color: "rgba(255,255,255,.55)", fontSize: 11, fontWeight: 800 }}>
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 6, color: "rgb(var(--ink) / calc(.55 + var(--ink-boost)))", fontSize: 11, fontWeight: 800 }}>
       <span style={{ width: 8, height: 8, background: color, borderRadius: 2 }} /> {label}
     </span>
   );
@@ -2821,7 +2833,7 @@ function TaskRow({ task, onDone, compact, activeTimer, onToggleTimer, onSelect }
         border: `1px solid ${isTimerRunning ? DEFAULT_PRIMARY : (isOverdue ? '#ef4444' : DEFAULT_LINE)}`, 
         borderRadius: 10, 
         padding: compact ? 10 : 14, 
-        background: isTimerRunning ? "rgba(255,106,32,.06)" : (isOverdue ? "rgba(239,68,68,.04)" : "rgba(255,255,255,.025)"), 
+        background: isTimerRunning ? "rgba(255,106,32,.06)" : (isOverdue ? "rgba(239,68,68,.04)" : "rgb(var(--ink) / .025)"), 
         display: "flex", 
         gap: 12, 
         alignItems: "flex-start", 
@@ -2839,7 +2851,7 @@ function TaskRow({ task, onDone, compact, activeTimer, onToggleTimer, onSelect }
         type="button" 
         onClick={(e) => { e.stopPropagation(); onDone(task, done ? "todo" : "done"); }} 
         title={done ? "Reopen task" : "Selesaikan task"} 
-        style={{ ...resetButton, width: 26, height: 26, borderRadius: 7, border: `2px solid ${done ? "#34d399" : (isOverdue ? "#ef4444" : DEFAULT_LINE)}`, background: done ? "rgba(52,211,153,.15)" : "rgba(255,255,255,.03)", display: "grid", placeItems: "center", color: done ? "#34d399" : "rgba(255,255,255,.35)", flexShrink: 0, marginTop: 2 }}
+        style={{ ...resetButton, width: 26, height: 26, borderRadius: 7, border: `2px solid ${done ? "#34d399" : (isOverdue ? "#ef4444" : DEFAULT_LINE)}`, background: done ? "rgba(52,211,153,.15)" : "rgb(var(--ink) / .03)", display: "grid", placeItems: "center", color: done ? "#34d399" : "rgb(var(--ink) / calc(.35 + var(--ink-boost)))", flexShrink: 0, marginTop: 2 }}
       >
         {done ? <Check size={15} /> : <Circle size={14} />}
       </button>
@@ -2852,13 +2864,13 @@ function TaskRow({ task, onDone, compact, activeTimer, onToggleTimer, onSelect }
                 fontSize: compact ? 13 : 14.5, 
                 fontWeight: 800, 
                 textDecoration: done ? "line-through" : "none", 
-                color: done ? "rgba(255,255,255,.4)" : (isTimerRunning ? DEFAULT_PRIMARY : "#fff"),
+                color: done ? "rgb(var(--ink) / calc(.4 + var(--ink-boost)))" : (isTimerRunning ? DEFAULT_PRIMARY : "#fff"),
                 lineHeight: 1.25
               }}
             >
               {task.title}
             </div>
-            <div style={{ marginTop: 5, color: "rgba(255,255,255,.5)", fontSize: 11, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            <div style={{ marginTop: 5, color: "rgb(var(--ink) / calc(.5 + var(--ink-boost)))", fontSize: 11, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
               <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
                 {task.projectTitle || task.roleLabel || "General"}
               </span>
@@ -2893,7 +2905,7 @@ function TaskRow({ task, onDone, compact, activeTimer, onToggleTimer, onSelect }
                 type="button"
                 onClick={(e) => { e.stopPropagation(); onToggleTimer(task); }}
                 title={isTimerRunning ? "Stop Timer" : "Start Timer & mark in progress"}
-                style={{ ...resetButton, display: "flex", alignItems: "center", gap: 4, padding: "3px 10px", borderRadius: 7, fontSize: 11, fontWeight: 700, background: isTimerRunning ? DEFAULT_PRIMARY : "rgba(255,255,255,.1)", color: isTimerRunning ? "#fff" : "rgba(255,255,255,.75)", border: isTimerRunning ? "none" : `1px solid ${DEFAULT_LINE}` }}
+                style={{ ...resetButton, display: "flex", alignItems: "center", gap: 4, padding: "3px 10px", borderRadius: 7, fontSize: 11, fontWeight: 700, background: isTimerRunning ? DEFAULT_PRIMARY : "rgb(var(--ink) / .1)", color: isTimerRunning ? "#fff" : "rgb(var(--ink) / calc(.75 + var(--ink-boost)))", border: isTimerRunning ? "none" : `1px solid ${DEFAULT_LINE}` }}
               >
                 {isTimerRunning ? <StopCircle size={13} /> : <PlayCircle size={13} />}
                 {isTimerRunning ? "Stop" : "Mulai"}
@@ -2905,14 +2917,14 @@ function TaskRow({ task, onDone, compact, activeTimer, onToggleTimer, onSelect }
         </div>
 
         {!compact && task.description && (
-          <p style={{ margin: "7px 0 0", color: "rgba(255,255,255,.48)", fontSize: 12, lineHeight: 1.45, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+          <p style={{ margin: "7px 0 0", color: "rgb(var(--ink) / calc(.48 + var(--ink-boost)))", fontSize: 12, lineHeight: 1.45, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
             {task.description}
           </p>
         )}
 
         {/* Click hint for detail */}
         {onSelect && !compact && (
-          <div style={{ marginTop: 6, fontSize: 10, color: "rgba(255,255,255,.25)", fontWeight: 600, letterSpacing: "0.5px" }}>
+          <div style={{ marginTop: 6, fontSize: 10, color: "rgb(var(--ink) / .25)", fontWeight: 600, letterSpacing: "0.5px" }}>
             Klik untuk detail &amp; update
           </div>
         )}
@@ -2944,7 +2956,7 @@ function ActivityItem({ icon, color, title, sub }: { icon: React.ReactNode; colo
       <div style={{ width: 32, height: 32, borderRadius: 8, background: `${color}20`, color, display: "grid", placeItems: "center", flexShrink: 0 }}>{icon}</div>
       <div style={{ minWidth: 0 }}>
         <div style={{ fontSize: 13, fontWeight: 900, lineHeight: 1.35 }}>{title}</div>
-        <div style={{ color: "rgba(255,255,255,.42)", fontSize: 11, marginTop: 3 }}>{sub}</div>
+        <div style={{ color: "rgb(var(--ink) / calc(.42 + var(--ink-boost)))", fontSize: 11, marginTop: 3 }}>{sub}</div>
       </div>
     </div>
   );
@@ -2960,12 +2972,12 @@ function BriefPanel({ projects, tasks, events, onOpen }: { projects: Project[]; 
       </SectionHeader>
       <div className="calendar-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3,minmax(0,1fr))", gap: 10 }}>
         {projects.map((project) => (
-          <div key={project.id} style={{ border: `1px solid ${DEFAULT_LINE}`, borderRadius: 8, padding: 13, background: "rgba(255,255,255,.03)" }}>
+          <div key={project.id} style={{ border: `1px solid ${DEFAULT_LINE}`, borderRadius: 8, padding: 13, background: "rgb(var(--ink) / .03)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "flex-start" }}>
               <h3 style={{ margin: 0, fontSize: 14, fontWeight: 900, lineHeight: 1.25 }}>{project.title}</h3>
               <Pill color={PHASE_COLORS[normalizeStatus(project.status)] || DEFAULT_PRIMARY}>{project.projectType || "Job"}</Pill>
             </div>
-            <p style={{ color: "rgba(255,255,255,.5)", fontSize: 12, lineHeight: 1.5, margin: "10px 0 0" }}>{project.description || project.notes || project.client || "Brief belum diisi."}</p>
+            <p style={{ color: "rgb(var(--ink) / calc(.5 + var(--ink-boost)))", fontSize: 12, lineHeight: 1.5, margin: "10px 0 0" }}>{project.description || project.notes || project.client || "Brief belum diisi."}</p>
             <div style={{ marginTop: 12, display: "flex", gap: 7, flexWrap: "wrap" }}>
               <Pill color="#93c5fd">{project.client || "Client"}</Pill>
               <Pill color="#fb923c">{formatDate(project.deadline)}</Pill>
@@ -2984,7 +2996,7 @@ function BriefPanel({ projects, tasks, events, onOpen }: { projects: Project[]; 
   );
 }
 
-function BriefPage({ projects, tasks, events, user }: { projects: Project[]; tasks: Task[]; events: CalendarEvent[]; user: CrewUser }) {
+function BriefPage({ projects, tasks, events, user, team, allTasks }: { projects: Project[]; tasks: Task[]; events: CalendarEvent[]; user: CrewUser; team: TeamMember[]; allTasks: Task[] }) {
   return (
     <Card>
       <SectionHeader title="Daily Brief" subtitle={`Ringkasan kerja cepat untuk ${user.role || "crew"}.`} />
@@ -3007,7 +3019,7 @@ function BriefPage({ projects, tasks, events, user }: { projects: Project[]; tas
       <h3 style={{ ...miniTitle, marginTop: 18 }}>Job Order Aktif</h3>
       <div style={{ display: "grid", gap: 10 }}>
         {projects.slice(0, 6).map((project) => (
-          <ProjectDetailRow key={project.id} project={project} team={[]} tasks={[]} />
+          <ProjectDetailRow key={project.id} project={project} team={team} tasks={allTasks.filter((task) => task.projectId === project.id)} />
         ))}
       </div>
     </Card>
@@ -3016,7 +3028,7 @@ function BriefPage({ projects, tasks, events, user }: { projects: Project[]; tas
 
 const miniTitle: React.CSSProperties = {
   margin: "0 0 10px",
-  color: "rgba(255,255,255,.85)",
+  color: "rgb(var(--ink) / calc(.85 + var(--ink-boost)))",
   fontSize: 13,
   fontWeight: 900,
 };
@@ -3069,7 +3081,7 @@ function CalendarPanel({
         <>
           <div className="calendar-day-head" style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 6, marginBottom: 6 }}>
             {weekDays.map((day) => (
-              <div key={day.toISOString()} style={{ textAlign: "center", color: "rgba(255,255,255,.42)", fontSize: 11, fontWeight: 900 }}>{day.toLocaleDateString("id-ID", { weekday: "short" })}</div>
+              <div key={day.toISOString()} style={{ textAlign: "center", color: "rgb(var(--ink) / calc(.42 + var(--ink-boost)))", fontSize: 11, fontWeight: 900 }}>{day.toLocaleDateString("id-ID", { weekday: "short" })}</div>
             ))}
           </div>
           <div className="calendar-grid" style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(0,1fr))", gap: 6 }}>
@@ -3077,7 +3089,7 @@ function CalendarPanel({
               const dayEvents = events.filter((event) => sameDay(new Date(event.startDate), day)).slice(0, view === "month" ? 3 : 6);
               const muted = view === "month" && day.getMonth() !== cursorDate.getMonth();
               return (
-                <div key={day.toISOString()} className="cal-cell" style={{ minHeight: view === "month" ? 112 : 220, border: `1px solid ${DEFAULT_LINE}`, borderRadius: 8, padding: 8, background: sameDay(day, new Date()) ? "rgba(255,106,32,.08)" : "rgba(255,255,255,.025)", opacity: muted ? 0.45 : 1 }}>
+                <div key={day.toISOString()} className="cal-cell" style={{ minHeight: view === "month" ? 112 : 220, border: `1px solid ${DEFAULT_LINE}`, borderRadius: 8, padding: 8, background: sameDay(day, new Date()) ? "rgba(255,106,32,.08)" : "rgb(var(--ink) / .025)", opacity: muted ? 0.45 : 1 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
                     <span style={{ fontSize: 12, fontWeight: 900 }}>{day.getDate()}</span>
                     {sameDay(day, new Date()) && <span style={{ width: 6, height: 6, borderRadius: "50%", background: DEFAULT_PRIMARY }} />}
@@ -3086,7 +3098,7 @@ function CalendarPanel({
                     {dayEvents.map((event) => (
                       <div key={event.id} title={event.title} style={{ borderLeft: `3px solid ${eventColor(event)}`, background: `${eventColor(event)}18`, borderRadius: 5, padding: "5px 6px", minWidth: 0 }}>
                         <div style={{ fontSize: 11, fontWeight: 900, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{event.title}</div>
-                        <div style={{ fontSize: 10, color: "rgba(255,255,255,.5)", marginTop: 2 }}>{formatTime(event.startDate)}</div>
+                        <div style={{ fontSize: 10, color: "rgb(var(--ink) / calc(.5 + var(--ink-boost)))", marginTop: 2 }}>{formatTime(event.startDate)}</div>
                       </div>
                     ))}
                   </div>
@@ -3130,7 +3142,7 @@ function SidebarToday({
                 <Avatar member={member} size={30} />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 12, fontWeight: 900 }}>{member.name}</div>
-                  <div style={{ fontSize: 10, color: "rgba(255,255,255,.42)" }}>{member.role}</div>
+                  <div style={{ fontSize: 10, color: "rgb(var(--ink) / calc(.42 + var(--ink-boost)))" }}>{member.role}</div>
                 </div>
                 <Pill color={av.color}>{av.label}</Pill>
               </div>
@@ -3145,7 +3157,7 @@ function SidebarToday({
             <div key={project.id}>
               <div style={{ display: "flex", justifyContent: "space-between", gap: 8, marginBottom: 6 }}>
                 <span style={{ fontSize: 12, fontWeight: 900, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{project.title}</span>
-                <span style={{ fontSize: 11, fontWeight: 900, color: "rgba(255,255,255,.65)" }}>{project.progress || 0}%</span>
+                <span style={{ fontSize: 11, fontWeight: 900, color: "rgb(var(--ink) / calc(.65 + var(--ink-boost)))" }}>{project.progress || 0}%</span>
               </div>
               <ProgressBar value={project.progress} color={PHASE_COLORS[normalizeStatus(project.status)] || DEFAULT_PRIMARY} />
             </div>
@@ -3159,7 +3171,7 @@ function SidebarToday({
 function EventRow({ event, onClick }: { event: CalendarEvent; onClick?: () => void }) {
   const color = eventColor(event);
   return (
-    <button type="button" onClick={onClick} style={{ border: `1px solid ${DEFAULT_LINE}`, background: "rgba(255,255,255,.03)", borderRadius: 8, padding: 11, display: "flex", gap: 10, textAlign: "left", cursor: onClick ? "pointer" : "default", color: "#fff", fontFamily: FONT }}>
+    <button type="button" onClick={onClick} style={{ border: `1px solid ${DEFAULT_LINE}`, background: "rgb(var(--ink) / .03)", borderRadius: 8, padding: 11, display: "flex", gap: 10, textAlign: "left", cursor: onClick ? "pointer" : "default", color: "#fff", fontFamily: FONT }}>
       <div style={{ width: 34, height: 34, borderRadius: 8, background: `${color}20`, color, display: "grid", placeItems: "center", flexShrink: 0 }}>
         <CalendarDays size={16} />
       </div>
@@ -3168,7 +3180,7 @@ function EventRow({ event, onClick }: { event: CalendarEvent; onClick?: () => vo
           <span style={{ fontSize: 13, fontWeight: 900 }}>{event.title}</span>
           <Pill color={color}>{eventType(event)}</Pill>
         </div>
-        <div style={{ color: "rgba(255,255,255,.48)", fontSize: 11, marginTop: 5, display: "flex", gap: 10, flexWrap: "wrap" }}>
+        <div style={{ color: "rgb(var(--ink) / calc(.48 + var(--ink-boost)))", fontSize: 11, marginTop: 5, display: "flex", gap: 10, flexWrap: "wrap" }}>
           <span><Clock size={11} style={{ verticalAlign: -2 }} /> {formatTime(event.startDate)}</span>
           {event.location && <span><MapPin size={11} style={{ verticalAlign: -2 }} /> {event.location}</span>}
           {event.description && <span>{event.description}</span>}
@@ -3183,14 +3195,14 @@ function AssetRow({ asset }: { asset: Asset }) {
   const color = category.includes("raw") ? "#60a5fa" : category.includes("edit") ? "#34d399" : category.includes("review") || category.includes("final") ? "#facc15" : DEFAULT_PRIMARY;
   const icon = category.includes("raw") ? <FileArchive size={16} /> : category.includes("edit") ? <FileCheck2 size={16} /> : <Files size={16} />;
   return (
-    <a href={asset.fileUrl || "#"} target={asset.fileUrl ? "_blank" : undefined} rel="noreferrer" style={{ textDecoration: "none", color: "#fff", border: `1px solid ${DEFAULT_LINE}`, borderRadius: 8, padding: 12, background: "rgba(255,255,255,.03)", display: "flex", gap: 11, alignItems: "flex-start" }}>
+    <a href={asset.fileUrl || "#"} target={asset.fileUrl ? "_blank" : undefined} rel="noreferrer" style={{ textDecoration: "none", color: "#fff", border: `1px solid ${DEFAULT_LINE}`, borderRadius: 8, padding: 12, background: "rgb(var(--ink) / .03)", display: "flex", gap: 11, alignItems: "flex-start" }}>
       <div style={{ width: 36, height: 36, borderRadius: 8, background: `${color}20`, color, display: "grid", placeItems: "center" }}>{icon}</div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
           <div style={{ fontSize: 13, fontWeight: 900, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{asset.title}</div>
           <Pill color={color}>{asset.category || "asset"}</Pill>
         </div>
-        <div style={{ color: "rgba(255,255,255,.45)", fontSize: 11, marginTop: 5 }}>{asset.description || `Updated ${formatDate(asset.updatedAt || asset.createdAt)}`}</div>
+        <div style={{ color: "rgb(var(--ink) / calc(.45 + var(--ink-boost)))", fontSize: 11, marginTop: 5 }}>{asset.description || `Updated ${formatDate(asset.updatedAt || asset.createdAt)}`}</div>
       </div>
     </a>
   );
@@ -3198,7 +3210,7 @@ function AssetRow({ asset }: { asset: Asset }) {
 
 function EmptyState({ icon, title }: { icon: React.ReactNode; title: string }) {
   return (
-    <div style={{ border: `1px dashed ${DEFAULT_LINE}`, borderRadius: 8, minHeight: 86, display: "grid", placeItems: "center", textAlign: "center", color: "rgba(255,255,255,.38)", gap: 6, padding: 16 }}>
+    <div style={{ border: `1px dashed ${DEFAULT_LINE}`, borderRadius: 8, minHeight: 86, display: "grid", placeItems: "center", textAlign: "center", color: "rgb(var(--ink) / calc(.38 + var(--ink-boost)))", gap: 6, padding: 16 }}>
       {icon}
       <div style={{ fontSize: 12, fontWeight: 800 }}>{title}</div>
     </div>
@@ -3208,7 +3220,7 @@ function EmptyState({ icon, title }: { icon: React.ReactNode; title: string }) {
 const linkButton: React.CSSProperties = {
   border: "none",
   background: "transparent",
-  color: "rgba(255,255,255,.66)",
+  color: "rgb(var(--ink) / calc(.66 + var(--ink-boost)))",
   fontFamily: FONT,
   fontSize: 12,
   fontWeight: 900,

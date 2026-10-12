@@ -64,8 +64,8 @@ type Profile = {
 // ── Constants ──────────────────────────────────────────────────────────────────
 const OR = "#FF6A20";
 const FONT = "'Plus Jakarta Sans', sans-serif";
-const LINE = "rgba(255,255,255,0.10)";
-const SURFACE = "rgba(255,255,255,0.055)";
+const LINE = "rgb(var(--ink) / 0.10)";
+const SURFACE = "rgb(var(--ink) / 0.055)";
 
 const ICON_OPTIONS = [
   { id: "website",   label: "Website",      icon: <Globe size={16} /> },
@@ -132,8 +132,8 @@ function getPlatformColor(iconId: string): string {
 
 // ── Input styles ───────────────────────────────────────────────────────────────
 const inputStyle: React.CSSProperties = {
-  background: "rgba(255,255,255,.06)", border: `1px solid ${LINE}`,
-  borderRadius: 10, padding: "9px 12px", color: "#fff", fontSize: 13,
+  background: "rgb(var(--ink) / .06)", border: `1px solid ${LINE}`,
+  borderRadius: 10, padding: "9px 12px", color: "hsl(var(--foreground))", fontSize: 13,
   fontFamily: FONT, outline: "none", width: "100%",
 };
 const selectStyle: React.CSSProperties = { ...inputStyle, cursor: "pointer", appearance: "none" as any };
@@ -179,20 +179,20 @@ function LinkRow({ link, onUpdate, onDelete }: { link: LinkItem; onUpdate: (id: 
   const [isMobile] = useState(() => window.innerWidth < 640);
   const color = getPlatformColor(link.icon);
   return (
-    <div style={{ border: `1px solid ${link.isActive ? `${color}44` : LINE}`, borderRadius: 12, background: link.isActive ? `${color}0a` : "rgba(255,255,255,.025)", overflow: "hidden", transition: "all .2s" }}>
+    <div style={{ border: `1px solid ${link.isActive ? `${color}44` : LINE}`, borderRadius: 12, background: link.isActive ? `${color}0a` : "rgb(var(--ink) / .025)", overflow: "hidden", transition: "all .2s" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px" }}>
-        <div style={{ cursor: "grab", color: "rgba(255,255,255,.3)", flexShrink: 0 }}><GripVertical size={14} /></div>
+        <div style={{ cursor: "grab", color: "rgb(var(--ink) / calc(.3 + var(--ink-boost)))", flexShrink: 0 }}><GripVertical size={14} /></div>
         <div style={{ color, flexShrink: 0 }}><IconForId id={link.icon} /></div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: "#fff", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{link.label || "Untitled Link"}</div>
-          <div style={{ fontSize: 11, color: "rgba(255,255,255,.4)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{link.url || "No URL set"}</div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "hsl(var(--foreground))", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{link.label || "Untitled Link"}</div>
+          <div style={{ fontSize: 11, color: "rgb(var(--ink) / calc(.4 + var(--ink-boost)))", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{link.url || "No URL set"}</div>
         </div>
         {!isMobile && <span style={{ fontSize: 9, fontWeight: 800, letterSpacing: ".06em", color: LINK_TYPE_COLORS[link.type] || OR, background: `${LINK_TYPE_COLORS[link.type] || OR}18`, padding: "3px 7px", borderRadius: 999, flexShrink: 0 }}>{link.type.toUpperCase()}</span>}
         <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
-          <button onClick={() => onUpdate(link.id, { isActive: !link.isActive })} style={{ width: 30, height: 30, borderRadius: 8, border: "none", background: link.isActive ? `${OR}22` : "rgba(255,255,255,.05)", color: link.isActive ? OR : "rgba(255,255,255,.3)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+          <button onClick={() => onUpdate(link.id, { isActive: !link.isActive })} style={{ width: 30, height: 30, borderRadius: 8, border: "none", background: link.isActive ? `${OR}22` : "rgb(var(--ink) / .05)", color: link.isActive ? OR : "rgb(var(--ink) / calc(.3 + var(--ink-boost)))", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
             {link.isActive ? <Eye size={13} /> : <EyeOff size={13} />}
           </button>
-          <button onClick={() => setEditing(!editing)} style={{ width: 30, height: 30, borderRadius: 8, border: "none", background: editing ? `${OR}22` : "rgba(255,255,255,.05)", color: editing ? OR : "rgba(255,255,255,.4)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+          <button onClick={() => setEditing(!editing)} style={{ width: 30, height: 30, borderRadius: 8, border: "none", background: editing ? `${OR}22` : "rgb(var(--ink) / .05)", color: editing ? OR : "rgb(var(--ink) / calc(.4 + var(--ink-boost)))", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
             {editing ? <ChevronUp size={13} /> : <Edit3 size={13} />}
           </button>
           <button onClick={() => onDelete(link.id)} style={{ width: 30, height: 30, borderRadius: 8, border: "none", background: "rgba(239,68,68,.08)", color: "#f87171", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><Trash2 size={13} /></button>
@@ -203,12 +203,12 @@ function LinkRow({ link, onUpdate, onDelete }: { link: LinkItem; onUpdate: (id: 
           <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} style={{ overflow: "hidden" }}>
             <div style={{ padding: "0 12px 14px", display: "grid", gap: 10, borderTop: `1px solid ${LINE}` }}>
               <div style={{ paddingTop: 12 }} />
-              <div style={{ display: "grid", gap: 5 }}><label style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,.55)" }}>LABEL</label><input value={link.label} onChange={(e) => onUpdate(link.id, { label: e.target.value })} placeholder="e.g. My YouTube Channel" style={inputStyle} /></div>
-              <div style={{ display: "grid", gap: 5 }}><label style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,.55)" }}>URL</label><input value={link.url} onChange={(e) => onUpdate(link.id, { url: e.target.value })} placeholder="https://" style={inputStyle} /></div>
+              <div style={{ display: "grid", gap: 5 }}><label style={{ fontSize: 11, fontWeight: 700, color: "rgb(var(--ink) / calc(.55 + var(--ink-boost)))" }}>LABEL</label><input value={link.label} onChange={(e) => onUpdate(link.id, { label: e.target.value })} placeholder="e.g. My YouTube Channel" style={inputStyle} /></div>
+              <div style={{ display: "grid", gap: 5 }}><label style={{ fontSize: 11, fontWeight: 700, color: "rgb(var(--ink) / calc(.55 + var(--ink-boost)))" }}>URL</label><input value={link.url} onChange={(e) => onUpdate(link.id, { url: e.target.value })} placeholder="https://" style={inputStyle} /></div>
               <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 10 }}>
-                <div style={{ display: "grid", gap: 5 }}><label style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,.55)" }}>ICON</label>
+                <div style={{ display: "grid", gap: 5 }}><label style={{ fontSize: 11, fontWeight: 700, color: "rgb(var(--ink) / calc(.55 + var(--ink-boost)))" }}>ICON</label>
                   <select value={link.icon} onChange={(e) => onUpdate(link.id, { icon: e.target.value })} style={selectStyle}>{ICON_OPTIONS.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}</select></div>
-                <div style={{ display: "grid", gap: 5 }}><label style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,.55)" }}>TYPE</label>
+                <div style={{ display: "grid", gap: 5 }}><label style={{ fontSize: 11, fontWeight: 700, color: "rgb(var(--ink) / calc(.55 + var(--ink-boost)))" }}>TYPE</label>
                   <select value={link.type} onChange={(e) => onUpdate(link.id, { type: e.target.value as LinkType })} style={selectStyle}><option value="social">Social</option><option value="affiliate">Affiliate</option><option value="portfolio">Portfolio</option><option value="custom">Custom</option></select></div>
               </div>
             </div>
@@ -224,20 +224,20 @@ function PageItemRow({ item, onUpdate, onDelete }: { item: PageItem; onUpdate: (
   const [editing, setEditing] = useState(false);
   const [isMobile] = useState(() => window.innerWidth < 640);
   return (
-    <div style={{ border: `1px solid ${item.isActive ? `${OR}44` : LINE}`, borderRadius: 12, background: item.isActive ? `${OR}08` : "rgba(255,255,255,.025)", overflow: "hidden" }}>
+    <div style={{ border: `1px solid ${item.isActive ? `${OR}44` : LINE}`, borderRadius: 12, background: item.isActive ? `${OR}08` : "rgb(var(--ink) / .025)", overflow: "hidden" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px" }}>
-        <div style={{ cursor: "grab", color: "rgba(255,255,255,.3)", flexShrink: 0 }}><GripVertical size={14} /></div>
+        <div style={{ cursor: "grab", color: "rgb(var(--ink) / calc(.3 + var(--ink-boost)))", flexShrink: 0 }}><GripVertical size={14} /></div>
         {item.imageUrl
           ? <img src={item.imageUrl} alt="" style={{ width: 36, height: 36, borderRadius: 8, objectFit: "cover", flexShrink: 0 }} />
           : <div style={{ width: 36, height: 36, borderRadius: 8, background: `${OR}18`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><Image size={16} color={OR} /></div>}
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: "#fff", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{item.title || "Untitled Item"}</div>
-          <div style={{ fontSize: 11, color: "rgba(255,255,255,.4)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{item.linkUrl || "No link"}</div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "hsl(var(--foreground))", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{item.title || "Untitled Item"}</div>
+          <div style={{ fontSize: 11, color: "rgb(var(--ink) / calc(.4 + var(--ink-boost)))", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{item.linkUrl || "No link"}</div>
         </div>
-        <button onClick={() => onUpdate(item.id, { isActive: !item.isActive })} style={{ width: 28, height: 28, borderRadius: 8, border: "none", background: item.isActive ? `${OR}22` : "rgba(255,255,255,.05)", color: item.isActive ? OR : "rgba(255,255,255,.3)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+        <button onClick={() => onUpdate(item.id, { isActive: !item.isActive })} style={{ width: 28, height: 28, borderRadius: 8, border: "none", background: item.isActive ? `${OR}22` : "rgb(var(--ink) / .05)", color: item.isActive ? OR : "rgb(var(--ink) / calc(.3 + var(--ink-boost)))", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
           {item.isActive ? <Eye size={13} /> : <EyeOff size={13} />}
         </button>
-        <button onClick={() => setEditing(!editing)} style={{ width: 28, height: 28, borderRadius: 8, border: "none", background: editing ? `${OR}22` : "rgba(255,255,255,.05)", color: editing ? OR : "rgba(255,255,255,.4)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+        <button onClick={() => setEditing(!editing)} style={{ width: 28, height: 28, borderRadius: 8, border: "none", background: editing ? `${OR}22` : "rgb(var(--ink) / .05)", color: editing ? OR : "rgb(var(--ink) / calc(.4 + var(--ink-boost)))", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
           {editing ? <ChevronUp size={13} /> : <Edit3 size={13} />}
         </button>
         <button onClick={() => onDelete(item.id)} style={{ width: 28, height: 28, borderRadius: 8, border: "none", background: "rgba(239,68,68,.08)", color: "#f87171", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><Trash2 size={13} /></button>
@@ -247,13 +247,13 @@ function PageItemRow({ item, onUpdate, onDelete }: { item: PageItem; onUpdate: (
           <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} style={{ overflow: "hidden" }}>
             <div style={{ padding: "0 12px 14px", display: "grid", gap: 10, borderTop: `1px solid ${LINE}` }}>
               <div style={{ paddingTop: 12 }} />
-              <div style={{ display: "grid", gap: 5 }}><label style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,.55)" }}>JUDUL ITEM</label><input value={item.title} onChange={(e) => onUpdate(item.id, { title: e.target.value })} placeholder="Sony ZV-E10" style={inputStyle} /></div>
-              <div style={{ display: "grid", gap: 5 }}><label style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,.55)" }}>DESKRIPSI</label><textarea value={item.description} onChange={(e) => onUpdate(item.id, { description: e.target.value })} placeholder="Kamera andalan untuk vlog harian" rows={2} style={{ ...inputStyle, resize: "vertical" }} /></div>
+              <div style={{ display: "grid", gap: 5 }}><label style={{ fontSize: 11, fontWeight: 700, color: "rgb(var(--ink) / calc(.55 + var(--ink-boost)))" }}>JUDUL ITEM</label><input value={item.title} onChange={(e) => onUpdate(item.id, { title: e.target.value })} placeholder="Sony ZV-E10" style={inputStyle} /></div>
+              <div style={{ display: "grid", gap: 5 }}><label style={{ fontSize: 11, fontWeight: 700, color: "rgb(var(--ink) / calc(.55 + var(--ink-boost)))" }}>DESKRIPSI</label><textarea value={item.description} onChange={(e) => onUpdate(item.id, { description: e.target.value })} placeholder="Kamera andalan untuk vlog harian" rows={2} style={{ ...inputStyle, resize: "vertical" }} /></div>
               <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 10 }}>
-                <div style={{ display: "grid", gap: 5 }}><label style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,.55)" }}>LINK URL</label><input value={item.linkUrl} onChange={(e) => onUpdate(item.id, { linkUrl: e.target.value })} placeholder="https://shopee.co.id/..." style={inputStyle} /></div>
-                <div style={{ display: "grid", gap: 5 }}><label style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,.55)" }}>LABEL TOMBOL</label><input value={item.linkLabel} onChange={(e) => onUpdate(item.id, { linkLabel: e.target.value })} placeholder="Beli di Shopee" style={inputStyle} /></div>
+                <div style={{ display: "grid", gap: 5 }}><label style={{ fontSize: 11, fontWeight: 700, color: "rgb(var(--ink) / calc(.55 + var(--ink-boost)))" }}>LINK URL</label><input value={item.linkUrl} onChange={(e) => onUpdate(item.id, { linkUrl: e.target.value })} placeholder="https://shopee.co.id/..." style={inputStyle} /></div>
+                <div style={{ display: "grid", gap: 5 }}><label style={{ fontSize: 11, fontWeight: 700, color: "rgb(var(--ink) / calc(.55 + var(--ink-boost)))" }}>LABEL TOMBOL</label><input value={item.linkLabel} onChange={(e) => onUpdate(item.id, { linkLabel: e.target.value })} placeholder="Beli di Shopee" style={inputStyle} /></div>
               </div>
-              <div style={{ display: "grid", gap: 5 }}><label style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,.55)" }}>URL GAMBAR (opsional)</label><input value={item.imageUrl} onChange={(e) => onUpdate(item.id, { imageUrl: e.target.value })} placeholder="https://..." style={inputStyle} /></div>
+              <div style={{ display: "grid", gap: 5 }}><label style={{ fontSize: 11, fontWeight: 700, color: "rgb(var(--ink) / calc(.55 + var(--ink-boost)))" }}>URL GAMBAR (opsional)</label><input value={item.imageUrl} onChange={(e) => onUpdate(item.id, { imageUrl: e.target.value })} placeholder="https://..." style={inputStyle} /></div>
             </div>
           </motion.div>
         )}
@@ -312,10 +312,10 @@ function SubPageEditor({ page, username, accentColor, onSave, onDelete, onClose 
 
       {/* Editor header */}
       <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-        <button onClick={onClose} style={{ width: 32, height: 32, borderRadius: 8, border: `1px solid ${LINE}`, background: "rgba(255,255,255,.05)", color: "rgba(255,255,255,.6)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}><X size={14} /></button>
-        <div style={{ flex: 1, fontSize: 14, fontWeight: 800, color: "#fff", minWidth: 80 }}>Edit Sub-Page</div>
+        <button onClick={onClose} style={{ width: 32, height: 32, borderRadius: 8, border: `1px solid ${LINE}`, background: "rgb(var(--ink) / .05)", color: "rgb(var(--ink) / calc(.6 + var(--ink-boost)))", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}><X size={14} /></button>
+        <div style={{ flex: 1, fontSize: 14, fontWeight: 800, color: "hsl(var(--foreground))", minWidth: 80 }}>Edit Sub-Page</div>
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-          <button onClick={copyUrl} style={{ padding: "6px 10px", borderRadius: 8, border: `1px solid ${LINE}`, background: "rgba(255,255,255,.05)", color: "rgba(255,255,255,.6)", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: FONT, display: "flex", alignItems: "center", gap: 5 }}>
+          <button onClick={copyUrl} style={{ padding: "6px 10px", borderRadius: 8, border: `1px solid ${LINE}`, background: "rgb(var(--ink) / .05)", color: "rgb(var(--ink) / calc(.6 + var(--ink-boost)))", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: FONT, display: "flex", alignItems: "center", gap: 5 }}>
             {copied ? <Check size={11} color="#34d399" /> : <Copy size={11} />} URL
           </button>
           {draft.id && <button onClick={() => onDelete(draft.id)} style={{ padding: "6px 10px", borderRadius: 8, border: "1px solid rgba(239,68,68,.3)", background: "rgba(239,68,68,.08)", color: "#f87171", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: FONT }}>Hapus</button>}
@@ -326,7 +326,7 @@ function SubPageEditor({ page, username, accentColor, onSave, onDelete, onClose 
       </div>
 
       {/* URL preview */}
-      <div style={{ background: "rgba(255,255,255,.04)", border: `1px solid ${LINE}`, borderRadius: 10, padding: "8px 12px", fontSize: 11, color: "rgba(255,255,255,.45)", display: "flex", alignItems: "center", gap: 6 }}>
+      <div style={{ background: "rgb(var(--ink) / .04)", border: `1px solid ${LINE}`, borderRadius: 10, padding: "8px 12px", fontSize: 11, color: "rgb(var(--ink) / calc(.45 + var(--ink-boost)))", display: "flex", alignItems: "center", gap: 6 }}>
         <Globe size={11} color={accentColor} />
         <span style={{ color: accentColor, fontWeight: 700 }}>/@{username}/</span>
         <span>{draft.slug || "slug"}</span>
@@ -335,24 +335,24 @@ function SubPageEditor({ page, username, accentColor, onSave, onDelete, onClose 
       {/* Page meta */}
       <div style={{ display: "grid", gap: 10 }}>
         <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 10 }}>
-          <div style={{ display: "grid", gap: 5 }}><label style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,.5)" }}>JUDUL HALAMAN</label>
+          <div style={{ display: "grid", gap: 5 }}><label style={{ fontSize: 11, fontWeight: 700, color: "rgb(var(--ink) / calc(.5 + var(--ink-boost)))" }}>JUDUL HALAMAN</label>
             <input value={draft.title} onChange={(e) => { patchPage({ title: e.target.value, slug: slugify(e.target.value) }); }} placeholder="My Equipment" style={inputStyle} /></div>
-          <div style={{ display: "grid", gap: 5 }}><label style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,.5)" }}>SLUG URL</label>
+          <div style={{ display: "grid", gap: 5 }}><label style={{ fontSize: 11, fontWeight: 700, color: "rgb(var(--ink) / calc(.5 + var(--ink-boost)))" }}>SLUG URL</label>
             <input value={draft.slug} onChange={(e) => patchPage({ slug: slugify(e.target.value) })} placeholder="my-equipment" style={inputStyle} /></div>
         </div>
-        <div style={{ display: "grid", gap: 5 }}><label style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,.5)" }}>DESKRIPSI (opsional)</label>
+        <div style={{ display: "grid", gap: 5 }}><label style={{ fontSize: 11, fontWeight: 700, color: "rgb(var(--ink) / calc(.5 + var(--ink-boost)))" }}>DESKRIPSI (opsional)</label>
           <textarea value={draft.description} onChange={(e) => patchPage({ description: e.target.value })} placeholder="Daftar peralatan produksi yang aku pakai sehari-hari." rows={2} style={{ ...inputStyle, resize: "vertical" }} /></div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <button onClick={() => patchPage({ isActive: !draft.isActive })} style={{ padding: "5px 12px", borderRadius: 8, border: `1px solid ${draft.isActive ? "#34d39966" : LINE}`, background: draft.isActive ? "rgba(52,211,153,.1)" : "rgba(255,255,255,.04)", color: draft.isActive ? "#34d399" : "rgba(255,255,255,.4)", fontSize: 11, fontWeight: 800, cursor: "pointer", fontFamily: FONT, display: "flex", alignItems: "center", gap: 5 }}>
+          <button onClick={() => patchPage({ isActive: !draft.isActive })} style={{ padding: "5px 12px", borderRadius: 8, border: `1px solid ${draft.isActive ? "#34d39966" : LINE}`, background: draft.isActive ? "rgba(52,211,153,.1)" : "rgb(var(--ink) / .04)", color: draft.isActive ? "#34d399" : "rgb(var(--ink) / calc(.4 + var(--ink-boost)))", fontSize: 11, fontWeight: 800, cursor: "pointer", fontFamily: FONT, display: "flex", alignItems: "center", gap: 5 }}>
             {draft.isActive ? <Eye size={11} /> : <EyeOff size={11} />} {draft.isActive ? "Aktif" : "Nonaktif"}
           </button>
-          <span style={{ fontSize: 11, color: "rgba(255,255,255,.3)" }}>Halaman harus aktif agar bisa diakses publik</span>
+          <span style={{ fontSize: 11, color: "rgb(var(--ink) / calc(.3 + var(--ink-boost)))" }}>Halaman harus aktif agar bisa diakses publik</span>
         </div>
       </div>
 
       {/* Divider */}
       <div style={{ borderTop: `1px solid ${LINE}`, paddingTop: 14 }}>
-        <div style={{ fontSize: 11, fontWeight: 800, color: "rgba(255,255,255,.5)", letterSpacing: ".06em", marginBottom: 12 }}>
+        <div style={{ fontSize: 11, fontWeight: 800, color: "rgb(var(--ink) / calc(.5 + var(--ink-boost)))", letterSpacing: ".06em", marginBottom: 12 }}>
           ITEMS ({draft.items.length})
         </div>
         <Reorder.Group axis="y" values={draft.items} onReorder={(items) => patchPage({ items })} style={{ listStyle: "none", padding: 0, margin: 0, display: "grid", gap: 8 }}>
@@ -363,7 +363,7 @@ function SubPageEditor({ page, username, accentColor, onSave, onDelete, onClose 
           ))}
         </Reorder.Group>
         {draft.items.length === 0 && (
-          <div style={{ border: `1px dashed ${LINE}`, borderRadius: 12, padding: 24, textAlign: "center", color: "rgba(255,255,255,.3)", fontSize: 13 }}>
+          <div style={{ border: `1px dashed ${LINE}`, borderRadius: 12, padding: 24, textAlign: "center", color: "rgb(var(--ink) / calc(.3 + var(--ink-boost)))", fontSize: 13 }}>
             Belum ada item. Tambahkan item pertama di bawah.
           </div>
         )}
@@ -475,7 +475,7 @@ export function CrewLinkInBio() {
   }
 
   if (loading) return (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: 300, gap: 12, color: "rgba(255,255,255,.5)", fontFamily: FONT }}>
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: 300, gap: 12, color: "rgb(var(--ink) / calc(.5 + var(--ink-boost)))", fontFamily: FONT }}>
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
       <Loader2 size={20} style={{ animation: "spin .7s linear infinite" }} />
       <span style={{ fontSize: 14 }}>Memuat profil...</span>
@@ -487,8 +487,8 @@ export function CrewLinkInBio() {
     padding: isMobile ? "7px 12px" : "8px 16px",
     borderRadius: 10,
     border: `1px solid ${active ? OR : LINE}`,
-    background: active ? `${OR}18` : "rgba(255,255,255,.04)",
-    color: active ? OR : "rgba(255,255,255,.55)",
+    background: active ? `${OR}18` : "rgb(var(--ink) / .04)",
+    color: active ? OR : "rgb(var(--ink) / calc(.55 + var(--ink-boost)))",
     fontSize: isMobile ? 11 : 12,
     fontWeight: 800,
     cursor: "pointer",
@@ -500,7 +500,7 @@ export function CrewLinkInBio() {
   });
 
   return (
-    <div style={{ fontFamily: FONT, color: "#fff" }}>
+    <div style={{ fontFamily: FONT, color: "hsl(var(--foreground))" }}>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
 
       {/* Header */}
@@ -509,25 +509,25 @@ export function CrewLinkInBio() {
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 20, fontWeight: 900, lineHeight: 1.2 }}>Link-in-Bio</div>
-            {!isMobile && <div style={{ fontSize: 13, color: "rgba(255,255,255,.5)", marginTop: 2 }}>Kelola halaman personal dan semua link kamu di satu tempat.</div>}
+            {!isMobile && <div style={{ fontSize: 13, color: "rgb(var(--ink) / calc(.5 + var(--ink-boost)))", marginTop: 2 }}>Kelola halaman personal dan semua link kamu di satu tempat.</div>}
           </div>
           {/* Icon-only buttons di mobile, full label di desktop */}
           <button
             onClick={() => patch({ isPublic: !profile.isPublic })}
             title={profile.isPublic ? "Publik" : "Privat"}
-            style={{ padding: isMobile ? "8px 10px" : "8px 14px", borderRadius: 10, border: `1px solid ${profile.isPublic ? "#34d39988" : LINE}`, background: profile.isPublic ? "rgba(52,211,153,.12)" : "rgba(255,255,255,.05)", color: profile.isPublic ? "#34d399" : "rgba(255,255,255,.5)", fontSize: 12, fontWeight: 800, cursor: "pointer", fontFamily: FONT, display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+            style={{ padding: isMobile ? "8px 10px" : "8px 14px", borderRadius: 10, border: `1px solid ${profile.isPublic ? "#34d39988" : LINE}`, background: profile.isPublic ? "rgba(52,211,153,.12)" : "rgb(var(--ink) / .05)", color: profile.isPublic ? "#34d399" : "rgb(var(--ink) / calc(.5 + var(--ink-boost)))", fontSize: 12, fontWeight: 800, cursor: "pointer", fontFamily: FONT, display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
             {profile.isPublic ? <Eye size={14} /> : <EyeOff size={14} />}
             {!isMobile && (profile.isPublic ? " Publik" : " Privat")}
           </button>
           {profile.isPublic && (
-            <button onClick={copyUrl} title="Salin Link" style={{ padding: isMobile ? "8px 10px" : "8px 14px", borderRadius: 10, border: `1px solid ${LINE}`, background: "rgba(255,255,255,.05)", color: copied ? "#34d399" : "rgba(255,255,255,.7)", fontSize: 12, fontWeight: 800, cursor: "pointer", fontFamily: FONT, display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+            <button onClick={copyUrl} title="Salin Link" style={{ padding: isMobile ? "8px 10px" : "8px 14px", borderRadius: 10, border: `1px solid ${LINE}`, background: "rgb(var(--ink) / .05)", color: copied ? "#34d399" : "rgb(var(--ink) / calc(.7 + var(--ink-boost)))", fontSize: 12, fontWeight: 800, cursor: "pointer", fontFamily: FONT, display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
               {copied ? <Check size={14} /> : <Copy size={14} />}
               {!isMobile && " Salin Link"}
             </button>
           )}
           {profile.isPublic && profile.username && (
             <a href={`/${profile.username}`} target="_blank" rel="noreferrer" title="Lihat Halaman"
-              style={{ padding: isMobile ? "8px 10px" : "8px 14px", borderRadius: 10, border: `1px solid ${LINE}`, background: "rgba(255,255,255,.05)", color: "rgba(255,255,255,.7)", fontSize: 12, fontWeight: 800, textDecoration: "none", fontFamily: FONT, display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+              style={{ padding: isMobile ? "8px 10px" : "8px 14px", borderRadius: 10, border: `1px solid ${LINE}`, background: "rgb(var(--ink) / .05)", color: "rgb(var(--ink) / calc(.7 + var(--ink-boost)))", fontSize: 12, fontWeight: 800, textDecoration: "none", fontFamily: FONT, display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
               <ExternalLink size={14} />
               {!isMobile && " Lihat Halaman"}
             </a>
@@ -539,7 +539,7 @@ export function CrewLinkInBio() {
           {isMobile && (
             <button
               onClick={() => setShowMobilePreview(v => !v)}
-              style={{ flex: 1, padding: "9px 14px", borderRadius: 10, border: `1px solid ${showMobilePreview ? OR+"66" : LINE}`, background: showMobilePreview ? `${OR}18` : "rgba(255,255,255,.05)", color: showMobilePreview ? OR : "rgba(255,255,255,.6)", fontSize: 12, fontWeight: 800, cursor: "pointer", fontFamily: FONT, display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }}>
+              style={{ flex: 1, padding: "9px 14px", borderRadius: 10, border: `1px solid ${showMobilePreview ? OR+"66" : LINE}`, background: showMobilePreview ? `${OR}18` : "rgb(var(--ink) / .05)", color: showMobilePreview ? OR : "rgb(var(--ink) / calc(.6 + var(--ink-boost)))", fontSize: 12, fontWeight: 800, cursor: "pointer", fontFamily: FONT, display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }}>
               <Smartphone size={14} /> Preview
             </button>
           )}
@@ -562,7 +562,7 @@ export function CrewLinkInBio() {
             style={{ color: "#34d399", fontWeight: 700, fontSize: 12, textDecoration: "none", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, minWidth: 0 }}>
             {publicUrl}
           </a>
-          <button onClick={copyUrl} style={{ border: "none", background: "none", cursor: "pointer", color: copied ? "#34d399" : "rgba(255,255,255,.4)", padding: 2, flexShrink: 0, display: "flex" }}>
+          <button onClick={copyUrl} style={{ border: "none", background: "none", cursor: "pointer", color: copied ? "#34d399" : "rgb(var(--ink) / calc(.4 + var(--ink-boost)))", padding: 2, flexShrink: 0, display: "flex" }}>
             {copied ? <Check size={13} /> : <Copy size={13} />}
           </button>
         </motion.div>
@@ -588,10 +588,10 @@ export function CrewLinkInBio() {
               style={{ width: "100%", maxWidth: 420, padding: "0 16px 32px", display: "flex", flexDirection: "column", alignItems: "center", gap: 14 }}
             >
               {/* Pull handle */}
-              <div style={{ width: 40, height: 4, borderRadius: 999, background: "rgba(255,255,255,.25)", marginBottom: 4 }} />
+              <div style={{ width: 40, height: 4, borderRadius: 999, background: "rgb(var(--ink) / .25)", marginBottom: 4 }} />
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", marginBottom: 4 }}>
-                <span style={{ fontSize: 11, fontWeight: 800, color: "rgba(255,255,255,.4)", letterSpacing: ".06em" }}>PREVIEW LIVE</span>
-                <button onClick={() => setShowMobilePreview(false)} style={{ width: 28, height: 28, borderRadius: 8, border: `1px solid ${LINE}`, background: "rgba(255,255,255,.06)", color: "rgba(255,255,255,.5)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+                <span style={{ fontSize: 11, fontWeight: 800, color: "rgb(var(--ink) / calc(.4 + var(--ink-boost)))", letterSpacing: ".06em" }}>PREVIEW LIVE</span>
+                <button onClick={() => setShowMobilePreview(false)} style={{ width: 28, height: 28, borderRadius: 8, border: `1px solid ${LINE}`, background: "rgb(var(--ink) / .06)", color: "rgb(var(--ink) / calc(.5 + var(--ink-boost)))", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
                   <X size={14} />
                 </button>
               </div>
@@ -603,7 +603,7 @@ export function CrewLinkInBio() {
 
       {/* Layout — desktop: 2 kolom (form + preview), mobile: 1 kolom penuh */}
       <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr auto", gap: isMobile ? 16 : 28, alignItems: "start" }}>
-        <div style={{ display: "grid", gap: 16 }}>
+        <div style={{ display: "grid", gap: 16, gridTemplateColumns: "minmax(0, 1fr)" }}>
 
           {/* Section tabs — scroll horizontal di mobile dengan fade mask */}
           <div style={{ position: "relative" }}>
@@ -636,7 +636,7 @@ export function CrewLinkInBio() {
               <motion.div key="identity" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}>
                 <div style={{ background: SURFACE, border: `1px solid ${LINE}`, borderRadius: 16, padding: 20, display: "grid", gap: 18 }}>
                   <div style={{ display: "grid", gap: 14 }}>
-                    <div style={{ fontSize: 12, fontWeight: 800, color: "rgba(255,255,255,.5)", letterSpacing: ".06em" }}>FOTO PROFIL & BANNER</div>
+                    <div style={{ fontSize: 12, fontWeight: 800, color: "rgb(var(--ink) / calc(.5 + var(--ink-boost)))", letterSpacing: ".06em" }}>FOTO PROFIL & BANNER</div>
                     <div style={{ display: "flex", gap: 14, alignItems: "center", flexWrap: "wrap" }}>
                       <div onClick={() => !uploadingAvatar && avatarInputRef.current?.click()} style={{ width: 80, height: 80, borderRadius: "50%", border: `2px dashed ${OR}66`, background: profile.avatarUrl ? "none" : `${OR}11`, overflow: "hidden", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", position: "relative" }}>
                         {profile.avatarUrl ? <img src={profile.avatarUrl} alt="avatar" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <Upload size={20} color={`${OR}88`} />}
@@ -644,7 +644,7 @@ export function CrewLinkInBio() {
                       </div>
                       <input ref={avatarInputRef} type="file" accept="image/*" style={{ display: "none" }} onChange={(e) => e.target.files?.[0] && uploadImage(e.target.files[0], "avatar")} />
                       <div style={{ flex: 1, minWidth: 200 }}>
-                        <div onClick={() => !uploadingBanner && bannerInputRef.current?.click()} style={{ height: 56, borderRadius: 10, border: `2px dashed rgba(255,255,255,.2)`, background: profile.bannerUrl ? `url(${profile.bannerUrl}) center/cover no-repeat` : "rgba(255,255,255,.03)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, color: "rgba(255,255,255,.4)", fontSize: 12, position: "relative" }}>
+                        <div onClick={() => !uploadingBanner && bannerInputRef.current?.click()} style={{ height: 56, borderRadius: 10, border: `2px dashed rgb(var(--ink) / .2)`, background: profile.bannerUrl ? `url(${profile.bannerUrl}) center/cover no-repeat` : "rgb(var(--ink) / .03)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, color: "rgb(var(--ink) / calc(.4 + var(--ink-boost)))", fontSize: 12, position: "relative" }}>
                           {!profile.bannerUrl && <><Upload size={14} /> Upload Banner</>}
                           {uploadingBanner && <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,.6)", display: "flex", alignItems: "center", justifyContent: "center" }}><Loader2 size={16} style={{ animation: "spin .7s linear infinite" }} /></div>}
                         </div>
@@ -653,19 +653,19 @@ export function CrewLinkInBio() {
                       </div>
                     </div>
                   </div>
-                  <div style={{ display: "grid", gap: 5 }}><label style={{ fontSize: 11, fontWeight: 800, color: "rgba(255,255,255,.5)", letterSpacing: ".06em" }}>NAMA TAMPIL</label><input value={profile.displayName} onChange={(e) => patch({ displayName: e.target.value })} placeholder="Nama kamu" style={inputStyle} /></div>
+                  <div style={{ display: "grid", gap: 5 }}><label style={{ fontSize: 11, fontWeight: 800, color: "rgb(var(--ink) / calc(.5 + var(--ink-boost)))", letterSpacing: ".06em" }}>NAMA TAMPIL</label><input value={profile.displayName} onChange={(e) => patch({ displayName: e.target.value })} placeholder="Nama kamu" style={inputStyle} /></div>
                   <div style={{ display: "grid", gap: 5 }}>
-                    <label style={{ fontSize: 11, fontWeight: 800, color: "rgba(255,255,255,.5)", letterSpacing: ".06em" }}>USERNAME</label>
+                    <label style={{ fontSize: 11, fontWeight: 800, color: "rgb(var(--ink) / calc(.5 + var(--ink-boost)))", letterSpacing: ".06em" }}>USERNAME</label>
                     <div style={{ display: "flex", gap: 0, alignItems: "center" }}>
-                      <span style={{ background: "rgba(255,255,255,.06)", border: `1px solid ${LINE}`, borderRight: "none", borderRadius: "10px 0 0 10px", padding: "9px 12px", fontSize: 13, color: "rgba(255,255,255,.4)", fontFamily: FONT }}>@</span>
+                      <span style={{ background: "rgb(var(--ink) / .06)", border: `1px solid ${LINE}`, borderRight: "none", borderRadius: "10px 0 0 10px", padding: "9px 12px", fontSize: 13, color: "rgb(var(--ink) / calc(.4 + var(--ink-boost)))", fontFamily: FONT }}>@</span>
                       <input value={profile.username} onChange={(e) => patch({ username: e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, "") })} placeholder="username" style={{ ...inputStyle, borderRadius: "0 10px 10px 0", borderLeft: "none" }} />
                     </div>
-                    <span style={{ fontSize: 11, color: "rgba(255,255,255,.3)" }}>URL: {window.location.origin}/<strong>{profile.username || "username"}</strong></span>
+                    <span style={{ fontSize: 11, color: "rgb(var(--ink) / calc(.3 + var(--ink-boost)))" }}>URL: {window.location.origin}/<strong>{profile.username || "username"}</strong></span>
                   </div>
                   <div style={{ display: "grid", gap: 5 }}>
-                    <label style={{ fontSize: 11, fontWeight: 800, color: "rgba(255,255,255,.5)", letterSpacing: ".06em" }}>BIO</label>
+                    <label style={{ fontSize: 11, fontWeight: 800, color: "rgb(var(--ink) / calc(.5 + var(--ink-boost)))", letterSpacing: ".06em" }}>BIO</label>
                     <textarea value={profile.bio} onChange={(e) => patch({ bio: e.target.value })} placeholder="Ceritakan sedikit tentang dirimu..." rows={3} style={{ ...inputStyle, resize: "vertical", lineHeight: 1.6 }} />
-                    <span style={{ fontSize: 11, color: profile.bio.length > 150 ? "#fb923c" : "rgba(255,255,255,.3)" }}>{profile.bio.length}/150 karakter</span>
+                    <span style={{ fontSize: 11, color: profile.bio.length > 150 ? "#fb923c" : "rgb(var(--ink) / calc(.3 + var(--ink-boost)))" }}>{profile.bio.length}/150 karakter</span>
                   </div>
                 </div>
               </motion.div>
@@ -676,26 +676,26 @@ export function CrewLinkInBio() {
               <motion.div key="appearance" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}>
                 <div style={{ background: SURFACE, border: `1px solid ${LINE}`, borderRadius: 16, padding: 20, display: "grid", gap: 20 }}>
                   <div style={{ display: "grid", gap: 10 }}>
-                    <div style={{ fontSize: 11, fontWeight: 800, color: "rgba(255,255,255,.5)", letterSpacing: ".06em" }}>WARNA AKSEN</div>
+                    <div style={{ fontSize: 11, fontWeight: 800, color: "rgb(var(--ink) / calc(.5 + var(--ink-boost)))", letterSpacing: ".06em" }}>WARNA AKSEN</div>
                     <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
                       {ACCENT_PRESETS.map((c) => <button key={c} onClick={() => patch({ accentColor: c })} style={{ width: 30, height: 30, borderRadius: "50%", background: c, border: `2px solid ${profile.accentColor === c ? "#fff" : "transparent"}`, cursor: "pointer" }} />)}
                       <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                         <input type="color" value={profile.accentColor} onChange={(e) => patch({ accentColor: e.target.value })} style={{ width: 30, height: 30, borderRadius: 8, border: `1px solid ${LINE}`, background: "none", cursor: "pointer" }} />
-                        <span style={{ fontSize: 11, color: "rgba(255,255,255,.4)", fontFamily: FONT }}>{profile.accentColor}</span>
+                        <span style={{ fontSize: 11, color: "rgb(var(--ink) / calc(.4 + var(--ink-boost)))", fontFamily: FONT }}>{profile.accentColor}</span>
                       </div>
                     </div>
                   </div>
                   <div style={{ display: "grid", gap: 10 }}>
-                    <div style={{ fontSize: 11, fontWeight: 800, color: "rgba(255,255,255,.5)", letterSpacing: ".06em" }}>WARNA LATAR</div>
+                    <div style={{ fontSize: 11, fontWeight: 800, color: "rgb(var(--ink) / calc(.5 + var(--ink-boost)))", letterSpacing: ".06em" }}>WARNA LATAR</div>
                     <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                      {BG_PRESETS.map((c) => <button key={c} onClick={() => patch({ bgColor: c })} style={{ width: 30, height: 30, borderRadius: "50%", background: c, border: `2px solid ${profile.bgColor === c ? "#fff" : "rgba(255,255,255,.2)"}`, cursor: "pointer" }} />)}
+                      {BG_PRESETS.map((c) => <button key={c} onClick={() => patch({ bgColor: c })} style={{ width: 30, height: 30, borderRadius: "50%", background: c, border: `2px solid ${profile.bgColor === c ? "#fff" : "rgb(var(--ink) / .2)"}`, cursor: "pointer" }} />)}
                     </div>
                   </div>
                   <div style={{ display: "grid", gap: 10 }}>
-                    <div style={{ fontSize: 11, fontWeight: 800, color: "rgba(255,255,255,.5)", letterSpacing: ".06em" }}>GAYA LAYOUT</div>
+                    <div style={{ fontSize: 11, fontWeight: 800, color: "rgb(var(--ink) / calc(.5 + var(--ink-boost)))", letterSpacing: ".06em" }}>GAYA LAYOUT</div>
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10 }}>
                       {(["classic", "minimal", "card"] as LayoutStyle[]).map((style) => (
-                        <button key={style} onClick={() => patch({ layoutStyle: style })} style={{ padding: "14px 10px", borderRadius: 12, border: `1.5px solid ${profile.layoutStyle === style ? OR : LINE}`, background: profile.layoutStyle === style ? `${OR}14` : "rgba(255,255,255,.03)", color: profile.layoutStyle === style ? OR : "rgba(255,255,255,.55)", fontSize: 12, fontWeight: 800, cursor: "pointer", fontFamily: FONT, display: "grid", placeItems: "center", gap: 8 }}>
+                        <button key={style} onClick={() => patch({ layoutStyle: style })} style={{ padding: "14px 10px", borderRadius: 12, border: `1.5px solid ${profile.layoutStyle === style ? OR : LINE}`, background: profile.layoutStyle === style ? `${OR}14` : "rgb(var(--ink) / .03)", color: profile.layoutStyle === style ? OR : "rgb(var(--ink) / calc(.55 + var(--ink-boost)))", fontSize: 12, fontWeight: 800, cursor: "pointer", fontFamily: FONT, display: "grid", placeItems: "center", gap: 8 }}>
                           <LayoutTemplate size={18} />{style.charAt(0).toUpperCase() + style.slice(1)}
                         </button>
                       ))}
@@ -713,12 +713,12 @@ export function CrewLinkInBio() {
                     {(["social","affiliate","portfolio","custom"] as LinkType[]).map((type) => (
                       <div key={type} style={{ display: "flex", alignItems: "center", gap: 4 }}>
                         <span style={{ width: 7, height: 7, borderRadius: "50%", background: LINK_TYPE_COLORS[type], flexShrink: 0 }} />
-                        <span style={{ fontSize: 10, color: "rgba(255,255,255,.45)", fontWeight: 700 }}>{type}: {profile.links.filter(l => l.type === type).length}</span>
+                        <span style={{ fontSize: 10, color: "rgb(var(--ink) / calc(.45 + var(--ink-boost)))", fontWeight: 700 }}>{type}: {profile.links.filter(l => l.type === type).length}</span>
                       </div>
                     ))}
                   </div>
                   {profile.links.length === 0 ? (
-                    <div style={{ border: `1px dashed ${LINE}`, borderRadius: 12, padding: 28, textAlign: "center", color: "rgba(255,255,255,.3)" }}>
+                    <div style={{ border: `1px dashed ${LINE}`, borderRadius: 12, padding: 28, textAlign: "center", color: "rgb(var(--ink) / calc(.3 + var(--ink-boost)))" }}>
                       <Link2 size={24} style={{ margin: "0 auto 8px", display: "block" }} />
                       <div style={{ fontSize: 13, fontWeight: 700 }}>Belum ada link</div>
                     </div>
@@ -735,7 +735,7 @@ export function CrewLinkInBio() {
                     <Plus size={16} /> Tambah Link
                   </button>
                   <div style={{ display: "grid", gap: 8 }}>
-                    <div style={{ fontSize: 11, color: "rgba(255,255,255,.35)", fontWeight: 700, letterSpacing: ".04em" }}>QUICK ADD</div>
+                    <div style={{ fontSize: 11, color: "rgb(var(--ink) / calc(.35 + var(--ink-boost)))", fontWeight: 700, letterSpacing: ".04em" }}>QUICK ADD</div>
                     <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                       {["youtube","instagram","tiktok","whatsapp","shopee","tokopedia"].map((iconId) => {
                         const opt = ICON_OPTIONS.find((o) => o.id === iconId);
@@ -776,16 +776,16 @@ export function CrewLinkInBio() {
                   ) : (
                     <motion.div key="page-list" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
                       <div style={{ background: SURFACE, border: `1px solid ${LINE}`, borderRadius: 16, padding: 20, display: "grid", gap: 12 }}>
-                        <div style={{ fontSize: 12, color: "rgba(255,255,255,.45)", lineHeight: 1.6 }}>
+                        <div style={{ fontSize: 12, color: "rgb(var(--ink) / calc(.45 + var(--ink-boost)))", lineHeight: 1.6 }}>
                           Buat halaman koleksi link (equipment, preset, tools, dll). Setiap halaman punya URL sendiri — tambahkan sebagai 1 link di bio utama.
                         </div>
                         {loadingPages ? (
-                          <div style={{ display: "flex", alignItems: "center", gap: 8, color: "rgba(255,255,255,.4)", padding: "20px 0" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8, color: "rgb(var(--ink) / calc(.4 + var(--ink-boost)))", padding: "20px 0" }}>
                             <Loader2 size={16} style={{ animation: "spin .7s linear infinite" }} />
                             <span style={{ fontSize: 13 }}>Memuat pages...</span>
                           </div>
                         ) : pages.length === 0 ? (
-                          <div style={{ border: `1px dashed ${LINE}`, borderRadius: 12, padding: 32, textAlign: "center", color: "rgba(255,255,255,.3)" }}>
+                          <div style={{ border: `1px dashed ${LINE}`, borderRadius: 12, padding: 32, textAlign: "center", color: "rgb(var(--ink) / calc(.3 + var(--ink-boost)))" }}>
                             <FileText size={28} style={{ margin: "0 auto 10px", display: "block" }} />
                             <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 4 }}>Belum ada sub-page</div>
                             <div style={{ fontSize: 12 }}>Buat halaman pertama seperti "My Equipment" atau "My Presets"</div>
@@ -794,18 +794,18 @@ export function CrewLinkInBio() {
                           <div style={{ display: "grid", gap: 8 }}>
                             {pages.map((page) => (
                               <button key={page.id} onClick={() => setEditingPage(page)}
-                                style={{ border: `1px solid ${page.isActive ? "#a78bfa44" : LINE}`, borderRadius: 12, background: page.isActive ? "rgba(167,139,250,.06)" : "rgba(255,255,255,.025)", padding: "12px 14px", display: "flex", alignItems: "center", gap: 12, cursor: "pointer", textAlign: "left", color: "#fff", fontFamily: FONT, transition: "all .15s" }}>
+                                style={{ border: `1px solid ${page.isActive ? "#a78bfa44" : LINE}`, borderRadius: 12, background: page.isActive ? "rgba(167,139,250,.06)" : "rgb(var(--ink) / .025)", padding: "12px 14px", display: "flex", alignItems: "center", gap: 12, cursor: "pointer", textAlign: "left", color: "#fff", fontFamily: FONT, transition: "all .15s" }}>
                                 <div style={{ width: 36, height: 36, borderRadius: 10, background: "rgba(167,139,250,.15)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                                   <FileText size={16} color="#a78bfa" />
                                 </div>
                                 <div style={{ flex: 1, minWidth: 0 }}>
                                   <div style={{ fontSize: 13, fontWeight: 700 }}>{page.title}</div>
-                                  <div style={{ fontSize: 11, color: "rgba(255,255,255,.4)", marginTop: 2 }}>/@{profile.username}/{page.slug} · {page.items.length} item</div>
+                                  <div style={{ fontSize: 11, color: "rgb(var(--ink) / calc(.4 + var(--ink-boost)))", marginTop: 2 }}>/@{profile.username}/{page.slug} · {page.items.length} item</div>
                                 </div>
-                                <span style={{ fontSize: 10, fontWeight: 800, padding: "3px 8px", borderRadius: 999, background: page.isActive ? "rgba(52,211,153,.15)" : "rgba(255,255,255,.06)", color: page.isActive ? "#34d399" : "rgba(255,255,255,.3)" }}>
+                                <span style={{ fontSize: 10, fontWeight: 800, padding: "3px 8px", borderRadius: 999, background: page.isActive ? "rgba(52,211,153,.15)" : "rgb(var(--ink) / .06)", color: page.isActive ? "#34d399" : "rgb(var(--ink) / calc(.3 + var(--ink-boost)))" }}>
                                   {page.isActive ? "AKTIF" : "NONAKTIF"}
                                 </span>
-                                <Edit3 size={13} color="rgba(255,255,255,.3)" />
+                                <Edit3 size={13} color="rgb(var(--ink) / calc(.3 + var(--ink-boost)))" />
                               </button>
                             ))}
                           </div>
@@ -814,7 +814,7 @@ export function CrewLinkInBio() {
                           <Plus size={16} /> Buat Sub-Page Baru
                         </button>
                         {pages.length > 0 && (
-                          <div style={{ background: "rgba(167,139,250,.06)", border: "1px solid #a78bfa33", borderRadius: 10, padding: "10px 14px", fontSize: 11, color: "rgba(255,255,255,.5)", lineHeight: 1.6 }}>
+                          <div style={{ background: "rgba(167,139,250,.06)", border: "1px solid #a78bfa33", borderRadius: 10, padding: "10px 14px", fontSize: 11, color: "rgb(var(--ink) / calc(.5 + var(--ink-boost)))", lineHeight: 1.6 }}>
                             <strong style={{ color: "#a78bfa" }}>Tips:</strong> Tambahkan sub-page sebagai link di bio utama. Contoh: label "📦 My Equipment", URL <code style={{ color: "#a78bfa" }}>/@{profile.username || "username"}/equipment</code>
                           </div>
                         )}
@@ -830,7 +830,7 @@ export function CrewLinkInBio() {
         {/* Live Preview — disembunyikan di mobile, tampil di desktop sidebar kanan */}
         {!isMobile && (
           <div style={{ position: "sticky", top: 24 }}>
-            <div style={{ marginBottom: 10, display: "flex", alignItems: "center", gap: 6, color: "rgba(255,255,255,.4)", fontSize: 11, fontWeight: 700, letterSpacing: ".06em" }}>
+            <div style={{ marginBottom: 10, display: "flex", alignItems: "center", gap: 6, color: "rgb(var(--ink) / calc(.4 + var(--ink-boost)))", fontSize: 11, fontWeight: 700, letterSpacing: ".06em" }}>
               <Smartphone size={12} /> PREVIEW LIVE
             </div>
             <LivePreview profile={profile} />
