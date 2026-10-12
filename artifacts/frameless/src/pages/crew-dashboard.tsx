@@ -1082,20 +1082,11 @@ function CrewDashboard({ user, onLogout }: { user: CrewUser; onLogout: () => voi
       style={{ 
         minHeight: "100dvh", 
         overflowX: "clip",
-        background: isDark ? "#050505" : "#f1f3f7", 
+        background: isDark ? "#0a0a0c" : "#f6f7f9", 
         color: glass.text, 
         fontFamily: FONT,
-        backgroundImage: isDark 
-          ? `radial-gradient(40% 40% at 20% 10%, ${m1}18 0%, transparent 65%), radial-gradient(35% 35% at 80% 30%, ${m2}18 0%, transparent 65%), radial-gradient(30% 30% at 40% 85%, ${m3}18 0%, transparent 65%)`
-          : `radial-gradient(40% 40% at 20% 10%, ${m1}12 0%, transparent 65%), radial-gradient(35% 35% at 80% 30%, ${m2}12 0%, transparent 65%), radial-gradient(30% 30% at 40% 85%, ${m3}12 0%, transparent 65%)`
       }}
     >
-      {/* Full Page Animated Mesh Gradient */}
-      <div style={{ position: 'absolute', inset: 0, zIndex: 0, pointerEvents: 'none', overflow: 'hidden', opacity: isDark ? 0.28 : 0.18 }}>
-        <div className="global-mesh" style={{ background: m1, top: '5%', left: '-5%', width: '45%', height: '45%', animation: 'meshMove1 28s ease-in-out infinite' }} />
-        <div className="global-mesh" style={{ background: m2, top: '20%', right: '-8%', width: '50%', height: '50%', animation: 'meshMove2 35s ease-in-out infinite reverse' }} />
-        <div className="global-mesh" style={{ background: m3, bottom: '-10%', left: '15%', width: '40%', height: '40%', animation: 'meshMove3 24s ease-in-out infinite' }} />
-      </div>
 
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap');
