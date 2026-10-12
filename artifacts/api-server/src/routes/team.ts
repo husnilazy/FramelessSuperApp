@@ -144,7 +144,10 @@ router.get("/team", async (_req, res): Promise<void> => {
     `);
 
     const detailed = await canSeeTeamDetails(_req);
-    res.json(r.rows.map(detailed ? mapMember : mapPublicMember));
+    // Publik (landing) hanya melihat anggota aktif; admin/crew melihat semuanya.
+    const rows = detailed ? r.rows : r.rows.filter((m: any) => (m.is_active ?? m.isActive) !== false);
+    res.setHeader("Cache-Control", "no-store");
+    res.json(rows.map(detailed ? mapMember : mapPublicMember));
 
   } catch (err) {
     logger.error({ err }, "team.get.error");
@@ -321,39 +324,34 @@ router.put("/team/:id", async (req, res): Promise<void> => {
 /* ================= DELETE ================= */
 
 router.delete("/team/:id", async (req, res): Promise<void> => {
-
+  const id = String(req.params.id);
   try {
-
-    const id = String(req.params.id);
-
-    // Clean up related data first (for test members created during development)
+    // Bersihkan data ringan yang memang milik anggota ini.
     await db.delete(projectTasksTable).where(eq(projectTasksTable.memberId, id));
     await db.delete(teamAvailabilityTable).where(eq(teamAvailabilityTable.memberId, id));
+    // Lepas penugasan di project agar FK tidak menghalangi.
+    await db.update(projectsTable).set({ assignedMemberId: null }).where(eq(projectsTable.assignedMemberId, id));
 
-    // Null out assignments in projects (to avoid FK blocking)
-    await db
-      .update(projectsTable)
-      .set({ assignedMemberId: null })
-      .where(eq(projectsTable.assignedMemberId, id));
-
-    // Delete the member
-    await db
-      .delete(teamMembersTable)
-      .where(eq(teamMembersTable.id, id));
-
-    res.json({
-      success: true
-    });
-
-  } catch (err) {
-
+    await db.delete(teamMembersTable).where(eq(teamMembersTable.id, id));
+    res.json({ success: true, archived: false });
+  } catch (err: any) {
+    // 23503 = foreign_key_violation: anggota punya riwayat (dokumen filmmaking, file, dll.).
+    // Jangan hilangkan riwayat itu: nonaktifkan akun & sembunyikan dari landing.
+    if (err?.code === "23503" || err?.cause?.code === "23503") {
+      try {
+        await dbPool.query(
+          `UPDATE team_members SET is_active = false, can_login = false, status = 'inactive' WHERE id = $1`,
+          [id],
+        );
+        res.json({ success: true, archived: true });
+        return;
+      } catch (e2) {
+        logger.error({ err: e2 }, "team.delete.archive.error");
+      }
+    }
     logger.error({ err }, "team.delete.error");
-
-    res.status(500).json({
-      error: "Failed deleting member"
-    });
+    res.status(500).json({ error: "Failed deleting member" });
   }
-
 });
 
 /* ================= DEBUG ================= */

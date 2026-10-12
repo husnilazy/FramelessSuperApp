@@ -472,13 +472,13 @@ export default function LandingPage() {
   }, []);
 
   // ── Queries ───────────────────────────────────────────────────────────────
-  const { data: cms } = useQuery<CmsData>({ queryKey: ["/api/cms"], queryFn: () => fetch("/api/cms").then(r => r.json()), staleTime: 60_000 });
-  const { data: vids = [] } = useQuery<SiteVideo[]>({ queryKey: ["/api/site-videos"], queryFn: () => fetch("/api/site-videos").then(r => r.json()).then((a: SiteVideo[]) => a.filter(v => v.isActive).sort((a, b) => a.orderIndex - b.orderIndex)) });
-  const { data: logos = [] } = useQuery<SiteLogo[]>({ queryKey: ["/api/site-logos"], queryFn: () => fetch("/api/site-logos").then(r => r.json()).then((a: SiteLogo[]) => a.filter(l => l.isActive).sort((a, b) => a.orderIndex - b.orderIndex)) });
-  const { data: courses = [] } = useQuery<Course[]>({ queryKey: ["/api/courses"], queryFn: () => fetch("/api/courses").then(r => r.json()) });
-  const { data: assets = [] } = useQuery<DigitalAsset[]>({ queryKey: ["/api/digital-assets"], queryFn: () => fetch("/api/digital-assets?isActive=true").then(r => r.ok ? r.json() : []).catch(() => []) });
+  const { data: cms } = useQuery<CmsData>({ queryKey: ["public", "/api/cms"], refetchOnMount: "always", queryFn: () => fetch("/api/cms").then(r => r.json()), staleTime: 60_000 });
+  const { data: vids = [] } = useQuery<SiteVideo[]>({ queryKey: ["public", "/api/site-videos"], refetchOnMount: "always", queryFn: () => fetch("/api/site-videos").then(r => r.json()).then((a: SiteVideo[]) => a.filter(v => v.isActive).sort((a, b) => a.orderIndex - b.orderIndex)) });
+  const { data: logos = [] } = useQuery<SiteLogo[]>({ queryKey: ["public", "/api/site-logos"], refetchOnMount: "always", queryFn: () => fetch("/api/site-logos").then(r => r.json()).then((a: SiteLogo[]) => a.filter(l => l.isActive).sort((a, b) => a.orderIndex - b.orderIndex)) });
+  const { data: courses = [] } = useQuery<Course[]>({ queryKey: ["public", "/api/courses"], refetchOnMount: "always", queryFn: () => fetch("/api/courses").then(r => r.json()) });
+  const { data: assets = [] } = useQuery<DigitalAsset[]>({ queryKey: ["public", "/api/digital-assets"], refetchOnMount: "always", queryFn: () => fetch("/api/digital-assets?isActive=true").then(r => r.ok ? r.json() : []).catch(() => []) });
   const { data: teamMembers = [] } = useQuery<any[]>({ 
-    queryKey: ["/api/team"], 
+    queryKey: ["public", "/api/team"], refetchOnMount: "always", 
     queryFn: () => fetch("/api/team").then(r => r.ok ? r.json() : []).then((a: any[]) => a.filter((m: any) => (m.isActive !== false) && m.name).sort((a: any, b: any) => (a.orderIndex||0) - (b.orderIndex||0))).catch(() => []) 
   });
 

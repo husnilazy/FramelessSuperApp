@@ -13,6 +13,7 @@ import { Plus, Users, Mail, Briefcase, Trash2, Shield, ShieldOff, MessageCircle,
 import { PageTitle } from "@/components/shell/page-header";
 import { KpiCard } from "@/components/shell/ui";
 import { SectionTabs } from "@/components/shell/section-tabs";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 const DEPT_COLORS: Record<string, string> = {
   Production: "bg-primary/20 text-primary border-primary/30",
   "Post-Production": "bg-blue-500/20 text-blue-400 border-blue-500/30",
@@ -46,6 +47,7 @@ export default function TeamPage() {
   const [enablePending, setEnablePending] = useState(false);
   const [disablePendingId, setDisablePendingId] = useState<string | null>(null);
   const [deletePendingId, setDeletePendingId] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<{ id: string; name: string } | null>(null);
   const [updatePendingId, setUpdatePendingId] = useState<string | null>(null);
   const [avatarUploading, setAvatarUploading] = useState(false);
 
@@ -95,10 +97,14 @@ export default function TeamPage() {
 
   const deleteMutation = useDeleteTeamMember({
     mutation: {
-      onSuccess: () => {
+      onSuccess: (data: any) => {
         queryClient.invalidateQueries({ queryKey: ["/api/team"] });
-        toast({ title: "Member removed" });
+        queryClient.invalidateQueries({ queryKey: ["public", "/api/team"] });
+        toast(data?.archived
+          ? { title: "Crew dinonaktifkan", description: "Punya riwayat dokumen/file, jadi tidak dihapus permanen. Akun dimatikan dan disembunyikan dari landing." }
+          : { title: "Crew dihapus" });
       },
+      onError: () => toast({ variant: "destructive", title: "Gagal menghapus crew", description: "Coba lagi. Jika terus gagal, hubungi developer." }),
     },
   });
 
@@ -262,8 +268,8 @@ export default function TeamPage() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                      onClick={() => { setDeletePendingId(member.id); deleteMutation.mutate({ id: member.id }, { onSettled: () => setDeletePendingId(null) }); }}
+                      className="opacity-100 md:opacity-0 md:group-hover:opacity-100 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                      onClick={() => setConfirmDelete({ id: member.id, name: member.name })}
                       disabled={deletePendingId !== null}
                     >
                       {deletePendingId === member.id ? <div className="w-4 h-4 rounded-full border-2 border-primary border-t-transparent animate-spin" /> : <Trash2 className="w-4 h-4" />}
@@ -271,7 +277,7 @@ export default function TeamPage() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-primary"
+                      className="opacity-100 md:opacity-0 md:group-hover:opacity-100 text-muted-foreground hover:text-primary"
                       onClick={() => { setEditingMember(member); setOpen(true); }}
                     >
                       <Edit className="w-4 h-4" />
@@ -468,6 +474,32 @@ export default function TeamPage() {
           </div>
         </div>
       )}
+
+      <AlertDialog open={!!confirmDelete} onOpenChange={(o) => { if (!o) setConfirmDelete(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Hapus {confirmDelete?.name}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Anggota akan dihapus dari daftar crew dan landing page. Tugas dan ketersediaannya ikut terhapus; jika punya riwayat dokumen/file, akunnya hanya dinonaktifkan.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Batal</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                if (!confirmDelete) return;
+                const { id } = confirmDelete;
+                setConfirmDelete(null);
+                setDeletePendingId(id);
+                deleteMutation.mutate({ id }, { onSettled: () => setDeletePendingId(null) });
+              }}
+            >
+              Hapus
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -129,7 +129,7 @@ export default function ServicesPage() {
     });
     const [submitting, setSubmitting] = useState(false);
 
-    const { data: cms } = useQuery<CmsData>({ queryKey: ["/api/cms"], queryFn: () => fetch("/api/cms").then(r => r.json()), staleTime: 60_000 });
+    const { data: cms } = useQuery<CmsData>({ queryKey: ["public", "/api/cms"], refetchOnMount: "always", queryFn: () => fetch("/api/cms").then(r => r.json()), staleTime: 60_000 });
 
     const cmsServices = (() => { try { return JSON.parse(cms?.services?.items || "[]") as ServiceItem[]; } catch { return []; } })();
     const services = cmsServices.length > 0 ? cmsServices : DEFAULTS;

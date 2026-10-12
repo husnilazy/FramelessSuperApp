@@ -61,7 +61,7 @@ export default function CoursesPage() {
   }, []);
 
   const { data: courses = [], isLoading } = useQuery<Course[]>({
-    queryKey: ["/api/courses"],
+    queryKey: ["public", "/api/courses"], refetchOnMount: "always",
     queryFn:  () => fetch("/api/courses").then(r => r.json()),
   });
 
