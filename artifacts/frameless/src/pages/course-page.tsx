@@ -29,6 +29,7 @@ import {
   Zap,
 } from "lucide-react";
 
+import { MotionLayer } from "@/lib/landing-motion";
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface Package {
   id: string;
@@ -1196,7 +1197,8 @@ export default function CoursePage() {
   `;
 
   return (
-    <div style={{ minHeight: "100vh", background: BG, color: "#fff", fontFamily: font }}>
+    <div data-rv-each style={{ minHeight: "100vh", background: BG, color: "#fff", fontFamily: font }}>
+      <MotionLayer />
       <style>{globalStyles}</style>
 
       {/* ── Top navigation ── */}

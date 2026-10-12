@@ -11,12 +11,12 @@ import { useEffect, useRef, useState } from "react";
 const ORANGE = "#F03820";
 
 /** Elemen kepala section & kartu yang di-reveal bertahap. */
-const HEAD_SEL = ".section-eyebrow, section h2, section h2 + p, h1:not([data-hero] h1)";
-const ITEM_SEL = ".stat-card, .course-card, .asset-card, .reel-card, .contact-info-card, .crew-card, .footer-grid > div, .svc-item, .cc, .stat-tile, [data-rv-item]";
+const HEAD_SEL = ".section-eyebrow, section h2, section h2 + p, h1:not([data-hero] h1), .cp-eyebrow, [data-rv-each] h2";
+const ITEM_SEL = ".stat-card, .course-card, .asset-card, .reel-card, .contact-info-card, .crew-card, .footer-grid > div, .svc-item, .cc, .stat-tile, .cp-why-card, .cp-testi-card, [data-rv-item]";
 /** Kartu dengan cincin tepi halus + sorotan mengikuti kursor. */
-const GLOW_SEL = ".stat-card, .course-card, .asset-card, .reel-card, .contact-info-card, .svc-card, .crew-card, .svc-item, .cc, .stat-tile, [data-rv-item]";
+const GLOW_SEL = ".stat-card, .course-card, .asset-card, .reel-card, .contact-info-card, .svc-card, .crew-card, .svc-item, .cc, .stat-tile, .cp-why-card, .cp-testi-card, [data-rv-item]";
 /** Hanya kartu ber-latar polos yang boleh diganti permukaannya (kartu bergambar jangan disentuh). */
-const SURFACE_SEL = ".stat-card, .course-card, .asset-card, .contact-info-card, .svc-item, .cc, .stat-tile";
+const SURFACE_SEL = ".stat-card, .course-card, .asset-card, .contact-info-card, .svc-item, .cc, .stat-tile, .cp-why-card, .cp-testi-card";
 
 export const MOTION_CSS = `
 /* ── Reveal bertahap (hanya aktif setelah JS menandai elemen) ── */
