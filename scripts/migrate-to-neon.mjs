@@ -361,6 +361,8 @@ async function doAuth() {
   const src = srcPool();
   const dst = dstPool();
   try {
+    // Di Supabase, password hidup di auth.users sehingga public.users tidak punya kolom ini.
+    await dst.query(`ALTER TABLE public.users ADD COLUMN IF NOT EXISTS password text`);
     const rows = await q(src, `SELECT id, lower(email) AS email, encrypted_password AS hash FROM auth.users`);
     let ok = 0, noHash = 0, noProfile = 0;
     for (const r of rows) {
@@ -410,7 +412,8 @@ async function doVerify() {
     const [sa, sb] = [await shape(src), await shape(dst)];
     for (const x of sa) {
       const y = sb.find((r) => r.relname === x.relname);
-      if (!y || y.cols !== x.cols || y.idx !== x.idx) { bad++; console.log(`✗ struktur ${x.relname}: supabase cols/idx=${x.cols}/${x.idx} neon=${y ? `${y.cols}/${y.idx}` : "tidak ada"}`); }
+      const extra = x.relname === "users" ? 1 : 0; // kolom password ditambahkan di fase auth
+      if (!y || y.cols !== x.cols + extra || y.idx !== x.idx) { bad++; console.log(`✗ struktur ${x.relname}: supabase cols/idx=${x.cols}/${x.idx} neon=${y ? `${y.cols}/${y.idx}` : "tidak ada"}`); }
     }
     if (!bad) log("✓ struktur kolom & index cocok.");
     process.exitCode = bad ? 2 : 0;

@@ -184,7 +184,11 @@ async function doUrls() {
 try {
   if (phase === "plan") await doPlan();
   if (phase === "files" || phase === "all") await doFiles();
-  if (phase === "urls" || phase === "all") await doUrls();
+  if (phase === "all" && process.exitCode === 2) {
+    log("\nAda file yang gagal disalin → fase urls DILEWATI agar database tidak menunjuk ke file yang belum ada. Ulangi `all` setelah masalah download teratasi.");
+  } else if (phase === "urls" || phase === "all") {
+    await doUrls();
+  }
 } catch (e) {
   console.error("\nGAGAL:", e.message || e);
   process.exit(1);
