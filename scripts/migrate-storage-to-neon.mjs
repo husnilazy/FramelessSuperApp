@@ -39,18 +39,30 @@ function parseEnv(file) {
   return out;
 }
 
-const oldFile = ["artifacts/api-server/.env.old-supabase", "artifacts/api-server/.env"].map((f) => path.join(root, f)).find((f) => fs.existsSync(f));
-const old = parseEnv(oldFile);
-const cfg = parseEnv(path.join(root, "scripts/migration.neon.env"));
+// File .env di-gitignore sehingga hanya ada di checkout utama; saat dijalankan dari worktree, cari juga di sana.
+const roots = [root, (root.includes(".claude") ? root.slice(0, root.indexOf(".claude")).replace(/[\\/]+$/, "") : "")].filter(Boolean);
+const findFile = (rel) => roots.map((r) => path.join(r, rel)).find((f) => fs.existsSync(f));
+/** Sumber = .env yang DATABASE_URL-nya BUKAN Neon (setelah cut-over .env menunjuk Neon → pakai .env.old-supabase). */
+const pickSourceEnv = () => {
+  for (const rel of ["artifacts/api-server/.env", "artifacts/api-server/.env.old-supabase"]) {
+    const f = findFile(rel);
+    if (!f) continue;
+    const e = parseEnv(f);
+    if (e.DATABASE_URL && !/neon.tech/.test(e.DATABASE_URL)) return e;
+  }
+  return {};
+};
+const old = pickSourceEnv();
+const cfg = parseEnv(findFile("scripts/migration.neon.env") || "");
 
 const SRC_DB = cfg.SOURCE_DATABASE_URL || old.DATABASE_URL;
 const SB_URL = (old.SUPABASE_URL || "").replace(/\/$/, "");
 const SB_KEY = old.SUPABASE_SERVICE_ROLE_KEY;
 const NEON = cfg.NEON_DATABASE_URL;
 const ST = {
-  endpoint: (cfg.AWS_ENDPOINT_URL_S3 || "").replace(/[/]+$/, ""), region: cfg.AWS_REGION,
+  endpoint: (cfg.AWS_ENDPOINT_URL_S3 || "").replace(/[\/]+$/, ""), region: cfg.AWS_REGION,
   accessKeyId: cfg.AWS_ACCESS_KEY_ID, secretAccessKey: cfg.AWS_SECRET_ACCESS_KEY,
-  publicUrl: (cfg.STORAGE_PUBLIC_URL || cfg.AWS_ENDPOINT_URL_S3 || "").replace(/[/]+$/, ""),
+  publicUrl: (cfg.STORAGE_PUBLIC_URL || cfg.AWS_ENDPOINT_URL_S3 || "").replace(/[\/]+$/, ""),
 };
 
 const phase = process.argv[2] || "plan";

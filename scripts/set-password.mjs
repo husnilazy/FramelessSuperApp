@@ -23,7 +23,9 @@ const parse = (file) => {
   }
   return out;
 };
-const url = parse(path.join(root, "scripts/migration.neon.env")).NEON_DATABASE_URL || parse(path.join(root, "artifacts/api-server/.env")).DATABASE_URL;
+const roots = [root, (root.includes(".claude") ? root.slice(0, root.indexOf(".claude")).replace(/[\\/]+$/, "") : "")].filter(Boolean);
+const find = (rel) => roots.map((r) => path.join(r, rel)).find((f) => fs.existsSync(f)) || "";
+const url = parse(find("scripts/migration.neon.env")).NEON_DATABASE_URL || parse(find("artifacts/api-server/.env")).DATABASE_URL;
 const [email, password] = process.argv.slice(2);
 if (!url || !email || !password) { console.error("Pakai: node scripts/set-password.mjs <email> <password-baru>"); process.exit(1); }
 if (password.length < 8) { console.error("Password minimal 8 karakter"); process.exit(1); }

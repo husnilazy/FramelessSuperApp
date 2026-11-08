@@ -40,12 +40,21 @@ function parseEnv(file) {
   return out;
 }
 
-// Setelah DATABASE_URL di .env dialihkan ke Neon, simpan kredensial Supabase lama di .env.old-supabase
-const oldEnvFile = ["artifacts/api-server/.env.old-supabase", "artifacts/api-server/.env"]
-  .map((f) => path.join(root, f))
-  .find((f) => fs.existsSync(f));
-const oldEnv = parseEnv(oldEnvFile);
-const neonEnv = parseEnv(path.join(root, "scripts/migration.neon.env"));
+// File .env di-gitignore sehingga hanya ada di checkout utama; saat dijalankan dari worktree, cari juga di sana.
+const roots = [root, (root.includes(".claude") ? root.slice(0, root.indexOf(".claude")).replace(/[\\/]+$/, "") : "")].filter(Boolean);
+const findFile = (rel) => roots.map((r) => path.join(r, rel)).find((f) => fs.existsSync(f));
+/** Sumber = .env yang DATABASE_URL-nya BUKAN Neon (setelah cut-over .env menunjuk Neon → pakai .env.old-supabase). */
+const pickSourceEnv = () => {
+  for (const rel of ["artifacts/api-server/.env", "artifacts/api-server/.env.old-supabase"]) {
+    const f = findFile(rel);
+    if (!f) continue;
+    const e = parseEnv(f);
+    if (e.DATABASE_URL && !/neon.tech/.test(e.DATABASE_URL)) return e;
+  }
+  return {};
+};
+const oldEnv = pickSourceEnv();
+const neonEnv = parseEnv(findFile("scripts/migration.neon.env") || "");
 
 const SRC = neonEnv.SOURCE_DATABASE_URL || oldEnv.DATABASE_URL;
 const DST = neonEnv.NEON_DATABASE_URL;
