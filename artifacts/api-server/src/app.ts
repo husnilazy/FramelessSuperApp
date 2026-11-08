@@ -38,7 +38,10 @@ app.use(
         "http://127.0.0.1:5174",
         "https://www.framelesscreative.com",
         "https://framelesscreative.com",
-        "https://frameless-super-app-frameless.vercel.app"
+        "https://frameless-super-app-frameless.vercel.app",
+        "https://framelesscreative.studiodo.id",
+        // Tambahan tanpa ubah kode: ALLOWED_ORIGINS="https://a.com,https://b.com"
+        ...(process.env.ALLOWED_ORIGINS || "").split(",").map((s) => s.trim().replace(/\/$/, "")).filter(Boolean),
       ];
 
       if (!origin) return callback(null, true);
@@ -48,6 +51,11 @@ app.use(
       }
 
       if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      // Alias otomatis Vercel milik project frontend ini (git-main, git-<branch>, preview) di team sendiri.
+      if (/^https:\/\/frameless-super-app-frameless(-[a-z0-9]+(-[a-z0-9]+)*)?-husnilazys-projects\.vercel\.app$/.test(origin)) {
         return callback(null, true);
       }
 
