@@ -69,9 +69,9 @@ node scripts/migrate-storage-to-neon.mjs all
 | `DATABASE_URL` | string Neon **pooled** |
 | `DATABASE_URL_DIRECT` | string Neon **direct** (hanya untuk `pnpm --filter @workspace/db push`) |
 | `AUTH_JWT_SECRET` | string acak panjang, mis. `openssl rand -base64 48` |
-| `AWS_ENDPOINT_URL_S3`, `AWS_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` | dari Neon Storage |
+| `S3_ENDPOINT`, `S3_REGION`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` | dari Neon Storage. Nama `S3_*` (bukan `AWS_*`) karena Vercel mereservasi `AWS_REGION` dan `AWS_ACCESS_KEY_*` untuk runtime-nya; `AWS_*` tetap diterima sebagai fallback untuk lokal |
 | `STORAGE_PUBLIC_URL` | opsional, bila memakai domain/CDN sendiri di depan bucket (URL di DB harus diganti sesuai) |
-| `SHARE_SECRET` | **isi dengan nilai lama `SUPABASE_SERVICE_ROLE_KEY`** bila `JWT_SECRET`/`SHARE_SECRET` sebelumnya tidak di-set, agar link share yang sudah beredar tetap valid |
+| `SHARE_SECRET` | tidak perlu bila `JWT_SECRET` sudah di-set di Vercel (link share memakai `SHARE_SECRET` → `JWT_SECRET`) |
 
 `SUPABASE_*` tidak dipakai lagi dan boleh dihapus setelah semuanya terverifikasi.
 
