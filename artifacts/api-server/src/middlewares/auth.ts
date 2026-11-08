@@ -1,26 +1,7 @@
 import { type Request, type Response, type NextFunction } from "express";
-import { createClient } from "@supabase/supabase-js";
 import jwt from "jsonwebtoken";
-
-const supabaseUrl = process.env.SUPABASE_URL || "";
-const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || "";
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
-
-const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    autoRefreshToken: false,
-    persistSession: false,
-    detectSessionInUrl: false,
-  },
-});
-
-const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
-  auth: {
-    autoRefreshToken: false,
-    persistSession: false,
-    detectSessionInUrl: false,
-  },
-});
+import { findUserById } from "../lib/users-repo.js";
+import { getAuthUser } from "../lib/auth-core.js";
 
 type AuthedRequest = Request & {
   user?: {
@@ -33,17 +14,7 @@ type AuthedRequest = Request & {
 };
 
 async function loadUserProfile(userId: string) {
-  const { data: profile, error } = await supabaseAdmin
-    .from("users")
-    .select("id,name,email,role,is_active")
-    .eq("id", userId)
-    .maybeSingle();
-
-  if (error) {
-    throw error;
-  }
-
-  return profile;
+  return findUserById(userId);
 }
 
 const emergencySecret = process.env.EMERGENCY_JWT_SECRET || "";
@@ -75,7 +46,7 @@ export async function isAdminRequest(req: Request): Promise<boolean> {
     if (!authHeader?.startsWith("Bearer ")) return false;
     const token = authHeader.slice(7).trim();
     if (verifyEmergency(token)) return true;
-    const { data, error } = await supabase.auth.getUser(token);
+    const { data, error } = await getAuthUser(token);
     if (error || !data.user) return false;
     const profile = await loadUserProfile(data.user.id);
     return !!profile?.is_active && profile.role === "ADMIN";
@@ -106,7 +77,7 @@ async function authenticate(req: AuthedRequest, res: Response) {
     return emergency;
   }
 
-  const { data, error } = await supabase.auth.getUser(token);
+  const { data, error } = await getAuthUser(token);
 
   if (error || !data.user) {
     res.status(401).json({ error: "Invalid or expired token" });
@@ -126,7 +97,7 @@ async function authenticate(req: AuthedRequest, res: Response) {
 
   req.user = {
     id: profile.id,
-    name: profile.name,
+    name: profile.name ?? "",
     email: profile.email,
     role: profile.role,
     isActive: profile.is_active,

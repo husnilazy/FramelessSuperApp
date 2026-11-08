@@ -12,7 +12,7 @@ import os from "os";
 import { requireAuth } from "./middleware.js";
 import { crewTokenStore, getCrewMemberIdFromToken } from "./crew.js";
 import { logger } from "../lib/logger.js";
-import { supabase } from "../lib/supabase.js";
+import { uploadFromDisk } from "../lib/storage.js";
 import { db, digitalAssetsTable, projectFilesTable } from "@workspace/db";
 
 const router: IRouter = Router();
@@ -22,7 +22,7 @@ const router: IRouter = Router();
 // Untuk video besar (puluhan MB), ini cepat menumpuk memory antar-upload
 // dan bisa membuat upload berikutnya gagal diam-diam tanpa pesan error jelas.
 // Disk storage men-stream file ke disk sementara (OS temp dir / Vercel /tmp),
-// jauh lebih ringan untuk memory heap Node, lalu kita upload ke Supabase dari file
+// jauh lebih ringan untuk memory heap Node, lalu kita upload ke storage dari file
 // tersebut dan langsung hapus setelah selesai (tidak disimpan permanen di disk).
 const tmpUploadDir = process.env.NODE_ENV === "production"
   ? "/tmp/frameless-uploads"
@@ -161,36 +161,17 @@ function uploadHandler(callback: UploadCallback) {
   };
 }
 
-async function uploadToSupabase(
+async function uploadToStorage(
   file: Express.Multer.File,
   fileName: string
 ) {
-  const bucket = supabase.storage.from(
-    "site-assets"
-  );
-
-  // Disk storage: file ada di file.path (bukan file.buffer lagi).
-  // Stream dari disk ke Supabase — tidak perlu load seluruh file ke memory.
-  const fileStream = fs.createReadStream(file.path);
-
-  const { error } = await bucket.upload(
-    fileName,
-    fileStream,
-    {
-      contentType: file.mimetype,
-      upsert: true,
-      duplex: "half",
-    } as any
-  );
-
-  if (error) {
-    throw error;
-  }
-
-  const { data } =
-    bucket.getPublicUrl(fileName);
-
-  return data.publicUrl;
+  // Upload ke Neon Object Storage.
+  return uploadFromDisk({
+    bucket: "site-assets",
+    key: fileName,
+    filePath: file.path,
+    contentType: file.mimetype,
+  });
 }
 
 // =============================
@@ -223,7 +204,7 @@ router.post(
 
         let publicUrl: string;
         try {
-          publicUrl = await uploadToSupabase(
+          publicUrl = await uploadToStorage(
             req.file,
             fileName
           );
@@ -314,7 +295,7 @@ router.post(
 
         let publicUrl: string;
         try {
-          publicUrl = await uploadToSupabase(
+          publicUrl = await uploadToStorage(
             req.file,
             fileName
           );

@@ -100,7 +100,7 @@ export default function SettingsPage() {
         <CardContent className="space-y-1">
           <InfoRow icon={<Database className="w-3 h-3" />} label="Stack"   value="React + Vite · Express · Drizzle ORM · PostgreSQL" />
           <InfoRow icon={<Settings className="w-3 h-3" />} label="Design"  value="Glassmorphism · Dark Theme · Plus Jakarta Sans" />
-          <InfoRow icon={<Globe    className="w-3 h-3" />} label="Hosting" value="Vercel + Supabase (Singapore)" />
+          <InfoRow icon={<Globe    className="w-3 h-3" />} label="Hosting" value="Vercel + Neon" />
           <InfoRow icon={<ChevronRight className="w-3 h-3" />} label="Version" value="1.0.0-alpha" />
         </CardContent>
       </Card>
