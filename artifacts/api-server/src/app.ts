@@ -51,6 +51,11 @@ app.use(
         return callback(null, true);
       }
 
+      // Alias otomatis Vercel milik project frontend ini (git-main, git-<branch>, preview) di team sendiri.
+      if (/^https:\/\/frameless-super-app-frameless(-[a-z0-9]+(-[a-z0-9]+)*)?-husnilazys-projects\.vercel\.app$/.test(origin)) {
+        return callback(null, true);
+      }
+
       return callback(new Error(`CORS blocked: ${origin}`));
     },
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
