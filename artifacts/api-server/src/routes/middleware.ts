@@ -1,12 +1,8 @@
 import { type Request, type Response, type NextFunction } from "express";
-import { createClient } from "@supabase/supabase-js";
 import jwt from "jsonwebtoken";
 import { getCrewMemberIdFromToken } from "./crew.js";
-
-const supabaseUrl = process.env.SUPABASE_URL || "";
-const supabaseKey = process.env.SUPABASE_ANON_KEY || "";
-
-const supabase = createClient(supabaseUrl, supabaseKey);
+import { findUserById } from "../lib/users-repo.js";
+import { getAuthUser } from "../lib/auth-core.js";
 
 /** Token darurat (aktif hanya bila EMERGENCY_JWT_SECRET di-set) — sama dengan penjaga di middlewares/auth.ts */
 function emergencyUser(token: string): { id: string; email: string; role: string } | null {
@@ -22,7 +18,7 @@ function emergencyUser(token: string): { id: string; email: string; role: string
 }
 
 type TokenPayload = {
-  sub: string; // Supabase user ID
+  sub: string; // ID user (users.id)
 };
 
 // Middleware: Require authentication
@@ -51,8 +47,8 @@ export async function requireAuth(
       return;
     }
 
-    // Verify token dengan Supabase
-    const { data, error } = await supabase.auth.getUser(token);
+    // Verifikasi token session (JWT)
+    const { data, error } = await getAuthUser(token);
 
     if (error || !data.user) {
       res.status(401).json({
@@ -102,7 +98,7 @@ export async function requireAdmin(
     }
 
     // Verify token
-    const { data, error } = await supabase.auth.getUser(token);
+    const { data, error } = await getAuthUser(token);
 
     if (error || !data.user) {
       res.status(401).json({
@@ -114,13 +110,9 @@ export async function requireAdmin(
     const userId = data.user.id;
 
     // Get user profile untuk check role
-    const { data: userProfile, error: profileError } = await supabase
-      .from("users")
-      .select("*")
-      .eq("id", userId)
-      .single();
+    const userProfile = await findUserById(userId);
 
-    if (profileError || !userProfile) {
+    if (!userProfile) {
       res.status(403).json({
         error: "User not found",
       });
@@ -160,7 +152,7 @@ export async function getTokenUserId(req: Request): Promise<string | null> {
 
     const token = authHeader.slice(7).trim();
 
-    const { data, error } = await supabase.auth.getUser(token);
+    const { data, error } = await getAuthUser(token);
 
     if (error || !data.user) {
       return null;
@@ -177,17 +169,7 @@ export async function getTokenUserId(req: Request): Promise<string | null> {
 // Helper: Get full user profile
 export async function getUserProfile(userId: string): Promise<any> {
   try {
-    const { data, error } = await supabase
-      .from("users")
-      .select("*")
-      .eq("id", userId)
-      .single();
-
-    if (error) {
-      return null;
-    }
-
-    return data;
+    return await findUserById(userId);
 
   } catch (err) {
     console.error("[getUserProfile]", err);
@@ -232,8 +214,8 @@ export async function requireUniversalAuth(
       return next();
     }
 
-    // 3. Fallback to Supabase token
-    const { data, error } = await supabase.auth.getUser(token);
+    // 3. Token session user
+    const { data, error } = await getAuthUser(token);
 
     if (error || !data.user) {
       res.status(401).json({
@@ -242,11 +224,7 @@ export async function requireUniversalAuth(
       return;
     }
 
-    const { data: userProfile } = await supabase
-      .from("users")
-      .select("*")
-      .eq("id", data.user.id)
-      .single();
+    const userProfile = await findUserById(data.user.id).catch(() => null);
 
     (req as any).userId = data.user.id;
     (req as any).user = {

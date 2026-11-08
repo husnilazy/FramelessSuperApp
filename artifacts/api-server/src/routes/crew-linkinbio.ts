@@ -6,7 +6,7 @@ import { db } from "@workspace/db";
 import { teamMembersTable } from "@workspace/db";
 import { eq, sql } from "drizzle-orm";
 import { getCrewMemberIdFromToken } from "./crew.js";
-import { supabase } from "../lib/supabase.js";
+import { uploadFromDisk } from "../lib/storage.js";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
@@ -200,17 +200,8 @@ async function upsertProfile(memberId: string, profile: LinkinBioProfile): Promi
   `);
 }
 
-async function uploadImageToSupabase(file: Express.Multer.File, fileName: string): Promise<string> {
-  const bucket = supabase.storage.from("site-assets");
-  const fileStream = fs.createReadStream(file.path);
-  const { error } = await bucket.upload(`linkinbio/${fileName}`, fileStream, {
-    contentType: file.mimetype,
-    upsert: true,
-    duplex: "half",
-  } as any);
-  if (error) throw error;
-  const { data } = bucket.getPublicUrl(`linkinbio/${fileName}`);
-  return data.publicUrl;
+async function uploadImageToStorage(file: Express.Multer.File, fileName: string): Promise<string> {
+  return uploadFromDisk({ bucket: "site-assets", key: `linkinbio/${fileName}`, filePath: file.path, contentType: file.mimetype });
 }
 
 // ── GET /api/crew/linkinbio ────────────────────────────────────────────────────
@@ -254,7 +245,7 @@ router.post("/crew/linkinbio/avatar", requireCrewAuth as any, (req: any, res: an
     try {
       const ext = path.extname(req.file.originalname);
       const fileName = `avatar-${req.crewMemberId}-${Date.now()}${ext}`;
-      const url = await uploadImageToSupabase(req.file, fileName);
+      const url = await uploadImageToStorage(req.file, fileName);
       cleanupTmp(req.file.path);
 
       // Sync avatarUrl to teamMembersTable too
@@ -279,7 +270,7 @@ router.post("/crew/linkinbio/banner", requireCrewAuth as any, (req: any, res: an
     try {
       const ext = path.extname(req.file.originalname);
       const fileName = `banner-${req.crewMemberId}-${Date.now()}${ext}`;
-      const url = await uploadImageToSupabase(req.file, fileName);
+      const url = await uploadImageToStorage(req.file, fileName);
       cleanupTmp(req.file.path);
 
       const { profile } = await getProfile(req.crewMemberId);

@@ -1,40 +1,22 @@
 import { Router, type IRouter } from "express";
-import { createClient } from "@supabase/supabase-js";
+import { randomUUID } from "node:crypto";
 import jwt from "jsonwebtoken";
+import { findUserById, createUserProfile } from "../lib/users-repo.js";
+import { getAuthUser, hashPassword, verifyPassword, signSession, findUserForLogin, DUMMY_HASH } from "../lib/auth-core.js";
 
 const router: IRouter = Router();
 
-const supabaseUrl = process.env.SUPABASE_URL || "";
-const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || "";
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
-
-if (!supabaseUrl || !supabaseAnonKey || !supabaseServiceKey) {
-  console.error("[auth] Missing Supabase env vars");
+if (!process.env.AUTH_JWT_SECRET && !process.env.JWT_SECRET) {
+  console.error("[auth] AUTH_JWT_SECRET belum di-set — login akan gagal");
 }
 
-const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    autoRefreshToken: false,
-    persistSession: false,
-    detectSessionInUrl: false,
-  },
-});
-
-const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
-  auth: {
-    autoRefreshToken: false,
-    persistSession: false,
-    detectSessionInUrl: false,
-  },
-});
-
 // ============================================================
-// ⚠️  EMERGENCY BYPASS — Aktif saat Supabase kena egress quota
+// ⚠️  EMERGENCY BYPASS — Pintu darurat bila database/login bermasalah
 //     Set env vars berikut untuk mengaktifkan:
 //       EMERGENCY_BYPASS_EMAIL=<email admin>
 //       EMERGENCY_BYPASS_PASSWORD=<password sementara>
 //       EMERGENCY_JWT_SECRET=<random string panjang>
-//     HAPUS ke-3 env vars ini setelah Supabase reset (6 Ags 2026)
+//     HAPUS ke-3 env vars ini setelah layanan normal
 // ============================================================
 const BYPASS_EMAIL    = process.env.EMERGENCY_BYPASS_EMAIL    || "";
 const BYPASS_PASSWORD = process.env.EMERGENCY_BYPASS_PASSWORD || "";
@@ -43,7 +25,7 @@ const BYPASS_SECRET   = process.env.EMERGENCY_JWT_SECRET      || "";
 const BYPASS_ACTIVE = !!(BYPASS_EMAIL && BYPASS_PASSWORD && BYPASS_SECRET);
 
 if (BYPASS_ACTIVE) {
-  console.warn("[auth] ⚠️  EMERGENCY BYPASS AKTIF — nonaktifkan setelah Supabase normal");
+  console.warn("[auth] ⚠️  EMERGENCY BYPASS AKTIF — nonaktifkan setelah layanan normal");
 }
 
 /** Buat emergency JWT sementara (7 hari) */
@@ -100,56 +82,41 @@ router.post("/auth/login", async (req, res): Promise<void> => {
     }
     // --- END EMERGENCY BYPASS ---
 
-    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-      email: normalizedEmail,
-      password,
-    });
-
-    if (authError || !authData.user) {
-      console.error("[auth/login] Auth error:", authError?.message);
-      res.status(401).json({ error: "Email atau password salah" });
-      return;
-    }
-
-    const { data: userProfile, error: profileError } = await supabaseAdmin
-      .from("users")
-      .select("id,name,email,role,is_active")
-      .eq("id", authData.user.id)
-      .maybeSingle();
-
-    if (profileError) {
-      console.error("[auth/login] Profile fetch error:", profileError.message);
+    let dbUser;
+    try {
+      dbUser = await findUserForLogin(normalizedEmail);
+    } catch (profileError: any) {
+      console.error("[auth/login] Profile fetch error:", profileError?.message);
       res.status(500).json({
         error: "Gagal mengambil profile user",
-        detail: profileError.message,
+        detail: profileError?.message,
       });
       return;
     }
 
-    if (!userProfile) {
-      res.status(404).json({ error: "Profile user belum dibuat" });
+    // Selalu jalankan bcrypt (hash palsu bila user tidak ada) agar waktu respons tidak membocorkan keberadaan email
+    const passwordOk = await verifyPassword(String(password), dbUser?.password ?? DUMMY_HASH);
+
+    if (!dbUser || !dbUser.password || !passwordOk) {
+      res.status(401).json({ error: "Email atau password salah" });
       return;
     }
 
-    if (!userProfile.is_active) {
+    if (!dbUser.isActive) {
       res.status(403).json({ error: "Akun tidak aktif. Hubungi administrator." });
       return;
     }
 
-    const token = authData.session?.access_token;
-    if (!token) {
-      res.status(500).json({ error: "Gagal membuat session token" });
-      return;
-    }
+    const token = signSession({ id: dbUser.id, email: dbUser.email });
 
     res.json({
       token,
       user: {
-        id: authData.user.id,
-        name: userProfile.name,
-        email: authData.user.email,
-        role: userProfile.role,
-        isActive: userProfile.is_active,
+        id: dbUser.id,
+        name: dbUser.name,
+        email: dbUser.email,
+        role: dbUser.role,
+        isActive: dbUser.isActive,
       },
     });
   } catch (err) {
@@ -197,23 +164,20 @@ router.get("/auth/me", async (req, res): Promise<void> => {
     }
     // --- END EMERGENCY BYPASS ---
 
-    const { data, error } = await supabase.auth.getUser(token);
+    const { data, error } = await getAuthUser(token);
 
     if (error || !data.user) {
       res.status(401).json({ error: "Token expired" });
       return;
     }
 
-    const { data: userProfile, error: profileError } = await supabaseAdmin
-      .from("users")
-      .select("id,name,email,role,is_active")
-      .eq("id", data.user.id)
-      .maybeSingle();
-
-    if (profileError) {
+    let userProfile;
+    try {
+      userProfile = await findUserById(data.user.id);
+    } catch (profileError: any) {
       res.status(500).json({
         error: "Gagal mengambil profile user",
-        detail: profileError.message,
+        detail: profileError?.message,
       });
       return;
     }
@@ -247,31 +211,29 @@ router.post("/auth/register", async (req, res): Promise<void> => {
 
     const normalizedEmail = String(email).trim().toLowerCase();
 
-    const { data, error } = await supabaseAdmin.auth.admin.createUser({
-      email: normalizedEmail,
-      password,
-      email_confirm: true,
-    });
-
-    if (error || !data.user) {
-      console.error("[auth/register] Error creating user:", error?.message);
-      res.status(400).json({ error: error?.message || "Gagal membuat user" });
+    if (String(password).length < 8) {
+      res.status(400).json({ error: "Password minimal 8 karakter" });
       return;
     }
 
-    const { data: userProfile, error: profileError } = await supabaseAdmin
-      .from("users")
-      .insert({
+    if (await findUserForLogin(normalizedEmail)) {
+      res.status(400).json({ error: "Email sudah terdaftar" });
+      return;
+    }
+
+    const data = { user: { id: randomUUID(), email: normalizedEmail } };
+
+    let userProfile;
+    try {
+      userProfile = await createUserProfile({
         id: data.user.id,
         name,
-        email: data.user.email,
+        email: normalizedEmail,
+        passwordHash: await hashPassword(String(password)),
         role: "USER",
-        is_active: true,
-      })
-      .select("id,name,email,role,is_active")
-      .maybeSingle();
-
-    if (profileError || !userProfile) {
+        isActive: true,
+      });
+    } catch (profileError: any) {
       console.error("[auth/register] Profile error:", profileError?.message);
       res.status(500).json({
         error: "Gagal membuat profile user",

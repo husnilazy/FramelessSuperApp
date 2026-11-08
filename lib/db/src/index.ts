@@ -1,5 +1,5 @@
 // @workspace/db/src/index.ts
-// UPDATED: Tambah export course-tracking schema
+// Postgres via node-postgres. Target: Neon (pooled endpoint, `-pooler` di hostname).
 
 import { drizzle } from "drizzle-orm/node-postgres";
 import pg from "pg";
@@ -18,13 +18,28 @@ if (!connectionString) {
   console.warn("⚠️  WARNING: DATABASE_URL belum terdeteksi saat inisialisasi modul.");
 }
 
-// Inisialisasi pool dengan SSL untuk Supabase
+// Neon wajib TLS dan memakai sertifikat publik valid → verifikasi tetap aktif.
+// Postgres lokal (localhost) berjalan tanpa TLS. Host lain (mis. Supabase lama) tetap
+// diterima dengan rejectUnauthorized=false agar rollback ke Supabase masih berfungsi.
+const isLocal = /@(localhost|127\.0\.0\.1|\[::1\])[:/]/.test(connectionString);
+const isNeon = /\.neon\.tech/.test(connectionString);
+
+// Di serverless (Vercel) tiap instance membuka pool sendiri; PgBouncer Neon yang
+// mengurus koneksi sebenarnya, jadi pool per instance cukup kecil.
 export const pool = connectionString
   ? new Pool({
       connectionString,
-      ssl: { rejectUnauthorized: false },
+      ssl: isLocal ? false : isNeon ? { rejectUnauthorized: true } : { rejectUnauthorized: false },
+      max: Number(process.env.DB_POOL_MAX || (process.env.VERCEL ? 3 : 10)),
+      idleTimeoutMillis: 10_000,
+      connectionTimeoutMillis: 10_000,
     })
   : null;
+
+// Neon bisa menutup koneksi idle (scale-to-zero) → jangan biarkan crash proses.
+pool?.on("error", (err) => {
+  console.error("[db] idle client error:", err.message);
+});
 
 // Proxy Fallback agar tidak crash jika DB belum siap
 export const db = pool
