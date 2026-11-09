@@ -11,6 +11,7 @@ import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import ProjectFinance from "@/components/ProjectFinance";
 import { ArrowLeft, Plus, Trash2, CheckSquare, Clock, Film, TrendingUp, RefreshCw, Edit3, Star } from "lucide-react";
 
 const STATUS_COLORS: Record<string, string> = {
@@ -186,6 +187,8 @@ export default function ProjectDetailPage() {
           </div>
         </CardContent>
       </Card>
+
+      <ProjectFinance projectId={id} members={members as any} />
 
       {/* Tasks */}
       <div>
