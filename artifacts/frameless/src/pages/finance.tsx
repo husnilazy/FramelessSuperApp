@@ -932,7 +932,7 @@ ${equipment.length > 0 ? `<div class="section">
           TAB: OVERVIEW
       ═══════════════════════════════════════════════════════════════════════ */}
       {activeTab === "monthly" && (
-        <MonthlyReport cashEvents={cashEvents} incomeEntries={incomeEntries} expenses={expenses} year={yr} onPrint={handlePrint} />
+        <MonthlyReport cashEvents={cashEvents} incomeEntries={incomeEntries} expenses={expenses} year={yr} onPrint={handlePrint} onChanged={loadData} />
       )}
 
       {activeTab === "overview" && (

@@ -866,6 +866,73 @@ router.post("/invoices/:id/payments", async (req: Request<InvoiceParams>, res: R
   });
 });
 
+// Koreksi pembayaran (jumlah / tanggal / metode / catatan). Sebelumnya hanya bisa hapus lalu catat ulang,
+// sehingga invoice yang sudah dikoreksi tetap membawa catatan pembayaran lama.
+router.put("/invoices/:id/payments/:paymentId", async (req: Request<{ id: string; paymentId: string }>, res: Response): Promise<void> => {
+  const invoiceId = toStr(req.params.id);
+  const paymentId = toStr(req.params.paymentId);
+
+  const [payment] = await db.select().from(paymentsTable).where(eq(paymentsTable.id, paymentId)).limit(1);
+  if (!payment || payment.invoiceId !== invoiceId) {
+    res.status(404).json({ error: "Pembayaran tidak ditemukan" });
+    return;
+  }
+  const [invoice] = await db.select().from(invoicesTable).where(eq(invoicesTable.id, invoiceId)).limit(1);
+  if (!invoice) {
+    res.status(404).json({ error: "Invoice not found" });
+    return;
+  }
+
+  const { amount, method, reference, notes, paidAt } = req.body ?? {};
+  const amt = amount === undefined || amount === null || amount === "" ? Number(payment.amount) : toNum(amount);
+  if (!(amt > 0)) {
+    res.status(400).json({ error: "Jumlah harus lebih dari 0" });
+    return;
+  }
+  const all = await db.select().from(paymentsTable).where(eq(paymentsTable.invoiceId, invoiceId));
+  const others = all.filter((p) => p.id !== paymentId).reduce((s, p) => s + Number(p.amount), 0);
+  const balance = Number(invoice.total) - others;
+  if (amt > balance + 0.5) {
+    res.status(400).json({ error: `Jumlah melebihi sisa tagihan (${Math.max(balance, 0)}). Total invoice ${Number(invoice.total)}, pembayaran lain ${others}.` });
+    return;
+  }
+
+  const newDate = paidAt === undefined || paidAt === null || paidAt === "" ? null : toDateOrNull(paidAt);
+  if (paidAt && !newDate) {
+    res.status(400).json({ error: "Tanggal pembayaran tidak valid" });
+    return;
+  }
+
+  const [updated] = await db
+    .update(paymentsTable)
+    .set({
+      amount: String(amt),
+      method: method ? toStr(method) : payment.method,
+      reference: reference === undefined ? payment.reference : toStr(reference) || null,
+      notes: notes === undefined ? payment.notes : toStr(notes) || null,
+      paidAt: newDate ?? payment.paidAt,
+    })
+    .where(eq(paymentsTable.id, paymentId))
+    .returning();
+
+  // jurnal pembayaran lama dibatalkan, lalu diposting ulang dengan jumlah/tanggal baru
+  await voidPaymentJournal(paymentId);
+  const synced = await syncPaymentTotals(invoiceId);
+
+  // tanggal lunas invoice mengikuti pembayaran terakhir (bukan tanggal input lama)
+  const [after] = await db.select().from(invoicesTable).where(eq(invoicesTable.id, invoiceId)).limit(1);
+  if (after && after.status === "PAID") {
+    const rows = await db.select().from(paymentsTable).where(eq(paymentsTable.invoiceId, invoiceId));
+    const last = rows.map((p) => p.paidAt).filter(Boolean).sort((a, b) => +new Date(b as any) - +new Date(a as any))[0];
+    if (last) await db.update(invoicesTable).set({ paidAt: last as Date }).where(eq(invoicesTable.id, invoiceId));
+  }
+
+  journalPayment(paymentId, "invoices/payments:update");
+  await logActivity("payment.updated", `Pembayaran invoice ${invoice.number} dikoreksi: ${Number(payment.amount)} → ${amt}`);
+
+  res.json({ ...mapPayment(updated), paidAmount: synced?.paid ?? 0 });
+});
+
 router.delete("/invoices/:id/payments/:paymentId", async (req: Request<{ id: string; paymentId: string }>, res: Response): Promise<void> => {
   const invoiceId = toStr(req.params.id);
   const paymentId = toStr(req.params.paymentId);

@@ -2,15 +2,17 @@
 // Laporan keuangan per bulan: ringkasan, perbandingan bulan lalu, rincian pemasukan & pengeluaran, rekap 12 bulan.
 // Murni hitungan dari data yang sudah dimuat halaman Keuangan (tidak ada endpoint baru, tidak mengubah data).
 import { useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight, Printer, Download, AlertCircle } from "lucide-react";
+import { useLocation } from "wouter";
+import { ChevronLeft, ChevronRight, Printer, Download, AlertCircle, Pencil, ExternalLink, X } from "lucide-react";
 import { formatCurrency } from "@/lib/formatters";
+import { getToken } from "@/lib/auth";
 
 const OR = "hsl(var(--primary))";
 const FONT = "'Plus Jakarta Sans',sans-serif";
 const MONTHS_ID = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
 const MON_SHORT = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
 
-type CashEvent = { id: string; invoiceNumber: string; clientName: string | null; amount: number; date: string; method: string };
+type CashEvent = { id: string; invoiceId: string; invoiceNumber: string; clientName: string | null; amount: number; date: string; method: string };
 type Income = { id: string; amount: number; category: string; description: string; date: string; source: string };
 type Expense = { id: string; amount: number; category: string; description: string; date: string; projectId?: string | null };
 
@@ -41,11 +43,14 @@ function delta(cur: number, prev: number): string | undefined {
   return `${p >= 0 ? "▲" : "▼"} ${Math.abs(p).toFixed(0)}% dari bulan lalu`;
 }
 
-export default function MonthlyReport({ cashEvents, incomeEntries, expenses, year, onPrint }: {
+export default function MonthlyReport({ cashEvents, incomeEntries, expenses, year, onPrint, onChanged }: {
   cashEvents: CashEvent[]; incomeEntries: Income[]; expenses: Expense[]; year: number;
   onPrint: (range: { from: Date; to: Date; label: string }) => void;
+  onChanged?: () => void;
 }) {
   const now = new Date();
+  const [, navigate] = useLocation();
+  const [editPay, setEditPay] = useState<CashEvent | null>(null);
   const [y, setY] = useState(year);
   const [m, setM] = useState(y === now.getFullYear() ? now.getMonth() : 11);
 
@@ -79,8 +84,8 @@ export default function MonthlyReport({ cashEvents, incomeEntries, expenses, yea
     const byCat = new Map<string, number>();
     cur.exp.forEach((e) => byCat.set(e.category || "Lainnya", (byCat.get(e.category || "Lainnya") ?? 0) + Number(e.amount || 0)));
     const incomeRows = [
-      ...cur.inv.map((e) => ({ date: e.date, who: `${e.invoiceNumber} · ${e.clientName?.trim() || "—"}`, kind: `Invoice (${e.method})`, amount: e.amount })),
-      ...cur.man.map((e) => ({ date: e.date, who: e.description, kind: e.category || "Manual", amount: Number(e.amount || 0) })),
+      ...cur.inv.map((e) => ({ date: e.date, who: `${e.invoiceNumber} · ${e.clientName?.trim() || "—"}`, kind: `Invoice (${e.method})`, amount: e.amount, pay: e as CashEvent | null })),
+      ...cur.man.map((e) => ({ date: e.date, who: e.description, kind: e.category || "Manual", amount: Number(e.amount || 0), pay: null as CashEvent | null })),
     ].sort((a, b) => a.date.localeCompare(b.date));
     const expenseRows = [...cur.exp].sort((a, b) => a.date.localeCompare(b.date));
     const year12 = Array.from({ length: 12 }, (_, i) => ({ i, ...monthTotals(y, i) }));
@@ -135,12 +140,16 @@ export default function MonthlyReport({ cashEvents, incomeEntries, expenses, yea
           <h3 style={{ fontSize: 14, fontWeight: 800, margin: "0 0 10px" }}>Pemasukan {label}</h3>
           {data.incomeRows.length === 0 ? <p style={{ fontSize: 12, opacity: .6 }}>Belum ada pemasukan di bulan ini.</p> : (
             <div style={{ overflowX: "auto" }}><table style={{ width: "100%", borderCollapse: "collapse" }}>
-              <thead><tr><th style={th}>Tgl</th><th style={th}>Dari</th><th style={{ ...th, textAlign: "right" }}>Jumlah</th></tr></thead>
+              <thead><tr><th style={th}>Tgl</th><th style={th}>Dari</th><th style={{ ...th, textAlign: "right" }}>Jumlah</th><th style={th} /></tr></thead>
               <tbody>
                 {data.incomeRows.map((r, i) => (
-                  <tr key={i}><td style={{ ...td, whiteSpace: "nowrap" }}>{day(r.date)}</td><td style={td}>{r.who}<span style={{ display: "block", fontSize: 10, opacity: .55 }}>{r.kind}</span></td><td style={{ ...td, textAlign: "right", fontWeight: 700, color: "var(--c-green)" }}>{formatCurrency(r.amount)}</td></tr>
+                  <tr key={i}><td style={{ ...td, whiteSpace: "nowrap" }}>{day(r.date)}</td><td style={td}>{r.who}<span style={{ display: "block", fontSize: 10, opacity: .55 }}>{r.kind}</span></td><td style={{ ...td, textAlign: "right", fontWeight: 700, color: "var(--c-green)" }}>{formatCurrency(r.amount)}</td>
+                    <td style={{ ...td, whiteSpace: "nowrap", textAlign: "right" }}>{r.pay && (<>
+                      <button onClick={() => setEditPay(r.pay)} title="Koreksi pembayaran (tanggal / jumlah)" aria-label="Koreksi pembayaran" style={iconBtn}><Pencil size={13} /></button>
+                      <button onClick={() => navigate(`/invoices/${r.pay!.invoiceId}`)} title="Buka invoice" aria-label="Buka invoice" style={iconBtn}><ExternalLink size={13} /></button>
+                    </>)}</td></tr>
                 ))}
-                <tr><td style={td} /><td style={{ ...td, fontWeight: 800 }}>Total</td><td style={{ ...td, textAlign: "right", fontWeight: 900 }}>{formatCurrency(cur.income)}</td></tr>
+                <tr><td style={td} /><td style={{ ...td, fontWeight: 800 }}>Total</td><td style={{ ...td, textAlign: "right", fontWeight: 900 }}>{formatCurrency(cur.income)}</td><td style={td} /></tr>
               </tbody>
             </table></div>
           )}
@@ -199,8 +208,69 @@ export default function MonthlyReport({ cashEvents, incomeEntries, expenses, yea
             </tr>
           </tbody>
         </table></div>
-        <p style={{ fontSize: 10, opacity: .5, margin: "8px 0 0" }}>Klik satu baris untuk membuka rinciannya. Uang masuk invoice dihitung pada tanggal pembayarannya.</p>
+        <p style={{ fontSize: 10, opacity: .5, margin: "8px 0 0" }}>Klik satu baris untuk membuka rinciannya. Uang masuk invoice dihitung pada tanggal pembayarannya; pakai ikon pensil di tabel pemasukan untuk mengoreksi tanggal atau jumlahnya.</p>
+      </div>
+      {editPay && <EditPaymentModal ev={editPay} onClose={() => setEditPay(null)} onSaved={() => { setEditPay(null); onChanged?.(); }} />}
+    </div>
+  );
+}
+
+const iconBtn: React.CSSProperties = { width: 28, height: 28, borderRadius: 8, background: "rgb(var(--ink) / .06)", border: "1px solid rgb(var(--ink) / .1)", cursor: "pointer", color: "hsl(var(--foreground))", display: "inline-flex", alignItems: "center", justifyContent: "center", marginLeft: 4 };
+
+async function api(path: string, opts: RequestInit = {}) {
+  const token = getToken();
+  const r = await fetch(path, { ...opts, headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) } });
+  if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(e.error || "Request gagal"); }
+  return r.json();
+}
+
+/** Koreksi / hapus satu catatan pembayaran invoice. Server menyelaraskan status invoice dan jurnalnya. */
+function EditPaymentModal({ ev, onClose, onSaved }: { ev: CashEvent; onClose: () => void; onSaved: () => void }) {
+  const d = new Date(ev.date);
+  const [date, setDate] = useState(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`);
+  const [amount, setAmount] = useState(String(Math.round(ev.amount)));
+  const [method, setMethod] = useState(ev.method || "Transfer");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  const field: React.CSSProperties = { width: "100%", background: "rgb(var(--ink) / .05)", border: "1px solid rgb(var(--ink) / .1)", borderRadius: 10, padding: "9px 12px", color: "hsl(var(--foreground))", fontSize: 13, fontFamily: FONT, boxSizing: "border-box" };
+  const lbl: React.CSSProperties = { display: "block", fontSize: 10, fontWeight: 700, letterSpacing: ".1em", textTransform: "uppercase", opacity: 0.5, margin: "12px 0 5px" };
+
+  async function save() {
+    setBusy(true); setErr("");
+    try {
+      await api(`/api/invoices/${ev.invoiceId}/payments/${ev.id}`, { method: "PUT", body: JSON.stringify({ amount: Number(amount), paidAt: date, method }) });
+      onSaved();
+    } catch (e: any) { setErr(e?.message || "Gagal menyimpan"); setBusy(false); }
+  }
+  async function remove() {
+    if (!confirm(`Hapus pembayaran ${formatCurrency(ev.amount)} untuk ${ev.invoiceNumber}? Status invoice akan dihitung ulang.`)) return;
+    setBusy(true); setErr("");
+    try { await api(`/api/invoices/${ev.invoiceId}/payments/${ev.id}`, { method: "DELETE" }); onSaved(); }
+    catch (e: any) { setErr(e?.message || "Gagal menghapus"); setBusy(false); }
+  }
+
+  return (
+    <div onClick={(e) => { if (e.target === e.currentTarget && !busy) onClose(); }} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.85)", backdropFilter: "blur(12px)", zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+      <div style={{ background: "hsl(var(--card))", border: "1px solid rgb(var(--ink) / .1)", borderRadius: 22, padding: 26, width: "100%", maxWidth: 420, position: "relative", fontFamily: FONT, color: "hsl(var(--foreground))" }}>
+        <button onClick={onClose} disabled={busy} aria-label="Tutup" style={{ position: "absolute", top: 14, right: 14, width: 30, height: 30, borderRadius: "50%", background: "rgb(var(--ink) / .06)", border: "none", cursor: "pointer", color: "inherit", display: "flex", alignItems: "center", justifyContent: "center" }}><X size={14} /></button>
+        <h3 style={{ fontSize: 17, fontWeight: 800, margin: 0 }}>Koreksi pembayaran</h3>
+        <p style={{ fontSize: 12, opacity: 0.6, margin: "4px 0 0" }}>{ev.invoiceNumber} · {ev.clientName?.trim() || "—"}</p>
+        <label style={lbl}>Tanggal diterima</label>
+        <input type="date" value={date} onChange={(e) => setDate(e.target.value)} style={field} />
+        <label style={lbl}>Jumlah (Rp)</label>
+        <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} style={field} />
+        <label style={lbl}>Metode</label>
+        <input value={method} onChange={(e) => setMethod(e.target.value)} style={field} />
+        {err && <p style={{ fontSize: 12, color: "var(--c-red)", margin: "12px 0 0", display: "flex", gap: 6 }}><AlertCircle size={14} style={{ flexShrink: 0, marginTop: 1 }} /> {err}</p>}
+        <div style={{ display: "flex", gap: 8, justifyContent: "space-between", marginTop: 20 }}>
+          <button onClick={remove} disabled={busy} style={{ padding: "9px 14px", borderRadius: 10, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: FONT, background: "rgba(248,113,113,.12)", border: "none", color: "var(--c-red)" }}>Hapus</button>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button onClick={onClose} disabled={busy} style={{ padding: "9px 14px", borderRadius: 10, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: FONT, background: "rgb(var(--ink) / .06)", border: "1px solid rgb(var(--ink) / .1)", color: "inherit" }}>Batal</button>
+            <button onClick={save} disabled={busy || !(Number(amount) > 0) || !date} style={{ padding: "9px 18px", borderRadius: 10, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: FONT, background: OR, border: "none", color: "#fff", opacity: busy || !(Number(amount) > 0) ? 0.5 : 1 }}>{busy ? "Menyimpan…" : "Simpan"}</button>
+          </div>
+        </div>
       </div>
     </div>
   );
 }
+
