@@ -4,6 +4,7 @@ import { fetchBrand, reportHeaderHtml, REPORT_BRAND_CSS, brandContactLine } from
 import { createPrintSink } from "@/lib/print-sink";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency } from "@/lib/formatters";
+import MonthlyReport from "@/components/MonthlyReport";
 import { getToken } from "@/lib/auth";
 import {
   AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
@@ -443,7 +444,7 @@ export default function FinancePage() {
   const printRef = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
 
-  const [activeTab, setActiveTab] = useState<"overview" | "income" | "expenses" | "assets">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "monthly" | "income" | "expenses" | "assets">("overview");
   const [period, setPeriod] = useState(new Date().getFullYear().toString());
   const [loading, setLoading] = useState(true);
 
@@ -916,9 +917,9 @@ ${equipment.length > 0 ? `<div class="section">
 
       {/* ── Tabs — horizontal scroll on mobile, no wrap ── */}
       <div style={{ display: "flex", gap: 6, marginBottom: 24, overflowX: "auto", WebkitOverflowScrolling: "touch", scrollbarWidth: "none", paddingBottom: 4 }}>
-        {(["overview", "income", "expenses", "assets"] as const).map(tab => (
+        {(["overview", "monthly", "income", "expenses", "assets"] as const).map(tab => (
           <TabBtn key={tab}
-            label={{ overview: "📊 Overview", income: "💰 Pemasukan", expenses: "💸 Pengeluaran", assets: "📦 Aset" }[tab]}
+            label={{ overview: "📊 Overview", monthly: "🗓️ Laporan Bulanan", income: "💰 Pemasukan", expenses: "💸 Pengeluaran", assets: "📦 Aset" }[tab]}
             active={activeTab === tab}
             onClick={() => setActiveTab(tab)} />
         ))}
@@ -927,6 +928,10 @@ ${equipment.length > 0 ? `<div class="section">
       {/* ═══════════════════════════════════════════════════════════════════════
           TAB: OVERVIEW
       ═══════════════════════════════════════════════════════════════════════ */}
+      {activeTab === "monthly" && (
+        <MonthlyReport cashEvents={cashEvents} incomeEntries={incomeEntries} expenses={expenses} year={yr} onPrint={handlePrint} />
+      )}
+
       {activeTab === "overview" && (
         <>
           {/* Cash Flow Chart */}
