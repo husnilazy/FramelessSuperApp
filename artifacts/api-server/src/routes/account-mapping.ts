@@ -79,6 +79,12 @@ async function ensureTable() {
         `);
       }
     }
+    // Pemasukan kategori "Pinjaman": kas bertambah, kewajiban bertambah (bukan pendapatan). Idempoten.
+    await db.execute(sql`
+      INSERT INTO account_mappings (id, mapping_type, key, debit_code, credit_code, description)
+      VALUES (${crypto.randomUUID()}, 'income_source', 'Pinjaman', '1-1200', '2-1500', 'Penerimaan pinjaman/gadai → Hutang Pinjaman (bukan pendapatan)')
+      ON CONFLICT (mapping_type, key) DO NOTHING
+    `);
   } catch (e) {
     console.warn("[account-mapping] ensureTable:", e);
   }

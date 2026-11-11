@@ -9,7 +9,7 @@ import { formatCurrency } from "@/lib/formatters";
 const OR = "hsl(var(--primary))";
 const FONT = "'Plus Jakarta Sans',sans-serif";
 const EXPENSE_CATS = ["Peralatan", "Transportasi", "Akomodasi", "Makan & Minum", "Utilitas", "Software & Langganan", "Marketing", "Gaji & Honor", "Sewa Tempat", "Komunikasi", "Administrasi", "Lainnya"];
-const INCOME_CATS = ["Jasa Produksi", "Jasa Editing", "Konsultasi", "Sewa Alat", "Royalti", "Bonus", "Lainnya"];
+const INCOME_CATS = ["Jasa Produksi", "Jasa Editing", "Konsultasi", "Sewa Alat", "Royalti", "Bonus", "Pinjaman", "Lainnya"];
 
 async function api(path: string, opts: RequestInit = {}) {
   const token = getToken();

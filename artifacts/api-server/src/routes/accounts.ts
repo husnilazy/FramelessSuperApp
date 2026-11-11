@@ -109,6 +109,12 @@ async function ensureTables() {
         `);
       }
     }
+    // Akun tambahan (idempoten, juga untuk database yang seed-nya sudah terlanjur jalan)
+    await db.execute(sql`
+      INSERT INTO accounts (id, code, name, type, sub_type, normal_balance, description, is_system)
+      VALUES (${crypto.randomUUID()}, '2-1500', 'Hutang Pinjaman', 'LIABILITY', 'Current Liability', 'CREDIT', 'Pinjaman/gadai yang diterima dan belum dilunasi (bukan pendapatan)', true)
+      ON CONFLICT (code) DO NOTHING
+    `);
   } catch (e) {
     console.warn("[accounts] ensureTables warn:", e);
   }

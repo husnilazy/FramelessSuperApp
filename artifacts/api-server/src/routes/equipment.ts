@@ -25,6 +25,8 @@ async function ensureTable() {
         updated_at           TIMESTAMPTZ NOT NULL DEFAULT NOW()
       )
     `);
+    // Bagian harga yang dibayar pribadi oleh pemilik (bukan dari kas perusahaan) → tidak mengurangi saldo kas.
+    await db.execute(sql`ALTER TABLE equipment ADD COLUMN IF NOT EXISTS personal_amount NUMERIC NOT NULL DEFAULT 0`);
   } catch (e) {
     console.warn("[equipment] ensureTable warn:", e);
   }
@@ -43,6 +45,7 @@ function mapEquipment(r: any) {
     purchasePrice:     Number(r.purchase_price || r.purchasePrice || 0),
     depreciationYears: Number(r.depreciation_years || r.depreciationYears || 5),
     notes:             r.notes || null,
+    personalAmount:    Number(r.personal_amount ?? r.personalAmount ?? 0),
     createdAt:         r.created_at || r.createdAt || null,
     updatedAt:         r.updated_at || r.updatedAt || null,
   };
@@ -67,7 +70,7 @@ router.post("/equipment", async (req: Request, res: Response): Promise<void> => 
   try {
     const {
       name, category, serialNumber, condition,
-      purchaseDate, purchasePrice, depreciationYears, notes,
+      purchaseDate, purchasePrice, depreciationYears, notes, personalAmount,
     } = req.body ?? {};
 
     if (!name || purchasePrice === undefined) {
@@ -83,7 +86,7 @@ router.post("/equipment", async (req: Request, res: Response): Promise<void> => 
     const result = await db.execute(sql`
       INSERT INTO equipment (
         id, name, category, serial_number, condition,
-        purchase_date, purchase_price, depreciation_years, notes
+        purchase_date, purchase_price, depreciation_years, notes, personal_amount
       ) VALUES (
         ${id},
         ${String(name).trim()},
@@ -93,7 +96,8 @@ router.post("/equipment", async (req: Request, res: Response): Promise<void> => 
         ${pd}::date,
         ${Number(purchasePrice)},
         ${Number(depreciationYears || 5)},
-        ${notes ? String(notes).trim() : null}
+        ${notes ? String(notes).trim() : null},
+        ${Math.max(0, Number(personalAmount || 0))}
       )
       RETURNING *
     `);
@@ -113,7 +117,7 @@ router.put("/equipment/:id", async (req: Request, res: Response): Promise<void> 
     const { id } = req.params;
     const {
       name, category, serialNumber, condition,
-      purchaseDate, purchasePrice, depreciationYears, notes,
+      purchaseDate, purchasePrice, depreciationYears, notes, personalAmount,
     } = req.body ?? {};
 
     const sets: string[] = ["updated_at = NOW()"];
@@ -127,6 +131,7 @@ router.put("/equipment/:id", async (req: Request, res: Response): Promise<void> 
     if (purchasePrice !== undefined)     sets.push(`purchase_price = ${Number(purchasePrice)}`);
     if (depreciationYears !== undefined) sets.push(`depreciation_years = ${Number(depreciationYears)}`);
     if (notes !== undefined)             sets.push(`notes = ${notes ? `'${esc(String(notes))}'` : "NULL"}`);
+    if (personalAmount !== undefined)    sets.push(`personal_amount = ${Math.max(0, Number(personalAmount) || 0)}`);
 
     const result = await db.execute(sql.raw(
       `UPDATE equipment SET ${sets.join(", ")} WHERE id = '${sqlStr(id)}' RETURNING *`

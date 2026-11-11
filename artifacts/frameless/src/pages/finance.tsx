@@ -21,6 +21,8 @@ import {
 
 const OR = "hsl(var(--primary))";
 const FONT = "'Plus Jakarta Sans',sans-serif";
+// Pemasukan kategori "Pinjaman" adalah uang masuk (menambah saldo) tetapi BUKAN pendapatan: tidak boleh menaikkan laba.
+const isLoan = (i: { category?: string }) => (i.category || "").trim().toLowerCase() === "pinjaman";
 const MONTHS_ID = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
 
 // ─── Responsive hook ────────────────────────────────────────────────────────────
@@ -40,7 +42,7 @@ function useIsMobile(breakpoint = 640) {
 
 // Cache di memori selama tab terbuka (stale-while-revalidate): tampil instan, lalu diperbarui diam-diam.
 let FINANCE_CACHE: null | {
-  invoices: any[]; cashEvents: any[]; expenses: any[]; incomeEntries: any[]; equipment: any[]; summary: any;
+  invoices: any[]; cashEvents: any[]; expenses: any[]; incomeEntries: any[]; equipment: any[]; summary: any; settings: any;
 } = null;
 
 // ─── API helper ────────────────────────────────────────────────────────────────
@@ -117,6 +119,7 @@ interface Equipment {
   notes?: string;
   condition?: string;
   serialNumber?: string;
+  personalAmount?: number; // bagian harga yang dibayar pribadi (bukan dari kas)
 }
 
 interface FinanceSummary {
@@ -201,7 +204,7 @@ function IncomeModal({ item, onClose, onSave }: {
   const [saving, setSaving] = useState(false);
   const f = (k: keyof IncomeEntry, v: any) => setForm(p => ({ ...p, [k]: v }));
 
-  const cats = ["Jasa Produksi", "Jasa Editing", "Konsultasi", "Sewa Alat", "Royalti", "Bonus", "Lainnya"];
+  const cats = ["Jasa Produksi", "Jasa Editing", "Konsultasi", "Sewa Alat", "Royalti", "Bonus", "Pinjaman", "Lainnya"];
 
   async function save() {
     if (!form.description || !form.amount) return;
@@ -281,6 +284,7 @@ function EquipmentModal({ item, onClose, onSave }: {
             { k: "serialNumber", l: "Serial Number", ph: "SN-XXXXXXXX" },
             { k: "purchaseDate", l: "Tanggal Beli", type: "date" },
             { k: "purchasePrice", l: "Harga Beli (IDR) *", type: "number", ph: "25000000" },
+            { k: "personalAmount", l: "Dibayar pribadi (IDR) — bukan dari kas", type: "number", ph: "0" },
             { k: "depreciationYears", l: "Umur Ekonomis (tahun)", type: "number", ph: "5" },
             { k: "notes", l: "Catatan", ph: "Kondisi, lokasi penyimpanan, dll" },
           ].map((field: any) => (
@@ -462,6 +466,7 @@ export default function FinancePage() {
   const [incomeEntries, setIncomeEntries] = useState<IncomeEntry[]>(FINANCE_CACHE?.incomeEntries ?? []);
   const [equipment, setEquipment] = useState<Equipment[]>(FINANCE_CACHE?.equipment ?? []);
   const [summary, setSummary] = useState<FinanceSummary | null>(FINANCE_CACHE?.summary ?? null);
+  const [settings, setSettings] = useState<{ openingBalance: number; openingDate: string } | null>(FINANCE_CACHE?.settings ?? null);
 
   // Modal state
   const [incomeModal, setIncomeModal] = useState<IncomeEntry | null | "new">(null);
@@ -473,7 +478,7 @@ export default function FinancePage() {
   const loadData = useCallback(async () => {
     if (!FINANCE_CACHE) setLoading(true); // sudah ada data lama → tampilkan dulu, perbarui di belakang layar
     try {
-      const [inv, exp, inc, eq, sum, ce] = await Promise.all([
+      const [inv, exp, inc, eq, sum, ce, st] = await Promise.all([
         api("/api/invoices").catch(() => []),
         api("/api/expenses").catch(() => []),
         api("/api/income").catch(() => []),
@@ -484,10 +489,11 @@ export default function FinancePage() {
         }),
         api("/api/finance/summary").catch(() => null),
         api("/api/invoices/cash-events").catch(() => []),
+        api("/api/finance/settings").catch(() => null),
       ]);
       const next = {
         cashEvents: Array.isArray(ce) ? ce : [], invoices: Array.isArray(inv) ? inv : [], expenses: Array.isArray(exp) ? exp : [],
-        incomeEntries: Array.isArray(inc) ? inc : [], equipment: Array.isArray(eq) ? eq : [], summary: sum,
+        incomeEntries: Array.isArray(inc) ? inc : [], equipment: Array.isArray(eq) ? eq : [], summary: sum, settings: st,
       };
       FINANCE_CACHE = next;
       setCashEvents(next.cashEvents);
@@ -496,6 +502,7 @@ export default function FinancePage() {
       setIncomeEntries(next.incomeEntries);
       setEquipment(next.equipment);
       setSummary(next.summary);
+      setSettings(next.settings);
     } catch (e: any) {
       toast({ variant: "destructive", title: "Error", description: e.message });
     } finally {
@@ -513,7 +520,9 @@ export default function FinancePage() {
     i.status === "PAID" || Number(i.paidAmount) > 0
   );
   const invoiceRevenue = invoices.reduce((s, i) => s + Number(i.paidAmount || 0), 0);
-  const manualIncome = incomeEntries.reduce((s, i) => s + Number(i.amount || 0), 0);
+  const revenueEntries = incomeEntries.filter((i) => !isLoan(i));
+  const loanTotal = incomeEntries.filter(isLoan).reduce((s, i) => s + Number(i.amount || 0), 0);
+  const manualIncome = revenueEntries.reduce((s, i) => s + Number(i.amount || 0), 0);
   const totalRevenue = invoiceRevenue + manualIncome;
   const totalExpenses = expenses.reduce((s, e) => s + Number(e.amount || 0), 0);
   const netProfit = totalRevenue - totalExpenses;
@@ -530,7 +539,7 @@ export default function FinancePage() {
       .filter(ev => { const d = new Date(ev.date); return d.getMonth() === mi && d.getFullYear() === yr; })
       .reduce((s, ev) => s + ev.amount, 0);
 
-    const manIncome = incomeEntries
+    const manIncome = revenueEntries
       .filter(i => { const d = new Date(i.date); return d.getMonth() === mi && d.getFullYear() === yr; })
       .reduce((s, i) => s + Number(i.amount || 0), 0);
 
@@ -551,7 +560,7 @@ export default function FinancePage() {
 
   // Income by category
   const incCats = [
-    ...incomeEntries.map(i => ({ cat: i.category || "Manual", amt: Number(i.amount) })),
+    ...revenueEntries.map(i => ({ cat: i.category || "Manual", amt: Number(i.amount) })),
     ...invoices.filter(i => Number(i.paidAmount) > 0).map(i => ({ cat: "Invoice", amt: Number(i.paidAmount) })),
   ].reduce((acc, { cat, amt }) => { acc[cat] = (acc[cat] || 0) + amt; return acc; }, {} as Record<string, number>);
   const incPieData = Object.entries(incCats).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
@@ -648,7 +657,7 @@ export default function FinancePage() {
       const d = new Date(ev.date);
       return d >= from && d <= to;
     });
-    const rangeIncomeEntries = incomeEntries.filter(i => {
+    const rangeIncomeEntries = revenueEntries.filter(i => {
       const d = new Date(i.date);
       return d >= from && d <= to;
     });
@@ -677,7 +686,7 @@ export default function FinancePage() {
         .filter(ev => { const d = new Date(ev.date); return d >= mStart && d <= mEnd; })
         .reduce((s, ev) => s + ev.amount, 0);
 
-      const manInc = incomeEntries
+      const manInc = revenueEntries
         .filter(i => { const d = new Date(i.date); return d >= mStart && d <= mEnd; })
         .reduce((s, i) => s + Number(i.amount || 0), 0);
 
@@ -943,7 +952,7 @@ ${equipment.length > 0 ? `<div class="section">
           TAB: OVERVIEW
       ═══════════════════════════════════════════════════════════════════════ */}
       {activeTab === "monthly" && (
-        <MonthlyReport cashEvents={cashEvents} incomeEntries={incomeEntries} expenses={expenses} year={yr} onPrint={handlePrint} onChanged={loadData} />
+        <MonthlyReport cashEvents={cashEvents} incomeEntries={incomeEntries} expenses={expenses} equipment={equipment} settings={settings} year={yr} onPrint={handlePrint} onChanged={loadData} />
       )}
 
       {activeTab === "overview" && (
@@ -1152,8 +1161,8 @@ ${equipment.length > 0 ? `<div class="section">
                     </div>
                   ))}
                   <div style={{ padding: "12px 16px", background: `color-mix(in srgb, ${OR} 3%, transparent)`, borderTop: `2px solid ${OR}`, display: "flex", justifyContent: "space-between" }}>
-                    <span style={{ fontSize: 12, fontWeight: 800, color: "hsl(var(--foreground))" }}>Total Manual</span>
-                    <span style={{ fontSize: 13, fontWeight: 900, color: "var(--c-green)" }}>{formatCurrency(manualIncome)}</span>
+                    <span style={{ fontSize: 12, fontWeight: 800, color: "hsl(var(--foreground))" }}>Total Manual{loanTotal > 0 ? " (termasuk pinjaman)" : ""}</span>
+                    <span style={{ fontSize: 13, fontWeight: 900, color: "var(--c-green)" }}>{formatCurrency(manualIncome + loanTotal)}</span>
                   </div>
                 </div>
               ) : (
@@ -1182,8 +1191,8 @@ ${equipment.length > 0 ? `<div class="section">
                         </tr>
                       ))}
                       <tr style={{ borderTop: `2px solid ${OR}`, background: `color-mix(in srgb, ${OR} 3%, transparent)` }}>
-                        <td colSpan={4} style={{ padding: "10px 14px", color: "hsl(var(--foreground))", fontWeight: 800 }}>Total Pemasukan Manual</td>
-                        <td style={{ padding: "10px 14px", color: "var(--c-green)", fontWeight: 900 }}>{formatCurrency(manualIncome)}</td>
+                        <td colSpan={4} style={{ padding: "10px 14px", color: "hsl(var(--foreground))", fontWeight: 800 }}>Total Pemasukan Manual{loanTotal > 0 ? " (termasuk pinjaman)" : ""}</td>
+                        <td style={{ padding: "10px 14px", color: "var(--c-green)", fontWeight: 900 }}>{formatCurrency(manualIncome + loanTotal)}</td>
                         <td />
                       </tr>
                     </tbody>
