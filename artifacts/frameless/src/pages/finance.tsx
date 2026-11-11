@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 
 import { PageTitle } from "@/components/shell/page-header";
+import MonthlyReport from "@/components/MonthlyReport";
 const OR = "hsl(var(--primary))";
 const FONT = "'Plus Jakarta Sans',sans-serif";
 const MONTHS_ID = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
@@ -444,7 +445,7 @@ export default function FinancePage() {
   const printRef = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
 
-  const [activeTab, setActiveTab] = useState<"overview" | "income" | "expenses" | "assets">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "monthly" | "income" | "expenses" | "assets">("overview");
   const [period, setPeriod] = useState(new Date().getFullYear().toString());
   const [loading, setLoading] = useState(true);
 
@@ -914,13 +915,17 @@ ${equipment.length > 0 ? `<div class="section">
 
       {/* ── Tabs — horizontal scroll on mobile, no wrap ── */}
       <div style={{ display: "flex", gap: 6, marginBottom: 24, overflowX: "auto", WebkitOverflowScrolling: "touch", scrollbarWidth: "none", paddingBottom: 4 }}>
-        {(["overview", "income", "expenses", "assets"] as const).map(tab => (
+        {(["overview", "monthly", "income", "expenses", "assets"] as const).map(tab => (
           <TabBtn key={tab}
-            label={{ overview: "📊 Overview", income: "💰 Pemasukan", expenses: "💸 Pengeluaran", assets: "📦 Aset" }[tab]}
+            label={{ overview: "📊 Overview", monthly: "🗓️ Laporan Bulanan", income: "💰 Pemasukan", expenses: "💸 Pengeluaran", assets: "📦 Aset" }[tab]}
             active={activeTab === tab}
             onClick={() => setActiveTab(tab)} />
         ))}
       </div>
+
+      {activeTab === "monthly" && (
+        <MonthlyReport cashEvents={cashEvents} incomeEntries={incomeEntries} expenses={expenses} year={yr} onPrint={handlePrint} />
+      )}
 
       {/* ═══════════════════════════════════════════════════════════════════════
           TAB: OVERVIEW
