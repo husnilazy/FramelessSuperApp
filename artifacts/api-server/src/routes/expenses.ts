@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { db, expensesTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import crypto from "crypto";
 import { postExpenseJournal } from "../lib/journal-poster.js";
 
@@ -184,6 +184,11 @@ router.delete("/expenses/:id", async (req, res): Promise<void> => {
     await db
       .delete(expensesTable)
       .where(eq(expensesTable.id, id));
+
+    // Jurnal otomatis pengeluaran ini ikut dibatalkan (sebelumnya tertinggal sebagai jurnal yatim).
+    await db
+      .execute(sql`UPDATE journal_entries SET status = 'VOID', updated_at = NOW() WHERE source_type = 'expense' AND source_id = ${id} AND status != 'VOID'`)
+      .catch((e: any) => console.warn("[expenses DELETE] void journal:", e?.message));
 
     res.json({
       success: true,

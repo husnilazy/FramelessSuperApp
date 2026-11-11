@@ -150,6 +150,9 @@ router.delete("/income/:id", async (req: Request, res: Response): Promise<void> 
   try {
     const { id } = req.params;
     await db.execute(sql`DELETE FROM income_entries WHERE id = ${id}`);
+    // Jurnal otomatis pemasukan ini ikut dibatalkan (sebelumnya tertinggal sebagai jurnal yatim yang menggelembungkan pendapatan di Akuntansi).
+    await db.execute(sql`UPDATE journal_entries SET status = 'VOID', updated_at = NOW() WHERE source_type = 'income' AND source_id = ${id} AND status != 'VOID'`)
+      .catch((e: any) => console.warn("[income DELETE] void journal:", e?.message));
     res.json({ success: true, message: "Pemasukan dihapus" });
   } catch (err) {
     console.error("[income DELETE]", err);
