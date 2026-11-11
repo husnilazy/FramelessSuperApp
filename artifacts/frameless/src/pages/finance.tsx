@@ -5,6 +5,7 @@ import { createPrintSink } from "@/lib/print-sink";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency } from "@/lib/formatters";
 import MonthlyReport from "@/components/MonthlyReport";
+import ImportCsvModal from "@/components/ImportCsvModal";
 import { getToken } from "@/lib/auth";
 import {
   AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
@@ -460,6 +461,7 @@ export default function FinancePage() {
   const [incomeModal, setIncomeModal] = useState<IncomeEntry | null | "new">(null);
   const [eqModal, setEqModal] = useState<Equipment | null | "new">(null);
   const [printModal, setPrintModal] = useState(false);
+  const [importModal, setImportModal] = useState(false);
 
   // ── Load Data ───────────────────────────────────────────────────────────────
   const loadData = useCallback(async () => {
@@ -901,6 +903,7 @@ ${equipment.length > 0 ? `<div class="section">
             {years.map(y => <option key={y} value={y} style={{ background: "hsl(var(--card))" }}>{y}</option>)}
           </select>
           <button onClick={loadData} title="Refresh" style={{ width: 36, height: 36, borderRadius: 10, background: "rgb(var(--ink) / .06)", border: "1px solid rgb(var(--ink) / .1)", cursor: "pointer", color: "rgb(var(--ink) / calc(.5 + var(--ink-boost)))", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><RefreshCw size={14} /></button>
+          <button onClick={() => setImportModal(true)} title="Impor pengeluaran/pemasukan dari CSV" style={{ ...btnBase, background: "rgb(var(--ink) / .06)", border: "1px solid rgb(var(--ink) / .1)", color: "hsl(var(--foreground))", flexShrink: 0, whiteSpace: "nowrap" }}>⬆ {isMobile ? "Impor" : "Impor CSV"}</button>
           <button onClick={() => setPrintModal(true)} style={{ ...btnBase, background: OR, color: "#fff", flexShrink: 0, whiteSpace: "nowrap" }}><Printer size={14} /> {isMobile ? "Cetak" : "Cetak PDF"}</button>
         </div>
       </div>
@@ -1404,6 +1407,7 @@ ${equipment.length > 0 ? `<div class="section">
           onSave={saveEquipment}
         />
       )}
+      {importModal && <ImportCsvModal onClose={() => setImportModal(false)} onDone={loadData} />}
       {printModal && (
         <PrintPeriodModal
           onClose={() => setPrintModal(false)}
