@@ -4,6 +4,7 @@ import { Router, type IRouter, type Request, type Response } from "express";
 import { db } from "@workspace/db";
 import { sql } from "drizzle-orm";
 import crypto from "crypto";
+import { sqlStr } from "../lib/sql-literal.js";
 
 const router: IRouter = Router();
 
@@ -180,10 +181,10 @@ router.get("/journal", async (req: Request, res: Response): Promise<void> => {
   try {
     const { from, to, type, status, limit = "50", offset = "0" } = req.query as Record<string, string>;
     let where = "WHERE 1=1";
-    if (from)   where += ` AND je.date >= '${from}'`;
-    if (to)     where += ` AND je.date <= '${to}'`;
-    if (type)   where += ` AND je.type = '${type}'`;
-    if (status) where += ` AND je.status = '${status}'`;
+    if (from)   where += ` AND je.date >= '${sqlStr(from)}'`;
+    if (to)     where += ` AND je.date <= '${sqlStr(to)}'`;
+    if (type)   where += ` AND je.type = '${sqlStr(type)}'`;
+    if (status) where += ` AND je.status = '${sqlStr(status)}'`;
 
     const result = await db.execute(sql.raw(`
       SELECT
@@ -260,10 +261,10 @@ router.get("/ledger", async (req: Request, res: Response): Promise<void> => {
   try {
     const { accountCode, from, to } = req.query as Record<string, string>;
     let dateFilter = "AND je.status = 'POSTED'";
-    if (from) dateFilter += ` AND je.date >= '${from}'`;
-    if (to)   dateFilter += ` AND je.date <= '${to}'`;
+    if (from) dateFilter += ` AND je.date >= '${sqlStr(from)}'`;
+    if (to)   dateFilter += ` AND je.date <= '${sqlStr(to)}'`;
     let accountFilter = "";
-    if (accountCode) accountFilter = `AND a.code = '${accountCode}'`;
+    if (accountCode) accountFilter = `AND a.code = '${sqlStr(accountCode)}'`;
 
     const result = await db.execute(sql.raw(`
       SELECT
@@ -306,8 +307,8 @@ router.get("/ledger/:accountCode/transactions", async (req: Request, res: Respon
   try {
     const { from, to } = req.query as Record<string, string>;
     let dateFilter = "AND je.status = 'POSTED'";
-    if (from) dateFilter += ` AND je.date >= '${from}'`;
-    if (to)   dateFilter += ` AND je.date <= '${to}'`;
+    if (from) dateFilter += ` AND je.date >= '${sqlStr(from)}'`;
+    if (to)   dateFilter += ` AND je.date <= '${sqlStr(to)}'`;
 
     const result = await db.execute(sql.raw(`
       SELECT
@@ -321,7 +322,7 @@ router.get("/ledger/:accountCode/transactions", async (req: Request, res: Respon
       FROM journal_lines jl
       JOIN journal_entries je ON je.id = jl.journal_entry_id
       JOIN accounts a ON a.id = jl.account_id
-      WHERE a.code = '${req.params.accountCode}' ${dateFilter}
+      WHERE a.code = '${sqlStr(req.params.accountCode)}' ${dateFilter}
       ORDER BY je.date ASC, je.created_at ASC
     `));
     const rows = (result as any).rows || result;
@@ -357,8 +358,8 @@ router.get("/trial-balance", async (req: Request, res: Response): Promise<void> 
   try {
     const { from, to } = req.query as Record<string, string>;
     let dateFilter = "WHERE je.status = 'POSTED'";
-    if (from) dateFilter += ` AND je.date >= '${from}'`;
-    if (to)   dateFilter += ` AND je.date <= '${to}'`;
+    if (from) dateFilter += ` AND je.date >= '${sqlStr(from)}'`;
+    if (to)   dateFilter += ` AND je.date <= '${sqlStr(to)}'`;
 
     const result = await db.execute(sql.raw(`
       SELECT
@@ -413,8 +414,8 @@ router.get("/financial-statements", async (req: Request, res: Response): Promise
   try {
     const { from, to } = req.query as Record<string, string>;
     let dateFilter = "AND je.status = 'POSTED'";
-    if (from) dateFilter += ` AND je.date >= '${from}'`;
-    if (to)   dateFilter += ` AND je.date <= '${to}'`;
+    if (from) dateFilter += ` AND je.date >= '${sqlStr(from)}'`;
+    if (to)   dateFilter += ` AND je.date <= '${sqlStr(to)}'`;
 
     const result = await db.execute(sql.raw(`
       SELECT

@@ -4,6 +4,7 @@ import { Router, type IRouter, type Request, type Response } from "express";
 import { db } from "@workspace/db";
 import { sql } from "drizzle-orm";
 import crypto from "crypto";
+import { sqlStr } from "../lib/sql-literal.js";
 
 const router: IRouter = Router();
 
@@ -201,7 +202,7 @@ router.put("/accounts/:id", async (req: Request, res: Response): Promise<void> =
     if (isActive !== undefined)  sets.push(`is_active = ${Boolean(isActive)}`);
 
     const result = await db.execute(sql.raw(
-      `UPDATE accounts SET ${sets.join(", ")} WHERE id = '${req.params.id}' AND is_system = false RETURNING *`
+      `UPDATE accounts SET ${sets.join(", ")} WHERE id = '${sqlStr(req.params.id)}' AND is_system = false RETURNING *`
     ));
     const rows = (result as any).rows || result;
     const row = Array.isArray(rows) ? rows[0] : null;
@@ -226,7 +227,7 @@ router.delete("/accounts/:id", async (req: Request, res: Response): Promise<void
       return;
     }
     await db.execute(sql.raw(
-      `DELETE FROM accounts WHERE id = '${req.params.id}' AND is_system = false`
+      `DELETE FROM accounts WHERE id = '${sqlStr(req.params.id)}' AND is_system = false`
     ));
     res.json({ success: true });
   } catch (err) {
@@ -240,8 +241,8 @@ router.get("/accounts/:id/balance", async (req: Request, res: Response): Promise
   try {
     const { from, to } = req.query as { from?: string; to?: string };
     let dateFilter = "";
-    if (from) dateFilter += ` AND je.date >= '${from}'`;
-    if (to)   dateFilter += ` AND je.date <= '${to}'`;
+    if (from) dateFilter += ` AND je.date >= '${sqlStr(from)}'`;
+    if (to)   dateFilter += ` AND je.date <= '${sqlStr(to)}'`;
 
     const result = await db.execute(sql.raw(`
       SELECT
@@ -256,7 +257,7 @@ router.get("/accounts/:id/balance", async (req: Request, res: Response): Promise
       FROM accounts a
       LEFT JOIN journal_lines jl ON jl.account_id = a.id
       LEFT JOIN journal_entries je ON je.id = jl.journal_entry_id AND je.status = 'POSTED'${dateFilter}
-      WHERE a.id = '${req.params.id}'
+      WHERE a.id = '${sqlStr(req.params.id)}'
       GROUP BY a.id, a.code, a.name, a.normal_balance
     `));
     const rows = (result as any).rows || result;

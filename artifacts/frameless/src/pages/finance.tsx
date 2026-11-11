@@ -4,6 +4,7 @@ import { fetchBrand, reportHeaderHtml, REPORT_BRAND_CSS, brandContactLine } from
 import { createPrintSink } from "@/lib/print-sink";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency } from "@/lib/formatters";
+import { Link } from "wouter";
 import MonthlyReport from "@/components/MonthlyReport";
 import ImportCsvModal from "@/components/ImportCsvModal";
 import { getToken } from "@/lib/auth";
@@ -36,6 +37,11 @@ function useIsMobile(breakpoint = 640) {
   }, [breakpoint]);
   return isMobile;
 }
+
+// Cache di memori selama tab terbuka (stale-while-revalidate): tampil instan, lalu diperbarui diam-diam.
+let FINANCE_CACHE: null | {
+  invoices: any[]; cashEvents: any[]; expenses: any[]; incomeEntries: any[]; equipment: any[]; summary: any;
+} = null;
 
 // ─── API helper ────────────────────────────────────────────────────────────────
 async function api(path: string, opts: RequestInit = {}) {
@@ -447,15 +453,15 @@ export default function FinancePage() {
 
   const [activeTab, setActiveTab] = useState<"overview" | "monthly" | "income" | "expenses" | "assets">("overview");
   const [period, setPeriod] = useState(new Date().getFullYear().toString());
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!FINANCE_CACHE);
 
   // Data state
-  const [invoices, setInvoices] = useState<Invoice[]>([]);
-  const [cashEvents, setCashEvents] = useState<CashEvent[]>([]);
-  const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [incomeEntries, setIncomeEntries] = useState<IncomeEntry[]>([]);
-  const [equipment, setEquipment] = useState<Equipment[]>([]);
-  const [summary, setSummary] = useState<FinanceSummary | null>(null);
+  const [invoices, setInvoices] = useState<Invoice[]>(FINANCE_CACHE?.invoices ?? []);
+  const [cashEvents, setCashEvents] = useState<CashEvent[]>(FINANCE_CACHE?.cashEvents ?? []);
+  const [expenses, setExpenses] = useState<Expense[]>(FINANCE_CACHE?.expenses ?? []);
+  const [incomeEntries, setIncomeEntries] = useState<IncomeEntry[]>(FINANCE_CACHE?.incomeEntries ?? []);
+  const [equipment, setEquipment] = useState<Equipment[]>(FINANCE_CACHE?.equipment ?? []);
+  const [summary, setSummary] = useState<FinanceSummary | null>(FINANCE_CACHE?.summary ?? null);
 
   // Modal state
   const [incomeModal, setIncomeModal] = useState<IncomeEntry | null | "new">(null);
@@ -465,7 +471,7 @@ export default function FinancePage() {
 
   // ── Load Data ───────────────────────────────────────────────────────────────
   const loadData = useCallback(async () => {
-    setLoading(true);
+    if (!FINANCE_CACHE) setLoading(true); // sudah ada data lama → tampilkan dulu, perbarui di belakang layar
     try {
       const [inv, exp, inc, eq, sum, ce] = await Promise.all([
         api("/api/invoices").catch(() => []),
@@ -479,12 +485,17 @@ export default function FinancePage() {
         api("/api/finance/summary").catch(() => null),
         api("/api/invoices/cash-events").catch(() => []),
       ]);
-      setCashEvents(Array.isArray(ce) ? ce : []);
-      setInvoices(Array.isArray(inv) ? inv : []);
-      setExpenses(Array.isArray(exp) ? exp : []);
-      setIncomeEntries(Array.isArray(inc) ? inc : []);
-      setEquipment(Array.isArray(eq) ? eq : []);
-      setSummary(sum);
+      const next = {
+        cashEvents: Array.isArray(ce) ? ce : [], invoices: Array.isArray(inv) ? inv : [], expenses: Array.isArray(exp) ? exp : [],
+        incomeEntries: Array.isArray(inc) ? inc : [], equipment: Array.isArray(eq) ? eq : [], summary: sum,
+      };
+      FINANCE_CACHE = next;
+      setCashEvents(next.cashEvents);
+      setInvoices(next.invoices);
+      setExpenses(next.expenses);
+      setIncomeEntries(next.incomeEntries);
+      setEquipment(next.equipment);
+      setSummary(next.summary);
     } catch (e: any) {
       toast({ variant: "destructive", title: "Error", description: e.message });
     } finally {
@@ -1243,7 +1254,7 @@ ${equipment.length > 0 ? `<div class="section">
 
             {/* Expense list */}
             <Section title="Semua Pengeluaran" icon={<TrendingDown size={14} />}
-              action={<a href="/expenses" style={{ ...btnBase, background: OR, color: "#fff", textDecoration: "none" }}><Plus size={13} /> Kelola</a>}>
+              action={<Link href="/expenses" style={{ ...btnBase, background: OR, color: "#fff", textDecoration: "none" }}><Plus size={13} /> Kelola</Link>}>
               <div style={{ background: "rgb(var(--ink) / .025)", borderRadius: 18, border: "1px solid rgb(var(--ink) / .07)", overflow: "hidden" }}>
                 {expenses.slice(0, 8).map(e => (
                   <div key={e.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "11px 16px", borderBottom: "1px solid rgb(var(--ink) / .04)" }}>
@@ -1256,7 +1267,7 @@ ${equipment.length > 0 ? `<div class="section">
                 ))}
                 {expenses.length > 8 && (
                   <div style={{ padding: "10px 16px", textAlign: "center" }}>
-                    <a href="/expenses" style={{ fontSize: 12, color: OR, fontWeight: 700, textDecoration: "none" }}>Lihat semua {expenses.length} transaksi →</a>
+                    <Link href="/expenses" style={{ fontSize: 12, color: OR, fontWeight: 700, textDecoration: "none" }}>Lihat semua {expenses.length} transaksi →</Link>
                   </div>
                 )}
                 {expenses.length === 0 && (

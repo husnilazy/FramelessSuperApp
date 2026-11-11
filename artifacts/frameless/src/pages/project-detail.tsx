@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useRoute } from "wouter";
+import { useRoute, Link } from "wouter";
 import { useGetProject, useListProjectTasks, useCreateProjectTask, useDeleteTask, useUpdateProject, useListTeamMembers, useUpdateTask, type CreateTaskBody } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { formatCurrency, formatDate } from "@/lib/formatters";
@@ -115,11 +115,11 @@ export default function ProjectDetailPage() {
   return (
     <div className="space-y-8 pb-8">
       <div className="flex items-center gap-4">
-        <a href="/projects">
+        <Link href="/projects">
           <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
             <ArrowLeft className="w-5 h-5" />
           </Button>
-        </a>
+        </Link>
         <div className="flex-1">
           <div className="flex items-center gap-3 flex-wrap">
             <h1 className="text-4xl font-heading tracking-wider text-foreground">{project.title}</h1>

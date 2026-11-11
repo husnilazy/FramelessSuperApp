@@ -46,6 +46,17 @@ export default defineConfig({
     emptyOutDir: true,
     // 2. Matikan sourcemap untuk membungkam error compiler shadcn UI
     sourcemap: false,
+    // Pustaka besar dipisah supaya halaman yang tidak memakainya tidak mengunduhnya, dan bisa di-cache browser terpisah.
+    rollupOptions: {
+      output: {
+        manualChunks(id: string) {
+          if (!id.includes("node_modules")) return undefined;
+          if (/[\\/]node_modules[\\/](recharts|d3-[^\\/]+|victory-vendor)[\\/]/.test(id)) return "charts";
+          if (/[\\/]node_modules[\\/](framer-motion|motion-dom|motion-utils)[\\/]/.test(id)) return "motion";
+          return undefined;
+        },
+      },
+    },
   },
 
   server: {

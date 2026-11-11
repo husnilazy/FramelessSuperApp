@@ -3,6 +3,7 @@ import { Router, type IRouter, type Request, type Response } from "express";
 import { db } from "@workspace/db";
 import { sql } from "drizzle-orm";
 import crypto from "crypto";
+import { sqlStr } from "../lib/sql-literal.js";
 
 const router: IRouter = Router();
 
@@ -128,7 +129,7 @@ router.put("/equipment/:id", async (req: Request, res: Response): Promise<void> 
     if (notes !== undefined)             sets.push(`notes = ${notes ? `'${esc(String(notes))}'` : "NULL"}`);
 
     const result = await db.execute(sql.raw(
-      `UPDATE equipment SET ${sets.join(", ")} WHERE id = '${id}' RETURNING *`
+      `UPDATE equipment SET ${sets.join(", ")} WHERE id = '${sqlStr(id)}' RETURNING *`
     ));
 
     const rows = (result as any).rows || result;

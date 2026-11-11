@@ -15,6 +15,7 @@ import {
 // TYPES & CONSTANTS
 // ──────────────────────────────────────────────────────────────────────────────
 
+const ADMIN_WA     = "62859106723181"; // WhatsApp admin Frameless (sama dengan halaman layanan)
 const ORANGE       = "hsl(20,100%,58%)";
 const ORANGE_DIM   = "rgba(240,56,32,0.12)";
 const BORDER       = "rgba(255,255,255,0.08)";
@@ -208,7 +209,7 @@ export default function PortalPage() {
               />
             )}
             {activeTab === "help" && (
-              <HelpView isDark={isDark} waNumber={portal.enrollment.phone} />
+              <HelpView isDark={isDark} waNumber={ADMIN_WA} />
             )}
           </div>
         </div>
@@ -509,7 +510,29 @@ function CourseView({
   onMaterialSelect: (mat: Material) => void;
   isDark: boolean;
 }) {
+  const queryClient = useQueryClient();
+  const [marking, setMarking] = useState(false);
+  const [markMsg, setMarkMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const material = selectedMaterial || portal.materials[0];
+
+  async function markDone() {
+    if (!material || marking) return;
+    setMarking(true); setMarkMsg(null);
+    try {
+      const r = await fetch("/api/course-members/mark-completed", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enrollmentId: portal.enrollment.id, materialId: material.id }),
+      });
+      if (!r.ok) throw new Error((await r.json().catch(() => ({})))?.error || "Gagal menyimpan progres");
+      await queryClient.invalidateQueries({ queryKey: [`/api/portal/${portal.enrollment.id}`] });
+      setMarkMsg({ ok: true, text: "Materi ditandai selesai ✓" });
+    } catch (e: any) {
+      setMarkMsg({ ok: false, text: e?.message || "Gagal menyimpan progres" });
+    } finally {
+      setMarking(false);
+    }
+  }
+
   if (!material) {
     return (
       <div style={{ textAlign: "center", padding: "40px 20px" }}>
@@ -568,6 +591,8 @@ function CourseView({
             </div>
           )}
           <button
+            onClick={markDone}
+            disabled={marking}
             style={{
               background: ORANGE,
               color: "#fff",
@@ -575,7 +600,8 @@ function CourseView({
               padding: "8px 16px",
               borderRadius: 8,
               fontWeight: 700,
-              cursor: "pointer",
+              cursor: marking ? "wait" : "pointer",
+              opacity: marking ? 0.7 : 1,
               fontSize: 13,
               fontFamily: "'Plus Jakarta Sans', sans-serif",
               display: "flex",
@@ -584,8 +610,9 @@ function CourseView({
             }}
           >
             <CheckCircle2 size={14} />
-            Tandai Selesai
+            {marking ? "Menyimpan…" : "Tandai Selesai"}
           </button>
+          {markMsg && <span role="status" style={{ fontSize: 12, fontWeight: 600, color: markMsg.ok ? "#4ade80" : "#f87171" }}>{markMsg.text}</span>}
         </div>
         {material.description && (
           <p style={{ marginTop: 16, lineHeight: 1.6, color: TEXT_DIM }}>
@@ -636,6 +663,41 @@ function SettingsView({ enrollment, isDark }: { enrollment: Enrollment; isDark: 
   const [name, setName] = useState(enrollment.name);
   const [email, setEmail] = useState(enrollment.email);
   const [phone, setPhone] = useState(enrollment.phone || "");
+  const queryClient = useQueryClient();
+  const [copied, setCopied] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveMsg, setSaveMsg] = useState<{ ok: boolean; text: string } | null>(null);
+
+  async function copyCode() {
+    try {
+      await navigator.clipboard.writeText(enrollment.memberCode);
+    } catch {
+      // fallback untuk browser tanpa izin clipboard
+      const ta = document.createElement("textarea");
+      ta.value = enrollment.memberCode; document.body.appendChild(ta); ta.select();
+      try { document.execCommand("copy"); } finally { document.body.removeChild(ta); }
+    }
+    setCopied(true); setTimeout(() => setCopied(false), 2000);
+  }
+
+  async function saveProfile() {
+    if (saving) return;
+    setSaving(true); setSaveMsg(null);
+    try {
+      const r = await fetch("/api/course-members/update-profile", {
+        method: "PUT", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enrollmentId: enrollment.id, name: name.trim(), phone: phone.trim() }),
+      });
+      if (!r.ok) throw new Error((await r.json().catch(() => ({})))?.error || "Gagal menyimpan profil");
+      await queryClient.invalidateQueries({ queryKey: [`/api/portal/${enrollment.id}`] });
+      setSaveMsg({ ok: true, text: "Profil disimpan ✓" });
+      setEditing(false);
+    } catch (e: any) {
+      setSaveMsg({ ok: false, text: e?.message || "Gagal menyimpan profil" });
+    } finally {
+      setSaving(false);
+    }
+  }
 
   const inputStyle: React.CSSProperties = {
     padding: "12px 14px",
@@ -683,6 +745,7 @@ function SettingsView({ enrollment, isDark }: { enrollment: Enrollment; isDark: 
                 </p>
               </div>
               <button
+                onClick={copyCode}
                 style={{
                   background: "none",
                   border: "none",
@@ -692,7 +755,7 @@ function SettingsView({ enrollment, isDark }: { enrollment: Enrollment; isDark: 
                   fontWeight: 700,
                 }}
               >
-                Salin
+                {copied ? "Tersalin ✓" : "Salin"}
               </button>
             </div>
           </div>
@@ -739,6 +802,7 @@ function SettingsView({ enrollment, isDark }: { enrollment: Enrollment; isDark: 
             </div>
           </div>
 
+          {saveMsg && <p role="status" style={{ margin: "0 0 10px", fontSize: 12, fontWeight: 600, color: saveMsg.ok ? "#4ade80" : "#f87171" }}>{saveMsg.text}</p>}
           {/* Action buttons */}
           {!editing ? (
             <button
@@ -781,6 +845,8 @@ function SettingsView({ enrollment, isDark }: { enrollment: Enrollment; isDark: 
                 Batal
               </button>
               <button
+                onClick={saveProfile}
+                disabled={saving || !name.trim()}
                 style={{
                   flex: 1,
                   padding: "12px 18px",
@@ -790,11 +856,12 @@ function SettingsView({ enrollment, isDark }: { enrollment: Enrollment; isDark: 
                   color: "#fff",
                   fontSize: 13,
                   fontWeight: 700,
-                  cursor: "pointer",
+                  cursor: saving ? "wait" : "pointer",
+                  opacity: saving || !name.trim() ? 0.6 : 1,
                   fontFamily: "'Plus Jakarta Sans', sans-serif",
                 }}
               >
-                Simpan
+                {saving ? "Menyimpan…" : "Simpan"}
               </button>
             </div>
           )}
@@ -816,6 +883,7 @@ function SettingsView({ enrollment, isDark }: { enrollment: Enrollment; isDark: 
             Jika lupa kode member, silakan hubungi admin melalui WhatsApp untuk direset.
           </p>
           <button
+            onClick={() => window.open(`https://wa.me/${ADMIN_WA}?text=${encodeURIComponent(`Halo admin, saya lupa kode member kelas saya. Nama: ${enrollment.name}, email: ${enrollment.email}.`)}`, "_blank", "noopener")}
             style={{
               marginTop: 12,
               padding: "10px 16px",

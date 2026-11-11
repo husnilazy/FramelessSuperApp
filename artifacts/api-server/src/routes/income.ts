@@ -4,6 +4,7 @@ import { db } from "@workspace/db";
 import { sql } from "drizzle-orm";
 import crypto from "crypto";
 import { postIncomeJournal } from "../lib/journal-poster.js";
+import { sqlStr } from "../lib/sql-literal.js";
 
 const router: IRouter = Router();
 
@@ -49,28 +50,16 @@ router.get("/income", async (req: Request, res: Response): Promise<void> => {
   try {
     const { category, year } = req.query as { category?: string; year?: string };
 
-    let query = `SELECT * FROM income_entries`;
-    const params: any[] = [];
-
-    const conditions: string[] = [];
-    if (category) {
-      params.push(category);
-      conditions.push(`category = $${params.length}`);
-    }
+    // Parameter di-bind oleh driver (bukan disambung ke teks SQL) → aman dari SQL injection.
+    const conditions = [];
+    if (category) conditions.push(sql`category = ${String(category)}`);
     if (year) {
-      params.push(year);
-      conditions.push(`EXTRACT(YEAR FROM date) = $${params.length}`);
+      const y = Number(year);
+      if (!Number.isInteger(y)) { res.status(400).json({ error: "Parameter year tidak valid" }); return; }
+      conditions.push(sql`EXTRACT(YEAR FROM date) = ${y}`);
     }
-    if (conditions.length > 0) {
-      query += " WHERE " + conditions.join(" AND ");
-    }
-    query += " ORDER BY date DESC";
-
-    const result = await db.execute(sql.raw(
-      params.length > 0
-        ? query.replace(/\$(\d+)/g, (_, i) => `'${params[Number(i) - 1]}'`)
-        : query
-    ));
+    const where = conditions.length > 0 ? sql`WHERE ${sql.join(conditions, sql` AND `)}` : sql``;
+    const result = await db.execute(sql`SELECT * FROM income_entries ${where} ORDER BY date DESC`);
 
     const rows = (result as any).rows || result;
     res.json(Array.isArray(rows) ? rows.map(mapIncome) : []);
@@ -138,7 +127,7 @@ router.put("/income/:id", async (req: Request, res: Response): Promise<void> => 
     if (notes !== undefined)      setClauses.push(`notes = ${notes ? `'${String(notes).replace(/'/g, "''")}'` : "NULL"}`);
 
     const result = await db.execute(sql.raw(
-      `UPDATE income_entries SET ${setClauses.join(", ")} WHERE id = '${id}' RETURNING *`
+      `UPDATE income_entries SET ${setClauses.join(", ")} WHERE id = '${sqlStr(id)}' RETURNING *`
     ));
 
     const rows = (result as any).rows || result;

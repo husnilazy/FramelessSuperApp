@@ -1,6 +1,7 @@
 // artifacts/frameless/src/App.tsx
-import CrewLinkPage from "@/pages/crew-link-page";
-import CrewLinkSubPage from "@/pages/crew-link-subpage";
+const CrewLinkPage = lazy(() => import("@/pages/crew-link-page"));
+const CrewLinkSubPage = lazy(() => import("@/pages/crew-link-subpage"));
+import { lazy, Suspense } from "react";
 import { Switch, Route, Router as WouterRouter } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -11,53 +12,61 @@ import NotFound from "@/pages/not-found";
 import { AppLayout } from "@/components/layout";
 
 // Auth
-import LoginPage         from "@/pages/login";
-
+const LoginPage = lazy(() => import("@/pages/login"));
 // Public pages
-import LandingPage       from "@/pages/landing";
-import ServicesPage      from "@/pages/services";
-import ServiceDetailPage from "@/pages/service-detail";
-import CoursePage        from "@/pages/course-page";
-import CoursesPage       from "@/pages/courses";
-import DigitalAssetsPage from "@/pages/digital-assets";
-import PortalPage        from "@/pages/portal";
-import AcademyLoginPage  from "@/pages/academy-login";
-
+const LandingPage = lazy(() => import("@/pages/landing"));
+const ServicesPage = lazy(() => import("@/pages/services"));
+const ServiceDetailPage = lazy(() => import("@/pages/service-detail"));
+const CoursePage = lazy(() => import("@/pages/course-page"));
+const CoursesPage = lazy(() => import("@/pages/courses"));
+const DigitalAssetsPage = lazy(() => import("@/pages/digital-assets"));
+const PortalPage = lazy(() => import("@/pages/portal"));
+const AcademyLoginPage = lazy(() => import("@/pages/academy-login"));
 // Crew
-import CrewLoginPage     from "@/pages/crew-login";
-import CrewDashboard     from "@/pages/crew-dashboard";
-
+const CrewLoginPage = lazy(() => import("@/pages/crew-login"));
+const CrewDashboard = lazy(() => import("@/pages/crew-dashboard"));
 // Admin pages
-import Dashboard           from "@/pages/dashboard";
-import CommandCenterPage   from "@/pages/command-center";
-import ProjectsPage        from "@/pages/projects";
-import ProjectDetailPage   from "@/pages/project-detail";
-import TeamPage            from "@/pages/team";
-import ClientsPage         from "@/pages/clients";
-import InvoicesPage        from "@/pages/invoices";
-import InvoiceEditorPage   from "@/pages/invoice-editor";
-import QuotationsPage       from "@/pages/quotations";
-import QuotationEditorPage  from "@/pages/quotation-editor";
-import ExpensesPage        from "@/pages/expenses";
-import FinancePage         from "@/pages/finance";
-import AccountingPage      from "@/pages/accounting";
-import SettingsPage        from "@/pages/settings";
-import CmsEditorPage       from "@/pages/cms-editor";
-import PaymentSettingsPage from "@/pages/payment-settings";
-import CoursesAdminPage    from "@/pages/courses-admin";
-import DigitalAssetsAdminPage from "@/pages/digital-assets-admin";
-import AppearancePage from "@/pages/appearance";
-import { FilmmakingTools } from "@/pages/FilmmakingTools";
-import FilmmakingSubmissionsAdmin from "@/pages/FilmmakingSubmissionsAdmin";
+const Dashboard = lazy(() => import("@/pages/dashboard"));
+const CommandCenterPage = lazy(() => import("@/pages/command-center"));
+const ProjectsPage = lazy(() => import("@/pages/projects"));
+const ProjectDetailPage = lazy(() => import("@/pages/project-detail"));
+const TeamPage = lazy(() => import("@/pages/team"));
+const ClientsPage = lazy(() => import("@/pages/clients"));
+const InvoicesPage = lazy(() => import("@/pages/invoices"));
+const InvoiceEditorPage = lazy(() => import("@/pages/invoice-editor"));
+const QuotationsPage = lazy(() => import("@/pages/quotations"));
+const QuotationEditorPage = lazy(() => import("@/pages/quotation-editor"));
+const ExpensesPage = lazy(() => import("@/pages/expenses"));
+const FinancePage = lazy(() => import("@/pages/finance"));
+const AccountingPage = lazy(() => import("@/pages/accounting"));
+const SettingsPage = lazy(() => import("@/pages/settings"));
+const CmsEditorPage = lazy(() => import("@/pages/cms-editor"));
+const PaymentSettingsPage = lazy(() => import("@/pages/payment-settings"));
+const CoursesAdminPage = lazy(() => import("@/pages/courses-admin"));
+const DigitalAssetsAdminPage = lazy(() => import("@/pages/digital-assets-admin"));
+const AppearancePage = lazy(() => import("@/pages/appearance"));
+const FilmmakingTools = lazy(() => import("@/pages/FilmmakingTools").then((m) => ({ default: m.FilmmakingTools })));
+const FilmmakingSubmissionsAdmin = lazy(() => import("@/pages/FilmmakingSubmissionsAdmin"));
+
+/** Layar tunggu ringan saat potongan halaman diunduh. Header & menu admin tetap tampil. */
+function PageFallback() {
+  return (
+    <div role="status" aria-label="Memuat halaman" style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "40vh" }}>
+      <div style={{ width: 28, height: 28, borderRadius: "50%", border: "3px solid hsl(var(--primary))", borderTopColor: "transparent", animation: "pfspin .7s linear infinite" }} />
+      <style>{`@keyframes pfspin{to{transform:rotate(360deg);}}`}</style>
+    </div>
+  );
+}
 
 const queryClient = new QueryClient({
-  defaultOptions: { queries: { retry: 1, staleTime: 30_000 } },
+  defaultOptions: { queries: { retry: 1, staleTime: 60_000, gcTime: 10 * 60_000, refetchOnWindowFocus: false } },
 });
 
 function ProtectedRoutes() {
   return (
     <AuthGuard>
       <AppLayout>
+        <Suspense fallback={<PageFallback />}>
         <Switch>
           <Route path="/"                         component={Dashboard} />
           <Route path="/dashboard"                component={Dashboard} />
@@ -86,6 +95,7 @@ function ProtectedRoutes() {
           <Route path="/admin/filmmaking-submissions" component={FilmmakingSubmissionsAdmin} />
           <Route                                  component={NotFound} />
         </Switch>
+        </Suspense>
       </AppLayout>
     </AuthGuard>
   );
@@ -93,6 +103,7 @@ function ProtectedRoutes() {
 
 function Router() {
   return (
+    <Suspense fallback={<PageFallback />}>
     <Switch>
       {/* Public */}
       <Route path="/"               component={LandingPage} />
@@ -151,6 +162,7 @@ function Router() {
 
       <Route component={NotFound} />
     </Switch>
+    </Suspense>
   );
 }
 

@@ -13,8 +13,25 @@ type AuthedRequest = Request & {
   };
 };
 
+// Profil pengguna di-cache sebentar per instance: tiap request admin sebelumnya selalu menambah 1 round-trip ke database.
+// Perubahan peran/status akun berlaku paling lambat PROFILE_TTL_MS kemudian. Hasil "tidak ada" tidak di-cache.
+const PROFILE_TTL_MS = 20_000;
+const profileCache = new Map<string, { at: number; profile: NonNullable<Awaited<ReturnType<typeof findUserById>>> }>();
+
+export function clearAuthCache(userId?: string) {
+  if (userId) profileCache.delete(userId);
+  else profileCache.clear();
+}
+
 async function loadUserProfile(userId: string) {
-  return findUserById(userId);
+  const hit = profileCache.get(userId);
+  if (hit && Date.now() - hit.at < PROFILE_TTL_MS) return hit.profile;
+  const profile = await findUserById(userId);
+  if (profile) {
+    if (profileCache.size > 200) profileCache.clear();
+    profileCache.set(userId, { at: Date.now(), profile });
+  }
+  return profile;
 }
 
 const emergencySecret = process.env.EMERGENCY_JWT_SECRET || "";

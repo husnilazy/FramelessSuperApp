@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from "react";
-import { useRoute, useLocation } from "wouter";
+import { useRoute, useLocation, Link } from "wouter";
 import { useGetInvoice, useListClients, useListProjects } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { formatCurrency } from "@/lib/formatters";
@@ -7,6 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Plus, Trash2, Save, FileText, Printer, Receipt, Loader2, Wallet, Info } from "lucide-react";
 import { InvoiceDocDialog } from "@/components/invoice-doc-dialog";
@@ -363,30 +367,44 @@ export default function InvoiceEditorPage() {
     setPayOpen(true);
   };
 
-  const handleDeletePayment = async (paymentId: string) => {
-    if (!invoiceId || !confirm("Hapus pembayaran ini? Sisa tagihan dan status invoice akan dihitung ulang.")) return;
-    try {
-      await deletePayment(invoiceId, paymentId);
-      refreshInvoice();
-      toast({ title: "Pembayaran dihapus" });
-    } catch (e: any) {
-      toast({ variant: "destructive", title: "Gagal menghapus", description: e.message });
-    }
+  // Konfirmasi hapus memakai dialog di dalam halaman (bukan popup bawaan browser yang sering terblokir / tertutup sendiri).
+  const [confirmDel, setConfirmDel] = useState<null | { kind: "invoice" } | { kind: "payment"; id: string }>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDeletePayment = (paymentId: string) => {
+    if (invoiceId) setConfirmDel({ kind: "payment", id: paymentId });
   };
 
-  const handleDeleteInvoice = async () => {
-    if (!invoiceId) return;
-    const warn = payments.length > 0 ? `Invoice ini punya ${payments.length} pembayaran tercatat. ` : "";
-    if (!confirm(`${warn}Hapus invoice ${inv.invoiceNumber} secara permanen?`)) return;
+  const handleDeleteInvoice = () => {
+    if (invoiceId) setConfirmDel({ kind: "invoice" });
+  };
+
+  const runDelete = async () => {
+    if (!invoiceId || !confirmDel) return;
+    setDeleting(true);
     try {
-      const res = await fetch(`/api/invoices/${invoiceId}`, { method: "DELETE", headers: authHeaders() });
-      if (!res.ok) throw new Error("Gagal menghapus invoice");
-      savedRef.current = payloadJson; // tidak ada peringatan "belum disimpan"
-      refreshInvoice();
-      toast({ title: "Invoice dihapus" });
-      navigate("/invoices");
+      if (confirmDel.kind === "payment") {
+        await deletePayment(invoiceId, confirmDel.id);
+        refreshInvoice();
+        toast({ title: "Pembayaran dihapus" });
+      } else {
+        const res = await fetch(`/api/invoices/${invoiceId}`, { method: "DELETE", headers: authHeaders() });
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          throw new Error(body?.error || `Gagal menghapus invoice (kode ${res.status})`);
+        }
+        savedRef.current = payloadJson; // tidak ada peringatan "belum disimpan"
+        refreshInvoice();
+        toast({ title: "Invoice dihapus" });
+        setConfirmDel(null);
+        navigate("/invoices");
+        return;
+      }
+      setConfirmDel(null);
     } catch (e: any) {
-      toast({ variant: "destructive", title: e.message });
+      toast({ variant: "destructive", title: "Gagal menghapus", description: e?.message });
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -430,11 +448,11 @@ export default function InvoiceEditorPage() {
       {/* Top bar */}
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-3 min-w-0">
-          <a href="/invoices">
+          <Link href="/invoices">
             <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
               <ArrowLeft className="w-5 h-5" />
             </Button>
-          </a>
+          </Link>
           <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <h1 className="text-3xl font-heading tracking-wider text-foreground truncate">{invoiceId ? inv.invoiceNumber : "New Invoice"}</h1>
@@ -745,6 +763,24 @@ export default function InvoiceEditorPage() {
           onPrintReceipt={(pid) => { setDocKind("receipt"); setDocPaymentId(pid); setDocOpen(true); }}
         />
       )}
+      <AlertDialog open={!!confirmDel} onOpenChange={(o) => { if (!o && !deleting) setConfirmDel(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{confirmDel?.kind === "payment" ? "Hapus pembayaran ini?" : `Hapus invoice ${inv.invoiceNumber}?`}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirmDel?.kind === "payment"
+                ? "Sisa tagihan dan status invoice akan dihitung ulang. Jurnal pembayaran ini ikut dibatalkan."
+                : `${payments.length > 0 ? `Invoice ini punya ${payments.length} pembayaran tercatat yang ikut terhapus. ` : ""}Invoice dihapus permanen dan tidak bisa dikembalikan.`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Batal</AlertDialogCancel>
+            <AlertDialogAction disabled={deleting} onClick={(e) => { e.preventDefault(); void runDelete(); }}>
+              {deleting ? "Menghapus…" : "Ya, hapus"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

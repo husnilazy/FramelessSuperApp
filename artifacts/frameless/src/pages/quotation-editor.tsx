@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
-import { useRoute, useLocation } from "wouter";
+import { useRoute, useLocation, Link } from "wouter";
 import { useListClients } from "@workspace/api-client-react";
 import { formatCurrency } from "@/lib/formatters";
 import { Button } from "@/components/ui/button";
@@ -464,11 +464,11 @@ export default function QuotationEditorPage() {
       {/* Top Bar */}
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div className="flex items-center gap-3 min-w-0">
-          <a href="/quotations">
+          <Link href="/quotations">
             <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground shrink-0">
               <ArrowLeft className="w-5 h-5" />
             </Button>
-          </a>
+          </Link>
           <div className="min-w-0">
             <h1 className="text-3xl font-heading tracking-wider text-foreground truncate">{number || "Penawaran Baru"}</h1>
             <p className="text-muted-foreground text-xs uppercase tracking-widest truncate">

@@ -5,6 +5,7 @@ import { Router, type IRouter, type Request, type Response } from "express";
 import { db } from "@workspace/db";
 import { sql } from "drizzle-orm";
 import crypto from "crypto";
+import { sqlStr } from "../lib/sql-literal.js";
 
 const router: IRouter = Router();
 
@@ -125,7 +126,7 @@ router.put("/account-mappings/:id", async (req: Request, res: Response): Promise
     if (sets.length === 0) { res.status(400).json({ error: "Tidak ada yang diubah" }); return; }
 
     const result = await db.execute(sql.raw(
-      `UPDATE account_mappings SET ${sets.join(", ")} WHERE id = '${req.params.id}' RETURNING *`
+      `UPDATE account_mappings SET ${sets.join(", ")} WHERE id = '${sqlStr(req.params.id)}' RETURNING *`
     ));
     const rows = (result as any).rows || result;
     const row = Array.isArray(rows) ? rows[0] : null;

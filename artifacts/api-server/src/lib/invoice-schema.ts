@@ -12,6 +12,18 @@ export function ensureInvoiceColumns(): Promise<void> {
   if (!ready) {
     ready = (async () => {
       if (!pool) return;
+      // Cek read-only dulu: ALTER TABLE mengambil kunci tabel dan 1 round-trip tiap perintah, sia-sia bila kolom sudah lengkap.
+      const need = [
+        ["invoices", ["invoiceDate", "paymentTerms", "poNumber", "taxRate", "shipping"]],
+        ["company_profile", ["bankName", "bankNumber", "bankHolder", "signerName", "logoDarkUrl"]],
+      ] as const;
+      const have = await pool.query(
+        `SELECT table_name, column_name FROM information_schema.columns WHERE table_schema = current_schema() AND table_name = ANY($1)`,
+        [need.map(([t]) => t)],
+      ).catch(() => null);
+      const present = new Set((have?.rows ?? []).map((r: any) => `${r.table_name}.${r.column_name}`));
+      const complete = have !== null && need.every(([t, cols]) => cols.every((c) => present.has(`${t}.${c}`)));
+      if (complete) return;
       await pool.query(`
         ALTER TABLE invoices
           ADD COLUMN IF NOT EXISTS "invoiceDate"  timestamp,
