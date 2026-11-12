@@ -1,5 +1,6 @@
 // artifacts/frameless/src/pages/expenses.tsx
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { createPortal } from "react-dom";
 import { fetchBrand, reportHeaderHtml, REPORT_BRAND_CSS, brandContactLine } from "@/lib/report-brand";
 import { createPrintSink } from "@/lib/print-sink";
 import { useToast } from "@/hooks/use-toast";
@@ -9,7 +10,7 @@ import {
   Plus, Trash2, X, Search, TrendingDown,
   Receipt, Calendar, RefreshCw, Edit2, Check,
   AlertCircle, Upload, FileText, Loader2,
-  Image as ImageIcon, Printer, Layers, Copy, ListPlus,
+  Image as ImageIcon, Printer, Layers, Copy, ListPlus, ChevronDown, FolderOpen, AlertTriangle,
 } from "lucide-react";
 import { BarChart, Bar, Cell, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 
@@ -94,7 +95,12 @@ interface Expense {
 interface Project {
   id: string;
   title: string;
+  client?: string | null;
+  status?: string | null;
 }
+
+// Saran isian dari pengeluaran sebelumnya (keterangan → kategori/jumlah/proyek terakhir)
+interface Suggestion { description: string; category: string; amount: number; projectId: string | null }
 
 // A single row inside the batch-entry modal — same shape as Expense minus id/date
 // (date is shared across all rows in a batch since the whole point is "same day, many items").
@@ -132,6 +138,95 @@ const btnBase: React.CSSProperties = {
 };
 
 const MONTHS_ID = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+
+
+// ─── Pemilih proyek yang bisa dicari (ketik nama proyek / klien) ────────────────
+function ProjectPicker({ projects, value, onChange, compact = false, placeholder = "Tanpa proyek" }: {
+  projects: Project[];
+  value: string | null | undefined;
+  onChange: (id: string | null) => void;
+  compact?: boolean;
+  placeholder?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [q, setQ] = useState("");
+  const [rect, setRect] = useState<DOMRect | null>(null);
+  const [hi, setHi] = useState(0);
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const selected = projects.find(p => p.id === value) || null;
+  const done = (st?: string | null) => ["completed", "done", "selesai", "cancelled", "archived"].includes(String(st || "").toLowerCase());
+
+  const list = useMemo(() => {
+    const t = q.trim().toLowerCase();
+    const arr = projects.filter(p => !t || p.title.toLowerCase().includes(t) || String(p.client || "").toLowerCase().includes(t));
+    // proyek aktif di atas, yang sudah selesai di bawah
+    return [...arr].sort((a, b) => Number(done(a.status)) - Number(done(b.status)) || a.title.localeCompare(b.title));
+  }, [projects, q]);
+
+  function openMenu() {
+    if (btnRef.current) setRect(btnRef.current.getBoundingClientRect());
+    setQ(""); setHi(0); setOpen(true);
+    setTimeout(() => inputRef.current?.focus(), 0);
+  }
+  function pick(id: string | null) { onChange(id); setOpen(false); }
+
+  useEffect(() => {
+    if (!open) return;
+    const close = () => setOpen(false);
+    window.addEventListener("resize", close);
+    return () => window.removeEventListener("resize", close);
+  }, [open]);
+
+  const menuW = Math.max(rect?.width ?? 0, 280);
+  const left = rect ? Math.min(rect.left, window.innerWidth - menuW - 12) : 0;
+  const spaceBelow = rect ? window.innerHeight - rect.bottom : 0;
+  const up = rect ? spaceBelow < 300 && rect.top > spaceBelow : false;
+
+  return (
+    <>
+      <button ref={btnRef} type="button" onClick={openMenu} title={selected?.title}
+        style={{ ...ipt, padding: compact ? "7px 8px" : "9px 12px", fontSize: compact ? 12 : 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6, textAlign: "left", color: selected ? "hsl(var(--foreground))" : "rgb(var(--ink) / calc(.4 + var(--ink-boost)))" }}>
+        <FolderOpen size={12} style={{ flexShrink: 0, opacity: .6 }} />
+        <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{selected ? selected.title : placeholder}</span>
+        <ChevronDown size={12} style={{ flexShrink: 0, opacity: .5 }} />
+      </button>
+      {open && rect && createPortal(
+        <div onClick={() => setOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 400 }}>
+          <div onClick={e => e.stopPropagation()}
+            style={{ position: "fixed", left, width: menuW, ...(up ? { bottom: window.innerHeight - rect.top + 6 } : { top: rect.bottom + 6 }), maxHeight: 340, display: "flex", flexDirection: "column", background: "hsl(var(--card))", border: "1px solid rgb(var(--ink) / .15)", borderRadius: 12, boxShadow: "0 18px 50px rgba(0,0,0,.55)", overflow: "hidden" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 12px", borderBottom: "1px solid rgb(var(--ink) / .08)" }}>
+              <Search size={13} style={{ opacity: .5 }} />
+              <input ref={inputRef} value={q} onChange={e => { setQ(e.target.value); setHi(0); }}
+                onKeyDown={e => {
+                  if (e.key === "Escape") setOpen(false);
+                  else if (e.key === "ArrowDown") { e.preventDefault(); setHi(h => Math.min(h + 1, list.length)); }
+                  else if (e.key === "ArrowUp") { e.preventDefault(); setHi(h => Math.max(h - 1, 0)); }
+                  else if (e.key === "Enter") { e.preventDefault(); pick(hi === 0 ? null : list[hi - 1]?.id ?? null); }
+                }}
+                placeholder="Cari proyek atau klien…"
+                style={{ flex: 1, background: "transparent", border: "none", outline: "none", color: "hsl(var(--foreground))", fontSize: 13, fontFamily: FONT }} />
+            </div>
+            <div style={{ overflowY: "auto", padding: 6 }}>
+              <div onClick={() => pick(null)} onMouseEnter={() => setHi(0)}
+                style={{ padding: "8px 10px", borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 600, color: "rgb(var(--ink) / calc(.55 + var(--ink-boost)))", background: hi === 0 ? "rgb(var(--ink) / .07)" : "transparent" }}>
+                — Tanpa proyek (biaya umum) —
+              </div>
+              {list.length === 0 && <div style={{ padding: "14px 10px", fontSize: 12, color: "rgb(var(--ink) / calc(.4 + var(--ink-boost)))" }}>Tidak ada proyek yang cocok dengan “{q}”.</div>}
+              {list.map((p, i) => (
+                <div key={p.id} onClick={() => pick(p.id)} onMouseEnter={() => setHi(i + 1)}
+                  style={{ padding: "8px 10px", borderRadius: 8, cursor: "pointer", background: hi === i + 1 ? "rgb(var(--ink) / .07)" : "transparent", opacity: done(p.status) ? .65 : 1, borderLeft: p.id === value ? `3px solid ${OR}` : "3px solid transparent" }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "hsl(var(--foreground))", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.title}</div>
+                  {(p.client || p.status) && <div style={{ fontSize: 10.5, color: "rgb(var(--ink) / calc(.4 + var(--ink-boost)))", marginTop: 1 }}>{[p.client, p.status].filter(Boolean).join(" · ")}</div>}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>, document.body)}
+    </>
+  );
+}
 
 // ─── Single Expense Modal (edit existing) ───────────────────────────────────────
 function ExpenseModal({ item, projects, onClose, onSave }: {
@@ -210,10 +305,7 @@ function ExpenseModal({ item, projects, onClose, onSave }: {
           {projects.length > 0 && (
             <div>
               <label style={{ display: "block", fontSize: 10, fontWeight: 700, letterSpacing: ".14em", textTransform: "uppercase", color: "rgb(var(--ink) / calc(.35 + var(--ink-boost)))", marginBottom: 6 }}>Proyek (opsional)</label>
-              <select value={form.projectId || ""} onChange={e => f("projectId", e.target.value || null)} style={{ ...ipt, cursor: "pointer" }}>
-                <option value="" style={{ background: "hsl(var(--card))" }}>— Tidak terkait proyek —</option>
-                {projects.map(p => <option key={p.id} value={p.id} style={{ background: "hsl(var(--card))" }}>{p.title}</option>)}
-              </select>
+              <ProjectPicker projects={projects} value={form.projectId} onChange={id => f("projectId", id)} placeholder="Tidak terkait proyek" />
             </div>
           )}
           <div>
@@ -255,8 +347,9 @@ function ExpenseModal({ item, projects, onClose, onSave }: {
 }
 
 // ─── Batch Entry Modal (add many expenses for the same date in one go) ─────────
-function BatchExpenseModal({ projects, onClose, onSaveAll }: {
+function BatchExpenseModal({ projects, expenses, onClose, onSaveAll }: {
   projects: Project[];
+  expenses: Expense[];
   onClose: () => void;
   onSaveAll: (date: string, rows: BatchRow[]) => Promise<void>;
 }) {
@@ -265,13 +358,51 @@ function BatchExpenseModal({ projects, onClose, onSaveAll }: {
   const [rows, setRows] = useState<BatchRow[]>([newBatchRow(EXPENSE_CATS[0])]);
   const [saving, setSaving] = useState(false);
   const [uploadingRowId, setUploadingRowId] = useState<string | null>(null);
+  const [allProject, setAllProject] = useState<string | null>(null);
+
+  // Saran keterangan dari riwayat (terbaru menang) + kunci pengecekan duplikat
+  const suggestions = useMemo(() => {
+    const m = new Map<string, Suggestion>();
+    [...expenses].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).forEach(e => {
+      const k = e.description.trim().toLowerCase();
+      if (k && !m.has(k)) m.set(k, { description: e.description.trim(), category: e.category, amount: Number(e.amount), projectId: e.projectId ?? null });
+    });
+    return m;
+  }, [expenses]);
+  const existingKeys = useMemo(() => new Set(expenses.map(e => `${String(e.date).slice(0, 10)}|${Math.round(Number(e.amount))}|${e.description.trim().toLowerCase()}`)), [expenses]);
+  const dupOf = (r: BatchRow) => !!r.description.trim() && Number(r.amount) > 0 && existingKeys.has(`${date}|${Math.round(Number(r.amount))}|${r.description.trim().toLowerCase()}`);
+  const sameBatchDup = (r: BatchRow, idx: number) => !!r.description.trim() && Number(r.amount) > 0 && rows.some((o, i) => i < idx && o.description.trim().toLowerCase() === r.description.trim().toLowerCase() && Number(o.amount) === Number(r.amount));
+
+  function onDescription(rowId: string, text: string) {
+    const hit = suggestions.get(text.trim().toLowerCase());
+    setRows(prev => prev.map(r => {
+      if (r.rowId !== rowId) return r;
+      const next = { ...r, description: text };
+      // Cocok persis dengan riwayat → isi otomatis bagian yang masih kosong
+      if (hit) {
+        if (r.amount === "") next.amount = hit.amount;
+        if (!r.projectId && !allProject && hit.projectId) next.projectId = hit.projectId;
+        if (r.description === "") next.category = hit.category;
+      }
+      return next;
+    }));
+  }
+
+  function applyAllProject(id: string | null) {
+    setAllProject(id);
+    setRows(prev => prev.map(r => ({ ...r, projectId: id })));
+  }
 
   function updateRow(rowId: string, patch: Partial<BatchRow>) {
     setRows(prev => prev.map(r => r.rowId === rowId ? { ...r, ...patch } : r));
   }
 
   function addRow() {
-    setRows(prev => [...prev, newBatchRow(prev[prev.length - 1]?.category || EXPENSE_CATS[0])]);
+    setRows(prev => {
+      const row = newBatchRow(prev[prev.length - 1]?.category || EXPENSE_CATS[0]);
+      row.projectId = allProject;
+      return [...prev, row];
+    });
   }
 
   function duplicateRow(rowId: string) {
@@ -324,7 +455,7 @@ function BatchExpenseModal({ projects, onClose, onSaveAll }: {
   return (
     <div onClick={e => { if (e.target === e.currentTarget) onClose(); }}
       style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.85)", backdropFilter: "blur(12px)", zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
-      <div style={{ background: "hsl(var(--card))", border: "1px solid rgb(var(--ink) / .1)", borderRadius: 22, padding: 28, width: "100%", maxWidth: 900, maxHeight: "92vh", display: "flex", flexDirection: "column", position: "relative" }}>
+      <div style={{ background: "hsl(var(--card))", border: "1px solid rgb(var(--ink) / .1)", borderRadius: 22, padding: 28, width: "100%", maxWidth: 1040, maxHeight: "92vh", display: "flex", flexDirection: "column", position: "relative" }}>
 
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18, flexShrink: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -343,10 +474,17 @@ function BatchExpenseModal({ projects, onClose, onSaveAll }: {
           <Calendar size={14} color="rgb(var(--ink) / .4)" />
           <label style={{ fontSize: 11, fontWeight: 700, color: "rgb(var(--ink) / calc(.5 + var(--ink-boost)))", textTransform: "uppercase", letterSpacing: ".1em" }}>Tanggal untuk semua baris:</label>
           <input type="date" value={date} onChange={e => setDate(e.target.value)} style={{ ...ipt, width: 170 }} />
+          <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+            <label style={{ fontSize: 11, fontWeight: 700, color: "rgb(var(--ink) / calc(.5 + var(--ink-boost)))", textTransform: "uppercase", letterSpacing: ".1em", whiteSpace: "nowrap" }}>Proyek semua baris:</label>
+            <div style={{ width: 230 }}><ProjectPicker projects={projects} value={allProject} onChange={applyAllProject} placeholder="Pilih (opsional)" /></div>
+          </div>
         </div>
+        <datalist id="exp-desc-suggest">
+          {[...suggestions.values()].slice(0, 300).map(sg => <option key={sg.description} value={sg.description} />)}
+        </datalist>
 
         <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: 10, paddingRight: 4, marginBottom: 14 }}>
-          <div style={{ display: "grid", gridTemplateColumns: "150px 1fr 130px 130px 70px 80px", gap: 8, padding: "0 6px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "150px 1fr 130px 210px 56px 70px", gap: 8, padding: "0 6px" }}>
             {["Kategori", "Keterangan", "Jumlah (IDR)", "Proyek", "Struk", ""].map(h => (
               <span key={h} style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".1em", color: "rgb(var(--ink) / calc(.3 + var(--ink-boost)))" }}>{h}</span>
             ))}
@@ -357,26 +495,29 @@ function BatchExpenseModal({ projects, onClose, onSaveAll }: {
             const isPdf = row.receiptUrl?.toLowerCase().endsWith(".pdf");
             return (
               <div key={row.rowId} style={{
-                display: "grid", gridTemplateColumns: "150px 1fr 130px 130px 70px 80px", gap: 8,
+                display: "grid", gridTemplateColumns: "150px 1fr 130px 210px 56px 70px", gap: 8,
                 padding: "8px 6px", borderRadius: 10, background: "rgb(var(--ink) / .025)",
-                border: "1px solid rgb(var(--ink) / .06)", alignItems: "center",
+                border: `1px solid ${dupOf(row) || sameBatchDup(row, idx) ? "rgba(251,191,36,.5)" : "rgb(var(--ink) / .06)"}`, alignItems: "center",
               }}>
                 <select value={row.category} onChange={e => updateRow(row.rowId, { category: e.target.value })}
                   style={{ ...ipt, padding: "7px 8px", fontSize: 12, cursor: "pointer" }}>
                   {EXPENSE_CATS.map(c => <option key={c} value={c} style={{ background: "hsl(var(--card))" }}>{c}</option>)}
                 </select>
 
-                <input value={row.description} onChange={e => updateRow(row.rowId, { description: e.target.value })}
-                  placeholder={`Pengeluaran ke-${idx + 1}`} style={{ ...ipt, padding: "7px 10px", fontSize: 12 }} />
+                <div style={{ minWidth: 0 }}>
+                  <input value={row.description} list="exp-desc-suggest" onChange={e => onDescription(row.rowId, e.target.value)}
+                    placeholder={`Pengeluaran ke-${idx + 1}`} style={{ ...ipt, padding: "7px 10px", fontSize: 12 }} />
+                  {(dupOf(row) || sameBatchDup(row, idx)) && (
+                    <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 4, fontSize: 10.5, fontWeight: 600, color: "var(--c-amber)" }}>
+                      <AlertTriangle size={11} /> {dupOf(row) ? "Sudah ada pengeluaran sama di tanggal ini — mungkin dobel" : "Sama dengan baris di atasnya — mungkin dobel"}
+                    </div>
+                  )}
+                </div>
 
                 <input type="number" value={row.amount} onChange={e => updateRow(row.rowId, { amount: e.target.value === "" ? "" : Number(e.target.value) })}
                   placeholder="0" style={{ ...ipt, padding: "7px 10px", fontSize: 12 }} />
 
-                <select value={row.projectId || ""} onChange={e => updateRow(row.rowId, { projectId: e.target.value || null })}
-                  style={{ ...ipt, padding: "7px 8px", fontSize: 12, cursor: "pointer" }}>
-                  <option value="" style={{ background: "hsl(var(--card))" }}>—</option>
-                  {projects.map(p => <option key={p.id} value={p.id} style={{ background: "hsl(var(--card))" }}>{p.title.slice(0, 16)}</option>)}
-                </select>
+                <ProjectPicker compact projects={projects} value={row.projectId} onChange={id => updateRow(row.rowId, { projectId: id })} placeholder="Tanpa proyek" />
 
                 <div style={{ display: "flex", justifyContent: "center" }}>
                   {row.receiptUrl ? (
@@ -425,6 +566,14 @@ function BatchExpenseModal({ projects, onClose, onSaveAll }: {
               {validRows.length} dari {rows.length} baris siap disimpan
             </p>
             <p style={{ fontSize: 18, fontWeight: 900, color: "var(--c-red)", margin: "2px 0 0" }}>{formatCurrency(totalAmount)}</p>
+            {validRows.some(r => !r.projectId) && validRows.some(r => r.projectId) && (
+              <p style={{ fontSize: 10.5, color: "rgb(var(--ink) / calc(.45 + var(--ink-boost)))", margin: "3px 0 0" }}>
+                {validRows.filter(r => !r.projectId).length} baris tanpa proyek (dicatat sebagai biaya umum)
+              </p>
+            )}
+            {validRows.some((r, i) => dupOf(r) || sameBatchDup(r, rows.indexOf(r))) && (
+              <p style={{ fontSize: 10.5, color: "var(--c-amber)", margin: "3px 0 0", fontWeight: 600 }}>Ada baris yang mungkin dobel — periksa tanda kuning.</p>
+            )}
           </div>
           <div style={{ display: "flex", gap: 10 }}>
             <button onClick={onClose} style={{ ...btnBase, background: "rgb(var(--ink) / .06)", color: "rgb(var(--ink) / calc(.6 + var(--ink-boost)))", border: "1px solid rgb(var(--ink) / .1)" }}>Batal</button>
@@ -689,7 +838,7 @@ export default function ExpensesPage() {
         api("/api/projects").catch(() => []),
       ]);
       setExpenses(Array.isArray(exp) ? exp : []);
-      setProjects(Array.isArray(proj) ? proj.map((p: any) => ({ id: p.id, title: p.title || p.name || "Proyek" })) : []);
+      setProjects(Array.isArray(proj) ? proj.map((p: any) => ({ id: p.id, title: p.title || p.name || "Proyek", client: p.client || null, status: p.status || null })) : []);
     } catch (e: any) {
       toast({ variant: "destructive", title: "Error", description: e.message });
     } finally {
@@ -1038,7 +1187,7 @@ export default function ExpensesPage() {
         <ExpenseModal item={editModal} projects={projects} onClose={() => setEditModal(null)} onSave={saveExpense} />
       )}
       {batchModal && (
-        <BatchExpenseModal projects={projects} onClose={() => setBatchModal(false)} onSaveAll={saveBatch} />
+        <BatchExpenseModal projects={projects} expenses={expenses} onClose={() => setBatchModal(false)} onSaveAll={saveBatch} />
       )}
       {printModal && (
         <PrintExpenseModal expenses={expenses} projects={projects} onClose={() => setPrintModal(false)} />
