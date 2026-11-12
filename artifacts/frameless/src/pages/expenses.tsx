@@ -90,7 +90,12 @@ interface Expense {
   projectId?: string | null;
   receiptUrl?: string | null;
   createdAt?: string | null;
+  vendor?: string | null;
+  paymentMethod?: string | null;
+  notes?: string | null;
 }
+
+const PAY_METHODS = ["Tunai", "Transfer", "QRIS", "Kartu", "E-Wallet", "Lainnya"];
 
 interface Project {
   id: string;
@@ -111,6 +116,8 @@ interface BatchRow {
   amount: number | "";
   projectId: string | null;
   receiptUrl: string | null;
+  vendor: string;
+  notes: string;
 }
 
 function newBatchRow(category: string): BatchRow {
@@ -121,6 +128,8 @@ function newBatchRow(category: string): BatchRow {
     amount: "",
     projectId: null,
     receiptUrl: null,
+    vendor: "",
+    notes: "",
   };
 }
 
@@ -308,6 +317,23 @@ function ExpenseModal({ item, projects, onClose, onSave }: {
               <ProjectPicker projects={projects} value={form.projectId} onChange={id => f("projectId", id)} placeholder="Tidak terkait proyek" />
             </div>
           )}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <div>
+              <label style={{ display: "block", fontSize: 10, fontWeight: 700, letterSpacing: ".14em", textTransform: "uppercase", color: "rgb(var(--ink) / calc(.35 + var(--ink-boost)))", marginBottom: 6 }}>Vendor / Toko</label>
+              <input value={form.vendor || ""} onChange={e => f("vendor", e.target.value)} placeholder="mis. Tokopedia, Pak Budi" style={ipt} />
+            </div>
+            <div>
+              <label style={{ display: "block", fontSize: 10, fontWeight: 700, letterSpacing: ".14em", textTransform: "uppercase", color: "rgb(var(--ink) / calc(.35 + var(--ink-boost)))", marginBottom: 6 }}>Metode Bayar</label>
+              <select value={form.paymentMethod || ""} onChange={e => f("paymentMethod", e.target.value)} style={{ ...ipt, cursor: "pointer" }}>
+                <option value="" style={{ background: "hsl(var(--card))" }}>—</option>
+                {PAY_METHODS.map(m => <option key={m} value={m} style={{ background: "hsl(var(--card))" }}>{m}</option>)}
+              </select>
+            </div>
+          </div>
+          <div>
+            <label style={{ display: "block", fontSize: 10, fontWeight: 700, letterSpacing: ".14em", textTransform: "uppercase", color: "rgb(var(--ink) / calc(.35 + var(--ink-boost)))", marginBottom: 6 }}>Catatan</label>
+            <textarea value={form.notes || ""} onChange={e => f("notes", e.target.value)} rows={2} placeholder="Keperluan, nomor nota, dll." style={{ ...ipt, resize: "vertical" }} />
+          </div>
           <div>
             <label style={{ display: "block", fontSize: 10, fontWeight: 700, letterSpacing: ".14em", textTransform: "uppercase", color: "rgb(var(--ink) / calc(.35 + var(--ink-boost)))", marginBottom: 6 }}>Struk/Bukti Pembayaran (opsional)</label>
             {form.receiptUrl ? (
@@ -359,6 +385,7 @@ function BatchExpenseModal({ projects, expenses, onClose, onSaveAll }: {
   const [saving, setSaving] = useState(false);
   const [uploadingRowId, setUploadingRowId] = useState<string | null>(null);
   const [allProject, setAllProject] = useState<string | null>(null);
+  const [payMethod, setPayMethod] = useState("");
 
   // Saran keterangan dari riwayat (terbaru menang) + kunci pengecekan duplikat
   const suggestions = useMemo(() => {
@@ -446,7 +473,7 @@ function BatchExpenseModal({ projects, expenses, onClose, onSaveAll }: {
     if (!canSave) return;
     setSaving(true);
     try {
-      await onSaveAll(date, validRows);
+      await onSaveAll(date, validRows.map(r => ({ ...r, paymentMethod: payMethod || null } as BatchRow)));
     } finally {
       setSaving(false);
     }
@@ -479,6 +506,13 @@ function BatchExpenseModal({ projects, expenses, onClose, onSaveAll }: {
             <div style={{ width: 230 }}><ProjectPicker projects={projects} value={allProject} onChange={applyAllProject} placeholder="Pilih (opsional)" /></div>
           </div>
         </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14, flexShrink: 0 }}>
+          <label style={{ fontSize: 11, fontWeight: 700, color: "rgb(var(--ink) / calc(.5 + var(--ink-boost)))", textTransform: "uppercase", letterSpacing: ".1em" }}>Metode bayar semua baris:</label>
+          <select value={payMethod} onChange={e => setPayMethod(e.target.value)} style={{ ...ipt, width: 170, cursor: "pointer" }}>
+            <option value="" style={{ background: "hsl(var(--card))" }}>— tidak diisi —</option>
+            {PAY_METHODS.map(m => <option key={m} value={m} style={{ background: "hsl(var(--card))" }}>{m}</option>)}
+          </select>
+        </div>
         <datalist id="exp-desc-suggest">
           {[...suggestions.values()].slice(0, 300).map(sg => <option key={sg.description} value={sg.description} />)}
         </datalist>
@@ -507,6 +541,10 @@ function BatchExpenseModal({ projects, expenses, onClose, onSaveAll }: {
                 <div style={{ minWidth: 0 }}>
                   <input value={row.description} list="exp-desc-suggest" onChange={e => onDescription(row.rowId, e.target.value)}
                     placeholder={`Pengeluaran ke-${idx + 1}`} style={{ ...ipt, padding: "7px 10px", fontSize: 12 }} />
+                  <div style={{ display: "flex", gap: 6, marginTop: 5 }}>
+                    <input value={row.vendor} onChange={e => updateRow(row.rowId, { vendor: e.target.value })} placeholder="Vendor / toko (opsional)" style={{ ...ipt, padding: "5px 8px", fontSize: 11, flex: "0 0 38%" }} />
+                    <input value={row.notes} onChange={e => updateRow(row.rowId, { notes: e.target.value })} placeholder="Catatan (opsional)" style={{ ...ipt, padding: "5px 8px", fontSize: 11, flex: 1 }} />
+                  </div>
                   {(dupOf(row) || sameBatchDup(row, idx)) && (
                     <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 4, fontSize: 10.5, fontWeight: 600, color: "var(--c-amber)" }}>
                       <AlertTriangle size={11} /> {dupOf(row) ? "Sudah ada pengeluaran sama di tanggal ini — mungkin dobel" : "Sama dengan baris di atasnya — mungkin dobel"}
@@ -871,6 +909,9 @@ export default function ExpensesPage() {
             date,
             projectId: row.projectId,
             receiptUrl: row.receiptUrl,
+            vendor: row.vendor,
+            notes: row.notes,
+            paymentMethod: (row as any).paymentMethod ?? null,
           }),
         }))
       );
@@ -1100,6 +1141,7 @@ export default function ExpensesPage() {
                 {/* Center: description + category */}
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <p style={{ fontSize: 13, fontWeight: 600, color: "hsl(var(--foreground))", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{e.description}</p>
+                  {(e.vendor || e.paymentMethod || e.notes) && <p style={{ fontSize: 10.5, margin: "2px 0 0", color: "rgb(var(--ink) / calc(.4 + var(--ink-boost)))", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{[e.vendor, e.paymentMethod, e.notes].filter(Boolean).join(" · ")}</p>}
                   <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 3 }}>
                     <span style={{ fontSize: 10, fontWeight: 700, padding: "1px 6px", borderRadius: 5, background: "rgba(255,106,32,.12)", color: OR }}>{e.category}</span>
                     {e.receiptUrl && (
@@ -1149,6 +1191,7 @@ export default function ExpensesPage() {
                 </span>
                 <div>
                   <p style={{ fontSize: 13, fontWeight: 600, color: "hsl(var(--foreground))", margin: 0 }}>{e.description}</p>
+                  {(e.vendor || e.paymentMethod || e.notes) && <p style={{ fontSize: 10.5, margin: "2px 0 0", color: "rgb(var(--ink) / calc(.4 + var(--ink-boost)))" }}>{[e.vendor, e.paymentMethod, e.notes].filter(Boolean).join(" · ")}</p>}
                   {e.receiptUrl && (
                     <a href={e.receiptUrl} target="_blank" rel="noopener noreferrer"
                       style={{ fontSize: 10, color: OR, fontWeight: 600, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 3, marginTop: 2 }}>
